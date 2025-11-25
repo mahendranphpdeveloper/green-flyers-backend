@@ -12,7 +12,7 @@
             margin: 0; padding: 0;
         }
         .container {
-            max-width: 600px;
+            max-width: 700px;
             margin: 50px auto 0 auto;
             background: #fff;
             border-radius: 10px;
@@ -47,11 +47,34 @@
             margin-top: 2.5rem;
             font-size: .95rem;
         }
+        .doc-link {
+            margin: 2rem auto 0 auto;
+            text-align: center;
+        }
+        .doc-link a {
+            color: #1b5e20;
+            background: #c8e6c9;
+            border-radius: 5px;
+            padding: 0.6rem 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: 1px solid #81c784;
+            box-shadow: 0 1px 3px #b9f6ca55;
+            transition: background .18s;
+        }
+        .doc-link a:hover {
+            background: #a5d6a7;
+        }
         code {
             background: #dcedc8;
             border-radius: 4px;
             padding: .15em .35em;
             font-size: .95em;
+        }
+        .google-sheet-embed {
+            margin: 2.5rem auto 0 auto;
+            display: flex;
+            justify-content: center;
         }
     </style>
 </head>
@@ -62,7 +85,15 @@
             Welcome to the Green Flyers Laravel API backend.<br>
             This API manages flight itinerary data for eco-conscious air travellers.
         </div>
-        
+        <div class="doc-link">
+            <a href="https://docs.google.com/spreadsheets/d/1-WMopCrEZNm_VYyc8KJW23puzaxC7sSLGHzEr-sD-a4/edit?usp=sharing" target="_blank" rel="noopener">
+                📄 View the Google API Documentation Sheet
+            </a>
+        </div>
+        <div class="google-sheet-embed">
+            <iframe src="https://docs.google.com/spreadsheets/d/1-WMopCrEZNm_VYyc8KJW23puzaxC7sSLGHzEr-sD-a4/edit?usp=sharing"
+                    width="640" height="400" frameborder="0" style="border:1px solid #dce775;border-radius:6px;background:#fff"></iframe>
+        </div>
         <div class="endpoints">
             <b>Main API Endpoints:</b>
             <ul>
@@ -74,7 +105,6 @@
             </ul>
             <small>All endpoints require authentication.</small>
         </div>
-        
         <div class="footer">
             Powered by Laravel • Green Flyers 2024
         </div>
