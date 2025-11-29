@@ -67,7 +67,7 @@ class UserController extends Controller
             $file->move(public_path('uploads/profilefix'), $filename);
 
             // Store new filename only
-            $user->profilePic = 'uploads/profilefix/' . $filename;
+            $user->profilePic = $filename;
         }
 
         $user->save();
