@@ -14,7 +14,7 @@ class ItineraryController extends Controller
     public function index(Request $request)
     {
         // Get itineraries only for the authenticated user
-        $userId = $request->userId ??  $request->user()->userId;
+        $userId = $request->  $request->user()->userId;
         $itineraries = ItineraryData::where('userId', $userId)->get();
         
         return response()->json([
