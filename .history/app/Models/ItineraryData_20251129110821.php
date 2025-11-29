@@ -9,7 +9,7 @@ class ItineraryData extends Model
 {
     use HasFactory;
 
-    protected $table = 'itinerarydata';
+    protected $table = 'Itinerarydata';
 
     protected $primaryKey = 'ItineraryId';
 
