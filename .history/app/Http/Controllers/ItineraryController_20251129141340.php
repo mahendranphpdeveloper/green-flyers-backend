@@ -29,28 +29,24 @@ class ItineraryController extends Controller
     {
         Log::info($request->all());
         Log::info('Current user:', ['user' => $request->user()]);
+        // Overriding request input with the values from the Edit Prompt
 
-        $validated = $request->validate([
-            // Required fields
-            'userId'             => 'required|integer',
-            'date'               => 'required|date',
-            'airline'            => 'required|string|max:255',
-            'origin'             => 'required|string|max:255',
-            'destination'        => 'required|string|max:255',
-            'class'              => 'required|string|max:255',
-            'passengers'         => 'required|integer',
-            'tripType'           => 'required|string|max:255',
-            'distance'           => 'required|string|max:255',
-
-            // Optional or nullable fields
-            'emission'           => 'nullable|integer',
-            'offsetAmount'       => 'nullable|integer',
-            'offsetPercentage'   => 'nullable|integer',
-            'status'             => 'nullable|string|max:255',
-            'approvelStatus'     => 'nullable|string|max:255',
-            'numberOfTrees'      => 'nullable|integer',
-        ]);
-
+        $validated = [
+            'date'            => '2025-11-28 00:00:00',
+            'origin'          => 'MAA',
+            'destination'     => 'DEL',
+            'class'           => 'economy',
+            'airline'         => 'IndiaGo',
+            'passengers'      => 1,
+            'tripType'        => 'one-way',
+            'distance'        => 1760.86, // As string in prompt, but storing as float/decimal
+            'userId'          => 3,
+            'approvelStatus'      => null,
+            'emission'            => null,
+            'offsetAmount'        => null,
+            'offsetPercentage'    => null,
+            'status'              => null,
+        ];
 
         // Check if userId in request matches the current authenticated userId
         if ($request->user()->userId != $validated['userId']) {

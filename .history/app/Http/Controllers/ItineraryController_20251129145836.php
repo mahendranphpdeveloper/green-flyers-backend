@@ -43,11 +43,11 @@ class ItineraryController extends Controller
             'distance'           => 'required|string|max:255',
 
             // Optional or nullable fields
-            'emission'           => 'nullable|integer',
-            'offsetAmount'       => 'nullable|integer',
-            'offsetPercentage'   => 'nullable|integer',
-            'status'             => 'nullable|string|max:255',
-            'approvelStatus'     => 'nullable|string|max:255',
+            'emission'           => 'nullable|numeric',
+            'offsetAmount'       => 'nullable|numeric',
+            'offsetPercentage'   => 'nullable|numeric',
+            'status'             => 'nullable|integer',
+            'approvelStatus'     => 'nullable',
             'numberOfTrees'      => 'nullable|integer',
         ]);
 

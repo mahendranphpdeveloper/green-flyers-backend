@@ -31,24 +31,21 @@ class ItineraryController extends Controller
         Log::info('Current user:', ['user' => $request->user()]);
 
         $validated = $request->validate([
-            // Required fields
-            'userId'             => 'required|integer',
-            'date'               => 'required|date',
-            'airline'            => 'required|string|max:255',
-            'origin'             => 'required|string|max:255',
-            'destination'        => 'required|string|max:255',
-            'class'              => 'required|string|max:255',
-            'passengers'         => 'required|integer',
-            'tripType'           => 'required|string|max:255',
-            'distance'           => 'required|string|max:255',
-
-            // Optional or nullable fields
-            'emission'           => 'nullable|integer',
-            'offsetAmount'       => 'nullable|integer',
-            'offsetPercentage'   => 'nullable|integer',
-            'status'             => 'nullable|string|max:255',
-            'approvelStatus'     => 'nullable|string|max:255',
-            'numberOfTrees'      => 'nullable|integer',
+            'date'             => 'required|date',
+            'origin'           => 'required|string|max:10',
+            'destination'      => 'required|string|max:10',
+            'class'            => 'required|string',
+            'airline'          => 'required|string',
+            'passengers'       => 'required|integer',
+            'tripType'         => 'required|string',
+            'distance'         => 'required|numeric',
+            'userId'           => 'required|integer',
+            // Optional or null fields from Itinerary API payload:
+            'approvelStatus'   => 'nullable|string',
+            'status'           => 'nullable|string',
+            'emission'         => 'nullable|numeric',
+            'offsetAmount'     => 'nullable|numeric',
+            'offsetPercentage' => 'nullable|numeric',
         ]);
 
 
