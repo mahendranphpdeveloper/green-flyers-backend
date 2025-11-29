@@ -45,7 +45,9 @@ class ItineraryController extends Controller
             // Optional or nullable fields
             'emission'           => 'nullable|numeric',
             'offsetAmount'       => 'nullable|numeric',
-            'offsetPercentage'   => 'nullable|numeric',
+            'emission'           => 'nullable|integer',
+            'offsetAmount'       => 'nullable|integer',
+            'offsetPercentage'   => 'nullable|integer',
             'status'             => 'nullable|string|max:255',
             'approvelStatus'     => 'nullable|string|max:255',
             'numberOfTrees'      => 'nullable|integer',
