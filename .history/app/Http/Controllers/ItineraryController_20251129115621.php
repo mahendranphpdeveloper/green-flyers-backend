@@ -20,6 +20,7 @@ class ItineraryController extends Controller
         return response()->json([
             'data' => $itineraries
         ]);
+        //
     }
 
     /**

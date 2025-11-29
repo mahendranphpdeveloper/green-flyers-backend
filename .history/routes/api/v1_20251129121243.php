@@ -57,8 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
 */
 
     Route::prefix('itineraries')->group(function () {
-        // Get itineraries belonging to the authenticated user
-        Route::get('/', [\App\Http\Controllers\ItineraryController::class, 'index']);
+        Route::post('/', [\App\Http\Controllers\ItineraryController::class, 'index']);
         Route::post('/store/', [\App\Http\Controllers\ItineraryController::class, 'store']);
         Route::get('/{id}', [\App\Http\Controllers\ItineraryController::class, 'show']);
         Route::put('/{id}', [\App\Http\Controllers\ItineraryController::class, 'update']);
