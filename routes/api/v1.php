@@ -101,3 +101,6 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::post('/admin/login', [\App\Http\Controllers\AdminController::class, 'login']);
+
+//email controller
+Route::post('/email', [\App\Http\Controllers\EmailController::class, 'send']);
