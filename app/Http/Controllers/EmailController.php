@@ -10,18 +10,26 @@ class EmailController extends Controller
     public function send(Request $request)
     {
         $request->validate([
-            'to' => 'required|email',
+            'emailId' => 'required|email',
             'subject' => 'required|string',
             'message' => 'required|string',
         ]);
 
-        $data = $request->only(['to', 'subject', 'message']);
+        $data = [
+            'to' => $request->emailId,
+            'subject' => $request->subject,
+            'message' => $request->message,
+        ];
 
-        Mail::raw($data['message'], function ($message) use ($data) {
+        Mail::send([], [], function ($message) use ($data) {
             $message->to($data['to'])
-                    ->subject($data['subject']);
+                    ->subject($data['subject'])
+                    ->html($data['message']);
         });
 
-        return response()->json(['status' => 'success', 'message' => 'Email sent']);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Email sent successfully'
+        ]);
     }
 }
