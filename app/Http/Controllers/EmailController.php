@@ -27,6 +27,7 @@ class EmailController extends Controller
                     ->html($data['message']);
         });
 
+        
         return response()->json([
             'status' => 'success',
             'message' => 'Email sent successfully'
