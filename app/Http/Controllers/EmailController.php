@@ -14,7 +14,7 @@ class EmailController extends Controller
             'subject' => 'required|string',
             'message' => 'required|string',
         ]);
-
+    
         $data = [
             'to' => $request->emailId,
             'subject' => $request->subject,
