@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
@@ -43,6 +44,8 @@ class UserController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        
+        Log::info($request->all());
         $user = \App\Models\User::findOrFail($id);
 
         $request->validate([
@@ -55,6 +58,9 @@ class UserController extends Controller
             $user->userName = $request->input('userName');
         }
 
+  if (!file_exists(public_path('uploads/profilefix'))) {
+            mkdir(public_path('uploads/profilefix'), 0777, true);
+        }
         // Handle profilePic update
         if ($request->hasFile('profilePic')) {
             // Delete old profilePic file if it exists
