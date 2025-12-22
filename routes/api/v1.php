@@ -56,14 +56,16 @@ Route::middleware('auth:sanctum')->group(function () {
 |--------------------------------------------------------------------------
 */
 
-    Route::prefix('itineraries')->group(function () {
-        // Get itineraries belonging to the authenticated user
-        Route::get('/', [\App\Http\Controllers\ItineraryController::class, 'index']);
-        Route::post('/store/', [\App\Http\Controllers\ItineraryController::class, 'store']);
-        Route::get('/{id}', [\App\Http\Controllers\ItineraryController::class, 'show']);
-        Route::put('/{id}', [\App\Http\Controllers\ItineraryController::class, 'update']);
-        Route::delete('/{id}', [\App\Http\Controllers\ItineraryController::class, 'destroy']);
-    });
+Route::prefix('itineraries')->group(function () {
+    // Get itineraries belonging to the authenticated user
+    Route::get('/', [\App\Http\Controllers\ItineraryController::class, 'index']);
+    Route::post('/store/', [\App\Http\Controllers\ItineraryController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\ItineraryController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\ItineraryController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\ItineraryController::class, 'destroy']);
+});
+
+    
 
     /*
 |--------------------------------------------------------------------------
@@ -79,28 +81,30 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{id}', [\App\Http\Controllers\OffsetController::class, 'destroy']);
     });
 
-    /*
+      
+});
+
+ /*
+|--------------------------------------------------------------------------
+| ADMIN LOGIN MODULE
+|--------------------------------------------------------------------------
+*/
+Route::post('/admin/login', [\App\Http\Controllers\AdminController::class, 'login']);
+
+//email controller
+Route::post('/email', [\App\Http\Controllers\EmailController::class, 'send']);
+
+ /*
 |--------------------------------------------------------------------------
 | VENDORS MODULE
 |--------------------------------------------------------------------------
 */
 
-    Route::prefix('vendors')->group(function () {
-        Route::get('/', [\App\Http\Controllers\VendorController::class, 'index']);
-        Route::post('/', [\App\Http\Controllers\VendorController::class, 'store']);
-        Route::get('/{id}', [\App\Http\Controllers\VendorController::class, 'show']);
-        Route::put('/{id}', [\App\Http\Controllers\VendorController::class, 'update']);
-        Route::delete('/{id}', [\App\Http\Controllers\VendorController::class, 'destroy']);
-    });
-
-    /*
-|--------------------------------------------------------------------------
-| ADMIN LOGIN MODULE
-|--------------------------------------------------------------------------
-*/
+Route::prefix('vendors')->group(function () {
+    Route::get('/', [\App\Http\Controllers\VendorController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\VendorController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\VendorController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\VendorController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\VendorController::class, 'destroy']);
 });
 
-Route::post('/admin/login', [\App\Http\Controllers\AdminController::class, 'login']);
-
-//email controller
-Route::post('/email', [\App\Http\Controllers\EmailController::class, 'send']);
