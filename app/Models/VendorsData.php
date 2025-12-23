@@ -9,15 +9,13 @@ class VendorsData extends Model
 {
     use HasFactory;
 
-    protected $table = 'vendorsdata'; 
-    protected $fillable = [
-        'name',
-        'projects',
-        'status',
-        'description',
-        'projectUrl',
-        'email',
-        'state',
-        'country'
-    ];
+    protected $table = 'vendorsdata';
+
+    protected $primaryKey = 'id';
+
+    public $incrementing = true;
+
+    protected $keyType = 'int';
+
+    protected $guarded = [];
 }

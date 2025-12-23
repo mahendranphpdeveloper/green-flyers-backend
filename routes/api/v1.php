@@ -89,10 +89,12 @@ Route::prefix('itineraries')->group(function () {
 | ADMIN LOGIN MODULE
 |--------------------------------------------------------------------------
 */
-Route::post('/admin/login', [\App\Http\Controllers\AdminController::class, 'login']);
+Route::post('/admin/login', [\App\Http\Controllers\AdminController::class, 'adminLogin']);
 
 //email controller
 Route::post('/email', [\App\Http\Controllers\EmailController::class, 'send']);
+
+Route::middleware('auth:sanctum')->group(function () {
 
  /*
 |--------------------------------------------------------------------------
@@ -108,3 +110,13 @@ Route::prefix('vendors')->group(function () {
     Route::delete('/{id}', [\App\Http\Controllers\VendorController::class, 'destroy']);
 });
 
+});
+
+//SingleItinerary 
+Route::prefix('SingleItinerary')->group(function () {
+    Route::get('/', [\App\Http\Controllers\SingleItineraryController::class, 'index']);
+    Route::post('/store', [\App\Http\Controllers\SingleItineraryController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'destroy']);
+});
