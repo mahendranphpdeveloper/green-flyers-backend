@@ -28,4 +28,12 @@ class ItineraryData extends Model
     {
         return $this->hasMany(OffsetData::class, 'ItineraryId', 'ItineraryId');
     }
+
+    /**
+     * Relationship to country using country_id as a foreign key.
+     */
+    public function country()
+    {
+        return $this->belongsTo(Country::class, 'country_id', 'country_id');
+    }
 }

@@ -4,24 +4,49 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Models\User;
 
 class UserController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        // Return all user data
+        $users = User::all();
+        return response()->json([
+            'status' => true,
+            'users' => $users,
+        ]);
     }
 
     public function profile(Request $request)
-{
-    return response()->json([
-        'status' => true,
-        'user'   => $request->user()
-    ]);
-}
+    {
+        $authUser = $request->user();
+
+        if (!$authUser) {
+            return response()->json([
+                'status' => false,
+                'message' => 'User not authenticated.'
+            ], 401);
+        }
+
+        // Fetch from User model to ensure up-to-date information
+        $user = User::find($authUser->id);
+
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'User not found.'
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => true,
+            'user' => $user
+        ]);
+    }
 
     /**
      * Store a newly created resource in storage.
@@ -34,9 +59,21 @@ class UserController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Request $request, string $id)
     {
-        //
+        $user = User::find($id);
+
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'User not found.'
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => true,
+            'user' => $user
+        ]);
     }
 
     /**
@@ -44,7 +81,6 @@ class UserController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        
         Log::info($request->all());
         $user = \App\Models\User::findOrFail($id);
 
@@ -58,7 +94,7 @@ class UserController extends Controller
             $user->userName = $request->input('userName');
         }
 
-  if (!file_exists(public_path('uploads/profilefix'))) {
+        if (!file_exists(public_path('uploads/profilefix'))) {
             mkdir(public_path('uploads/profilefix'), 0777, true);
         }
         // Handle profilePic update
@@ -88,8 +124,27 @@ class UserController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
-        //
+        $user = User::find($id);
+
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'User not found.'
+            ], 404);
+        }
+
+        // Optionally delete user's profile picture file if exists
+        if ($user->profilePic && file_exists(public_path($user->profilePic))) {
+            @unlink(public_path($user->profilePic));
+        }
+
+        $user->delete();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'User deleted successfully.'
+        ]);
     }
 }

@@ -34,7 +34,9 @@ Route::post('/auth/google-login', [\App\Http\Controllers\AuthController::class, 
 
 
 Route::middleware('auth:sanctum')->group(function () {
-    /*
+
+    
+ /*
     |--------------------------------------------------------------------------
     | USERS MODULE
     |--------------------------------------------------------------------------
@@ -50,6 +52,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{id}', [\App\Http\Controllers\UserController::class, 'destroy']);
     });
 
+
+   
+
     /*
 |--------------------------------------------------------------------------
 | ITINERARY MODULE
@@ -63,6 +68,17 @@ Route::prefix('itineraries')->group(function () {
     Route::get('/{id}', [\App\Http\Controllers\ItineraryController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\ItineraryController::class, 'update']);
     Route::delete('/{id}', [\App\Http\Controllers\ItineraryController::class, 'destroy']);
+});
+
+
+
+//SingleItinerary 
+Route::prefix('SingleItinerary')->group(function () {
+    Route::get('/', [\App\Http\Controllers\SingleItineraryController::class, 'index']);
+    Route::post('/store', [\App\Http\Controllers\SingleItineraryController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'destroy']);
 });
 
     
@@ -81,21 +97,7 @@ Route::prefix('itineraries')->group(function () {
         Route::delete('/{id}', [\App\Http\Controllers\OffsetController::class, 'destroy']);
     });
 
-      
-});
-
- /*
-|--------------------------------------------------------------------------
-| ADMIN LOGIN MODULE
-|--------------------------------------------------------------------------
-*/
-Route::post('/admin/login', [\App\Http\Controllers\AdminController::class, 'adminLogin']);
-
-//email controller
-Route::post('/email', [\App\Http\Controllers\EmailController::class, 'send']);
-
-Route::middleware('auth:sanctum')->group(function () {
-
+    
  /*
 |--------------------------------------------------------------------------
 | VENDORS MODULE
@@ -110,13 +112,20 @@ Route::prefix('vendors')->group(function () {
     Route::delete('/{id}', [\App\Http\Controllers\VendorController::class, 'destroy']);
 });
 
+      
 });
 
-//SingleItinerary 
-Route::prefix('SingleItinerary')->group(function () {
-    Route::get('/', [\App\Http\Controllers\SingleItineraryController::class, 'index']);
-    Route::post('/store', [\App\Http\Controllers\SingleItineraryController::class, 'store']);
-    Route::get('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'show']);
-    Route::put('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'update']);
-    Route::delete('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'destroy']);
-});
+ /*
+|--------------------------------------------------------------------------
+| ADMIN LOGIN MODULE
+|--------------------------------------------------------------------------
+*/
+Route::post('/admin/login', [\App\Http\Controllers\AdminController::class, 'adminLogin']);
+
+//email controller
+Route::post('/email', [\App\Http\Controllers\EmailController::class, 'send']);
+
+
+
+
+

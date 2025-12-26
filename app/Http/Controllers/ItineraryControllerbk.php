@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\ItineraryData;
-use App\Models\Country;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -18,17 +17,6 @@ class ItineraryController extends Controller
         $userId = $request->userId ??  $request->user()->userId;
         $itineraries = ItineraryData::where('userId', $userId)->get();
         
-        // Attach country names from country table if country code exists
-        $itineraries->transform(function($itinerary) {
-            if($itinerary->country) {
-                $country = Country::where('code', $itinerary->country)->first();
-                $itinerary->country_name = $country ? $country->name : null;
-            } else {
-                $itinerary->country_name = null;
-            }
-            return $itinerary;
-        });
-
         return response()->json([
             'data' => $itineraries
         ]);
@@ -65,17 +53,7 @@ class ItineraryController extends Controller
             'offsetAmount'       => 'nullable|integer',
             'offsetPercentage'   => 'nullable|integer',
             'numberOfTrees'      => 'nullable|integer',
-            'country'            => [
-                'nullable',
-                'string',
-                'max:255',
-                function($attribute, $value, $fail) {
-                    if ($value && !Country::where('code', $value)->exists()) {
-                        // "code" assumed to be the ISO or unique country code
-                        $fail('The selected country is invalid.');
-                    }
-                }
-            ],
+            'country'            => 'nullable|string|max:255', // <--- inserted country after numberOfTrees
             'status'             => 'nullable|string|max:255',
             'approvelStatus'     => 'nullable|string|max:255',
         ]);
@@ -88,27 +66,7 @@ class ItineraryController extends Controller
         }
 
         $itinerary = ItineraryData::create($validated);
-
-        // Attach country name if exists
-        if ($itinerary->country) {
-            $country = Country::where('code', $itinerary->country)->first();
-            $itinerary->country_name = $country ? $country->name : null;
-        } else {
-            $itinerary->country_name = null;
-        }
-
-        $itineraries = ItineraryData::where('userId', $request->user()->userId)->get();
-        // Attach country names to the list
-        $itineraries->transform(function($itinerary) {
-            if ($itinerary->country) {
-                $country = Country::where('code', $itinerary->country)->first();
-                $itinerary->country_name = $country ? $country->name : null;
-            } else {
-                $itinerary->country_name = null;
-            }
-            return $itinerary;
-        });
-
+        $itineraries = ItineraryData::all();
         return response()->json([
             'message' => 'Itinerary created successfully',
             'data' => $itineraries
@@ -134,14 +92,6 @@ class ItineraryController extends Controller
             return response()->json([
                 'message' => 'Unauthorized: You do not have access to this itinerary.'
             ], 403);
-        }
-
-        // Attach country name
-        if ($itinerary->country) {
-            $country = Country::where('code', $itinerary->country)->first();
-            $itinerary->country_name = $country ? $country->name : null;
-        } else {
-            $itinerary->country_name = null;
         }
 
         return response()->json([
@@ -187,29 +137,12 @@ class ItineraryController extends Controller
             'offsetAmount'       => 'nullable|integer',
             'offsetPercentage'   => 'nullable|integer',
             'numberOfTrees'      => 'nullable|integer',
-            'country'            => [
-                'nullable',
-                'string',
-                'max:255',
-                function($attribute, $value, $fail) {
-                    if ($value && !Country::where('code', $value)->exists()) {
-                        $fail('The selected country is invalid.');
-                    }
-                }
-            ],
+            'country'            => 'nullable|string|max:255', // <--- inserted country after numberOfTrees
             'status'             => 'nullable|string|max:255',
             'approvelStatus'     => 'nullable|string|max:255',
         ]);
 
         $itinerary->update($validated);
-
-        // Attach country name after update
-        if ($itinerary->country) {
-            $country = Country::where('code', $itinerary->country)->first();
-            $itinerary->country_name = $country ? $country->name : null;
-        } else {
-            $itinerary->country_name = null;
-        }
 
         return response()->json([
             'message' => 'Itinerary updated successfully',
