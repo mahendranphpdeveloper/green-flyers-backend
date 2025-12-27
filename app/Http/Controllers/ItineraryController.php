@@ -17,10 +17,10 @@ class ItineraryController extends Controller
         // Get itineraries only for the authenticated user
         $userId = $request->userId ??  $request->user()->userId;
         $itineraries = ItineraryData::where('userId', $userId)->get();
-        
+
         // Attach country names from country table if country code exists
-        $itineraries->transform(function($itinerary) {
-            if($itinerary->country) {
+        $itineraries->transform(function ($itinerary) {
+            if ($itinerary->country) {
                 $country = Country::where('code', $itinerary->country)->first();
                 $itinerary->country_name = $country ? $country->name : null;
             } else {
@@ -47,7 +47,7 @@ class ItineraryController extends Controller
             // Required fields
             'userId'             => 'required|integer',
             'date'               => 'required|date',
-            
+
             // These fields are nullable in DB but may be required by your business logic (keep as required for now)
             'airline'            => 'required|string|max:255',
             'origin'             => 'required|string|max:255',
@@ -65,17 +65,17 @@ class ItineraryController extends Controller
             'offsetAmount'       => 'nullable|integer',
             'offsetPercentage'   => 'nullable|integer',
             'numberOfTrees'      => 'nullable|integer',
-            'country'            => [
+            'country' => [
                 'nullable',
                 'string',
                 'max:255',
-                function($attribute, $value, $fail) {
-                    if ($value && !Country::where('code', $value)->exists()) {
-                        // "code" assumed to be the ISO or unique country code
+                function ($attribute, $value, $fail) {
+                    if ($value && !Country::where('country_name', $value)->exists()) {
                         $fail('The selected country is invalid.');
                     }
                 }
             ],
+
             'status'             => 'nullable|string|max:255',
             'approvelStatus'     => 'nullable|string|max:255',
         ]);
@@ -99,7 +99,7 @@ class ItineraryController extends Controller
 
         $itineraries = ItineraryData::where('userId', $request->user()->userId)->get();
         // Attach country names to the list
-        $itineraries->transform(function($itinerary) {
+        $itineraries->transform(function ($itinerary) {
             if ($itinerary->country) {
                 $country = Country::where('code', $itinerary->country)->first();
                 $itinerary->country_name = $country ? $country->name : null;
@@ -187,16 +187,17 @@ class ItineraryController extends Controller
             'offsetAmount'       => 'nullable|integer',
             'offsetPercentage'   => 'nullable|integer',
             'numberOfTrees'      => 'nullable|integer',
-            'country'            => [
+            'country' => [
                 'nullable',
                 'string',
                 'max:255',
-                function($attribute, $value, $fail) {
-                    if ($value && !Country::where('code', $value)->exists()) {
+                function ($attribute, $value, $fail) {
+                    if ($value && !Country::where('country_name', $value)->exists()) {
                         $fail('The selected country is invalid.');
                     }
                 }
             ],
+
             'status'             => 'nullable|string|max:255',
             'approvelStatus'     => 'nullable|string|max:255',
         ]);
