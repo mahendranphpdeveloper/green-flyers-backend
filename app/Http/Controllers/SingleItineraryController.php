@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\SingleItineraryData;
 use App\Models\ItineraryData;
+use Illuminate\Support\Facades\Storage;
 
 class SingleItineraryController extends Controller
 {
@@ -32,11 +33,12 @@ class SingleItineraryController extends Controller
             'ItineraryId'     => 'required|integer|exists:itinerarydata,ItineraryId',
             // userId should not be in request: always use authenticated user ID
             'uploadDate'      => 'nullable|date',
-            'certificateFile' => 'nullable|string|max:255',
+            'certificateFile' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120', // up to 5MB
             'approvelStatus'  => 'nullable|string|max:255',
             'emissionOffset'  => 'nullable|numeric',
             'treesPlanted'    => 'nullable|integer',
             'projectTypes'    => 'nullable|string|max:255',
+            'comments'        => 'nullable|string|max:1000', // Added comments column
         ]);
 
         // Ensure that the ItineraryId belongs to the authenticated user
@@ -46,6 +48,15 @@ class SingleItineraryController extends Controller
 
         if (!$itinerary) {
             return response()->json(['message' => 'Unauthorized: ItineraryId does not belong to the authenticated user.'], 403);
+        }
+
+        // Handle certificateFile upload
+        if ($request->hasFile('certificateFile')) {
+            $file = $request->file('certificateFile');
+            $path = $file->store('certificates', 'public');
+            $validatedData['certificateFile'] = $path;
+        } else {
+            unset($validatedData['certificateFile']);
         }
 
         // Add authenticated userId to the data
@@ -104,11 +115,12 @@ class SingleItineraryController extends Controller
             'ItineraryId'     => 'sometimes|integer|exists:itinerarydata,ItineraryId',
             // userId should not be updatable: always use authenticated user ID
             'uploadDate'      => 'nullable|date',
-            'certificateFile' => 'nullable|string|max:255',
+            'certificateFile' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120', // up to 5MB
             'approvelStatus'  => 'nullable|string|max:255',
             'emissionOffset'  => 'nullable|numeric',
             'treesPlanted'    => 'nullable|integer',
             'projectTypes'    => 'nullable|string|max:255',
+            'comments'        => 'nullable|string|max:1000', // Added comments column
         ]);
 
         // If trying to update ItineraryId, ensure it belongs to the authenticated user
@@ -119,6 +131,21 @@ class SingleItineraryController extends Controller
             if (!$itinerary) {
                 return response()->json(['message' => 'Unauthorized: ItineraryId does not belong to the authenticated user.'], 403);
             }
+        }
+
+        // Handle certificateFile upload
+        if ($request->hasFile('certificateFile')) {
+            // Delete the old certificate file if exists
+            if ($singleItinerary->certificateFile && Storage::disk('public')->exists($singleItinerary->certificateFile)) {
+                Storage::disk('public')->delete($singleItinerary->certificateFile);
+            }
+
+            $file = $request->file('certificateFile');
+            $path = $file->store('certificates', 'public');
+            $validatedData['certificateFile'] = $path;
+        } else {
+            // If not uploading a new file, do not overwrite the previous value (let the model keep its existing cert path)
+            unset($validatedData['certificateFile']);
         }
 
         // Always enforce userId in update (paranoid/pure) - but not updatable, so not set here
@@ -148,6 +175,11 @@ class SingleItineraryController extends Controller
         // Only allow delete if this SingleItinerary belongs to the authenticated user
         if ($singleItinerary->userId !== $user->userId) {
             return response()->json(['message' => 'Unauthorized: You do not have access to this resource.'], 403);
+        }
+
+        // Delete certificateFile if exists
+        if ($singleItinerary->certificateFile && Storage::disk('public')->exists($singleItinerary->certificateFile)) {
+            Storage::disk('public')->delete($singleItinerary->certificateFile);
         }
 
         $singleItinerary->delete();
