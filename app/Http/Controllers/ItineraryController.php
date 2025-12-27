@@ -15,16 +15,20 @@ class ItineraryController extends Controller
     public function index(Request $request)
     {
         // Get itineraries only for the authenticated user
-        $userId = $request->userId ??  $request->user()->userId;
+        $userId = $request->userId ?? $request->user()->userId;
         $itineraries = ItineraryData::where('userId', $userId)->get();
 
-        // Attach country names from country table if country code exists
+        // Attach country names from country table if country_id exists
         $itineraries->transform(function ($itinerary) {
             if ($itinerary->country) {
-                $country = Country::where('code', $itinerary->country)->first();
-                $itinerary->country_name = $country ? $country->name : null;
+                $country = Country::where('country_id', $itinerary->country)
+                    ->orWhere('country_name', $itinerary->country)
+                    ->first();
+                $itinerary->country_name = $country ? $country->country_name : null;
+                $itinerary->country_id = $country ? $country->country_id : null;
             } else {
                 $itinerary->country_name = null;
+                $itinerary->country_id = null;
             }
             return $itinerary;
         });
@@ -48,7 +52,6 @@ class ItineraryController extends Controller
             'userId'             => 'required|integer',
             'date'               => 'required|date',
 
-            // These fields are nullable in DB but may be required by your business logic (keep as required for now)
             'airline'            => 'required|string|max:255',
             'origin'             => 'required|string|max:255',
             'destination'        => 'required|string|max:255',
@@ -57,7 +60,6 @@ class ItineraryController extends Controller
             'tripType'           => 'required|string|max:255',
             'distance'           => 'required|string|max:255',
 
-            // New/updated optional fields from DB structure
             'flightcode'         => 'nullable|string|max:255',
             'originCity'         => 'nullable|string|max:255',
             'destinationCity'    => 'nullable|string|max:255',
@@ -70,7 +72,13 @@ class ItineraryController extends Controller
                 'string',
                 'max:255',
                 function ($attribute, $value, $fail) {
-                    if ($value && !Country::where('country_name', $value)->exists()) {
+                    // Accept either country name or primary key (country_id)
+                    if (
+                        $value &&
+                        !Country::where('country_name', $value)
+                            ->orWhere('country_id', $value)
+                            ->exists()
+                    ) {
                         $fail('The selected country is invalid.');
                     }
                 }
@@ -79,6 +87,15 @@ class ItineraryController extends Controller
             'status'             => 'nullable|string|max:255',
             'approvelStatus'     => 'nullable|string|max:255',
         ]);
+
+        // If a country is provided as a name, convert to country_id for storage if needed
+        if (!empty($validated['country'])) {
+            $country = Country::where('country_name', $validated['country'])
+                ->orWhere('country_id', $validated['country'])
+                ->first();
+            // Store the country_id in the DB if it's available, otherwise store the original value as fallback
+            $validated['country'] = $country ? $country->country_id : $validated['country'];
+        }
 
         // Check if userId in request matches the current authenticated userId
         if ($request->user()->userId != $validated['userId']) {
@@ -89,22 +106,30 @@ class ItineraryController extends Controller
 
         $itinerary = ItineraryData::create($validated);
 
-        // Attach country name if exists
+        // Attach country name and id if exists
         if ($itinerary->country) {
-            $country = Country::where('code', $itinerary->country)->first();
-            $itinerary->country_name = $country ? $country->name : null;
+            $country = Country::where('country_id', $itinerary->country)
+                ->orWhere('country_name', $itinerary->country)
+                ->first();
+            $itinerary->country_name = $country ? $country->country_name : null;
+            $itinerary->country_id = $country ? $country->country_id : null;
         } else {
             $itinerary->country_name = null;
+            $itinerary->country_id = null;
         }
 
         $itineraries = ItineraryData::where('userId', $request->user()->userId)->get();
         // Attach country names to the list
         $itineraries->transform(function ($itinerary) {
             if ($itinerary->country) {
-                $country = Country::where('code', $itinerary->country)->first();
-                $itinerary->country_name = $country ? $country->name : null;
+                $country = Country::where('country_id', $itinerary->country)
+                    ->orWhere('country_name', $itinerary->country)
+                    ->first();
+                $itinerary->country_name = $country ? $country->country_name : null;
+                $itinerary->country_id = $country ? $country->country_id : null;
             } else {
                 $itinerary->country_name = null;
+                $itinerary->country_id = null;
             }
             return $itinerary;
         });
@@ -136,12 +161,16 @@ class ItineraryController extends Controller
             ], 403);
         }
 
-        // Attach country name
+        // Attach country name and id
         if ($itinerary->country) {
-            $country = Country::where('code', $itinerary->country)->first();
-            $itinerary->country_name = $country ? $country->name : null;
+            $country = Country::where('country_id', $itinerary->country)
+                ->orWhere('country_name', $itinerary->country)
+                ->first();
+            $itinerary->country_name = $country ? $country->country_name : null;
+            $itinerary->country_id = $country ? $country->country_id : null;
         } else {
             $itinerary->country_name = null;
+            $itinerary->country_id = null;
         }
 
         return response()->json([
@@ -192,7 +221,12 @@ class ItineraryController extends Controller
                 'string',
                 'max:255',
                 function ($attribute, $value, $fail) {
-                    if ($value && !Country::where('country_name', $value)->exists()) {
+                    if (
+                        $value &&
+                        !Country::where('country_name', $value)
+                            ->orWhere('country_id', $value)
+                            ->exists()
+                    ) {
                         $fail('The selected country is invalid.');
                     }
                 }
@@ -202,14 +236,26 @@ class ItineraryController extends Controller
             'approvelStatus'     => 'nullable|string|max:255',
         ]);
 
+        // Convert country to country_id if needed
+        if (!empty($validated['country'])) {
+            $country = Country::where('country_name', $validated['country'])
+                ->orWhere('country_id', $validated['country'])
+                ->first();
+            $validated['country'] = $country ? $country->country_id : $validated['country'];
+        }
+
         $itinerary->update($validated);
 
-        // Attach country name after update
+        // Attach country name and id after update
         if ($itinerary->country) {
-            $country = Country::where('code', $itinerary->country)->first();
-            $itinerary->country_name = $country ? $country->name : null;
+            $country = Country::where('country_id', $itinerary->country)
+                ->orWhere('country_name', $itinerary->country)
+                ->first();
+            $itinerary->country_name = $country ? $country->country_name : null;
+            $itinerary->country_id = $country ? $country->country_id : null;
         } else {
             $itinerary->country_name = null;
+            $itinerary->country_id = null;
         }
 
         return response()->json([
