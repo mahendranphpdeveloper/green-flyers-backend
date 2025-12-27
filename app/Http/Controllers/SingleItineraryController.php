@@ -6,63 +6,71 @@ use Illuminate\Http\Request;
 use App\Models\SingleItineraryData;
 use App\Models\ItineraryData;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class SingleItineraryController extends Controller
 {
-    
+
     public function index(Request $request)
     {
-        // Only get SingleItinerary records that belong to the authenticated user
         $user = $request->user();
+        Log::info('index() called in SingleItineraryController', ['user' => $user]);
         if (!$user) {
+            Log::warning('Unauthorized access attempt in index()');
             return response()->json(['message' => 'Unauthorized.'], 401);
         }
         $singleItineraries = SingleItineraryData::where('userId', $user->userId)->get();
+        Log::info('index() returning single itineraries', ['userId' => $user->userId, 'count' => $singleItineraries->count()]);
         return response()->json($singleItineraries);
     }
 
-   
+
     public function store(Request $request)
     {
         $user = $request->user();
+        Log::info('store() called in SingleItineraryController', ['user' => $user, 'request' => $request->all()]);
         if (!$user) {
+            Log::warning('Unauthorized access attempt in store()');
             return response()->json(['message' => 'Unauthorized.'], 401);
         }
 
         $validatedData = $request->validate([
             'ItineraryId'     => 'required|integer|exists:itinerarydata,ItineraryId',
-            // userId should not be in request: always use authenticated user ID
             'uploadDate'      => 'nullable|date',
-            'certificateFile' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120', // up to 5MB
+            'certificateFile' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'approvelStatus'  => 'nullable|string|max:255',
             'emissionOffset'  => 'nullable|numeric',
             'treesPlanted'    => 'nullable|integer',
             'projectTypes'    => 'nullable|string|max:255',
-            'comments'        => 'nullable|string|max:1000', // Added comments column
+            'comments'        => 'nullable|string|max:1000',
         ]);
+        Log::info('Validated data in store()', ['validatedData' => $validatedData]);
 
-        // Ensure that the ItineraryId belongs to the authenticated user
         $itinerary = ItineraryData::where('ItineraryId', $validatedData['ItineraryId'])
             ->where('userId', $user->userId)
             ->first();
 
         if (!$itinerary) {
+            Log::warning('Attempt to store SingleItinerary with unauthorized ItineraryId', [
+                'userId' => $user->userId,
+                'ItineraryId' => $validatedData['ItineraryId']
+            ]);
             return response()->json(['message' => 'Unauthorized: ItineraryId does not belong to the authenticated user.'], 403);
         }
 
-        // Handle certificateFile upload
         if ($request->hasFile('certificateFile')) {
             $file = $request->file('certificateFile');
             $path = $file->store('certificates', 'public');
             $validatedData['certificateFile'] = $path;
+            Log::info('Certificate file uploaded in store()', ['path' => $path]);
         } else {
             unset($validatedData['certificateFile']);
         }
 
-        // Add authenticated userId to the data
         $validatedData['userId'] = $user->userId;
 
         $singleItinerary = SingleItineraryData::create($validatedData);
+        Log::info('SingleItinerary created', ['singleItinerary' => $singleItinerary]);
 
         return response()->json([
             'message' => 'SingleItinerary created successfully.',
@@ -74,21 +82,28 @@ class SingleItineraryController extends Controller
     public function show(Request $request, $id)
     {
         $user = $request->user();
+        Log::info('show() called in SingleItineraryController', ['user' => $user, 'id' => $id]);
         if (!$user) {
+            Log::warning('Unauthorized access attempt in show()');
             return response()->json(['message' => 'Unauthorized.'], 401);
         }
 
         $singleItinerary = SingleItineraryData::find($id);
 
         if (!$singleItinerary) {
+            Log::warning('SingleItinerary not found in show()', ['id' => $id]);
             return response()->json(['message' => 'SingleItinerary not found.'], 404);
         }
 
-        // Only allow access if this SingleItinerary belongs to the authenticated user
         if ($singleItinerary->userId !== $user->userId) {
+            Log::warning('Unauthorized access to SingleItinerary in show()', [
+                'userId' => $user->userId,
+                'ownerUserId' => $singleItinerary->userId
+            ]);
             return response()->json(['message' => 'Unauthorized: You do not have access to this resource.'], 403);
         }
 
+        Log::info('SingleItinerary successfully returned from show()', ['singleItinerary' => $singleItinerary]);
         return response()->json($singleItinerary);
     }
 
@@ -101,86 +116,109 @@ class SingleItineraryController extends Controller
      */
     public function getByUserAndItinerary(Request $request, $userId, $ItineraryId)
     {
-        // Only allow access if caller is same as userId or is admin if you want to extend
+        Log::info('getByUserAndItinerary() called', ['requestedUserId' => $userId, 'requestedItineraryId' => $ItineraryId]);
         $user = $request->user();
         if (!$user) {
+            Log::warning('Unauthorized access attempt in getByUserAndItinerary()');
             return response()->json(['message' => 'Unauthorized.'], 401);
         }
         if ($user->userId != $userId) {
+            Log::warning('Access denied in getByUserAndItinerary()', [
+                'loginUserId' => $user->userId,
+                'requestedUserId' => $userId
+            ]);
             return response()->json(['message' => 'Unauthorized: You do not have access to this user\'s resources.'], 403);
         }
 
-        // Get all records matching this user and itinerary
         $singleItineraries = SingleItineraryData::where('userId', $userId)
             ->where('ItineraryId', $ItineraryId)
             ->get();
 
         if ($singleItineraries->isEmpty()) {
+            Log::warning("No records found for getByUserAndItinerary()", [
+                'userId' => $userId,
+                'ItineraryId' => $ItineraryId
+            ]);
             return response()->json(['message' => 'No records found for this user and itinerary.'], 404);
         }
 
+        Log::info('getByUserAndItinerary() returning records', [
+            'count' => $singleItineraries->count(),
+            'userId' => $userId,
+            'ItineraryId' => $ItineraryId
+        ]);
         return response()->json($singleItineraries);
     }
 
-    
+
     public function update(Request $request, $id)
     {
         $user = $request->user();
+        Log::info('update() called in SingleItineraryController', ['user' => $user, 'singleItineraryId' => $id]);
         if (!$user) {
+            Log::warning('Unauthorized access attempt in update()');
             return response()->json(['message' => 'Unauthorized.'], 401);
         }
 
         $singleItinerary = SingleItineraryData::find($id);
 
         if (!$singleItinerary) {
+            Log::warning('SingleItinerary not found in update()', ['id' => $id]);
             return response()->json(['message' => 'SingleItinerary not found.'], 404);
         }
 
-        // Only allow update if this SingleItinerary belongs to the authenticated user
         if ($singleItinerary->userId !== $user->userId) {
+            Log::warning('Unauthorized update attempt on SingleItinerary', [
+                'userId' => $user->userId,
+                'ownerUserId' => $singleItinerary->userId
+            ]);
             return response()->json(['message' => 'Unauthorized: You do not have access to this resource.'], 403);
         }
 
         $validatedData = $request->validate([
             'ItineraryId'     => 'sometimes|integer|exists:itinerarydata,ItineraryId',
-            // userId should not be updatable: always use authenticated user ID
             'uploadDate'      => 'nullable|date',
-            'certificateFile' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120', // up to 5MB
+            'certificateFile' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'approvelStatus'  => 'nullable|string|max:255',
             'emissionOffset'  => 'nullable|numeric',
             'treesPlanted'    => 'nullable|integer',
             'projectTypes'    => 'nullable|string|max:255',
-            'comments'        => 'nullable|string|max:1000', // Added comments column
+            'comments'        => 'nullable|string|max:1000',
         ]);
+        Log::info('Validated data in update()', ['validatedData' => $validatedData]);
 
-        // If trying to update ItineraryId, ensure it belongs to the authenticated user
         if (isset($validatedData['ItineraryId'])) {
             $itinerary = ItineraryData::where('ItineraryId', $validatedData['ItineraryId'])
                 ->where('userId', $user->userId)
                 ->first();
             if (!$itinerary) {
+                Log::warning('Unauthorized ItineraryId in update()', [
+                    'userId' => $user->userId,
+                    'ItineraryId' => $validatedData['ItineraryId']
+                ]);
                 return response()->json(['message' => 'Unauthorized: ItineraryId does not belong to the authenticated user.'], 403);
             }
         }
 
-        // Handle certificateFile upload
         if ($request->hasFile('certificateFile')) {
-            // Delete the old certificate file if exists
             if ($singleItinerary->certificateFile && Storage::disk('public')->exists($singleItinerary->certificateFile)) {
                 Storage::disk('public')->delete($singleItinerary->certificateFile);
+                Log::info('Old certificateFile deleted in update()', ['previous' => $singleItinerary->certificateFile]);
             }
 
             $file = $request->file('certificateFile');
             $path = $file->store('certificates', 'public');
             $validatedData['certificateFile'] = $path;
+            Log::info('Certificate file uploaded in update()', ['path' => $path]);
         } else {
-            // If not uploading a new file, do not overwrite the previous value (let the model keep its existing cert path)
             unset($validatedData['certificateFile']);
         }
 
-        // Always enforce userId in update (paranoid/pure) - but not updatable, so not set here
-
         $singleItinerary->update($validatedData);
+        Log::info('SingleItinerary updated', [
+            'singleItineraryId' => $id,
+            'updatedFields' => $validatedData
+        ]);
 
         return response()->json([
             'message' => 'SingleItinerary updated successfully.',
@@ -188,31 +226,41 @@ class SingleItineraryController extends Controller
         ]);
     }
 
-  
+
     public function destroy(Request $request, $id)
     {
         $user = $request->user();
+        Log::info('destroy() called in SingleItineraryController', [
+            'user' => $user,
+            'singleItineraryId' => $id
+        ]);
         if (!$user) {
+            Log::warning('Unauthorized access attempt in destroy()');
             return response()->json(['message' => 'Unauthorized.'], 401);
         }
 
         $singleItinerary = SingleItineraryData::find($id);
 
         if (!$singleItinerary) {
+            Log::warning('SingleItinerary not found in destroy()', ['id' => $id]);
             return response()->json(['message' => 'SingleItinerary not found.'], 404);
         }
 
-        // Only allow delete if this SingleItinerary belongs to the authenticated user
         if ($singleItinerary->userId !== $user->userId) {
+            Log::warning('Unauthorized delete attempt on SingleItinerary', [
+                'userId' => $user->userId,
+                'ownerUserId' => $singleItinerary->userId
+            ]);
             return response()->json(['message' => 'Unauthorized: You do not have access to this resource.'], 403);
         }
 
-        // Delete certificateFile if exists
         if ($singleItinerary->certificateFile && Storage::disk('public')->exists($singleItinerary->certificateFile)) {
             Storage::disk('public')->delete($singleItinerary->certificateFile);
+            Log::info('Certificate file deleted in destroy()', ['certificateFile' => $singleItinerary->certificateFile]);
         }
 
         $singleItinerary->delete();
+        Log::info('SingleItinerary deleted', ['singleItineraryId' => $id]);
 
         return response()->json(['message' => 'SingleItinerary deleted successfully.']);
     }
