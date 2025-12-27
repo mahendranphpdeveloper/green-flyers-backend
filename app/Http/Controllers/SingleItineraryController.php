@@ -92,6 +92,36 @@ class SingleItineraryController extends Controller
         return response()->json($singleItinerary);
     }
 
+    /**
+     * Get SingleItinerary records for a given userId and ItineraryId.
+     * @param Request $request
+     * @param int $userId
+     * @param int $ItineraryId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getByUserAndItinerary(Request $request, $userId, $ItineraryId)
+    {
+        // Only allow access if caller is same as userId or is admin if you want to extend
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized.'], 401);
+        }
+        if ($user->userId != $userId) {
+            return response()->json(['message' => 'Unauthorized: You do not have access to this user\'s resources.'], 403);
+        }
+
+        // Get all records matching this user and itinerary
+        $singleItineraries = SingleItineraryData::where('userId', $userId)
+            ->where('ItineraryId', $ItineraryId)
+            ->get();
+
+        if ($singleItineraries->isEmpty()) {
+            return response()->json(['message' => 'No records found for this user and itinerary.'], 404);
+        }
+
+        return response()->json($singleItineraries);
+    }
+
     
     public function update(Request $request, $id)
     {
