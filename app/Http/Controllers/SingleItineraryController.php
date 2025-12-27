@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Storage;
 
 class SingleItineraryController extends Controller
 {
-    // GET /api/v1/SingleItinerary/
+    
     public function index(Request $request)
     {
         // Only get SingleItinerary records that belong to the authenticated user
@@ -21,7 +21,7 @@ class SingleItineraryController extends Controller
         return response()->json($singleItineraries);
     }
 
-    // POST /api/v1/SingleItinerary/store
+   
     public function store(Request $request)
     {
         $user = $request->user();
@@ -70,7 +70,7 @@ class SingleItineraryController extends Controller
         ], 201);
     }
 
-    // GET /api/v1/SingleItinerary/{id}
+
     public function show(Request $request, $id)
     {
         $user = $request->user();
@@ -92,7 +92,7 @@ class SingleItineraryController extends Controller
         return response()->json($singleItinerary);
     }
 
-    // PUT /api/v1/SingleItinerary/{id}
+    
     public function update(Request $request, $id)
     {
         $user = $request->user();
@@ -158,7 +158,7 @@ class SingleItineraryController extends Controller
         ]);
     }
 
-    // DELETE /api/v1/SingleItinerary/{id}
+  
     public function destroy(Request $request, $id)
     {
         $user = $request->user();
