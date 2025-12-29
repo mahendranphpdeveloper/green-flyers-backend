@@ -123,49 +123,99 @@ class UserController extends Controller
     // }
 
     
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function update(Request $request, string $id)
-{
-    $request->merge(['userId' => $id]);
+   
+//     public function update(Request $request, string $id)
+// {
+//     $request->merge(['userId' => $id]);
 
-    $validated = $request->validate([
-        'userId' => 'required|integer|exists:users,id',
-        'userName' => 'sometimes|string|max:255',
-        'profilePic' => 'sometimes|image|mimes:jpg,jpeg,png,webp|max:5120',
-        'lastModification' => 'sometimes|date',
-    ]);
+//     $validated = $request->validate([
+//         'userId' => 'required|integer|exists:users,id',
+//         'userName' => 'sometimes|string|max:255',
+//         'profilePic' => 'sometimes|image|mimes:jpg,jpeg,png,webp|max:5120',
+//         'lastModification' => 'sometimes|date',
+//     ]);
 
-    $user = \App\Models\User::findOrFail($id);
+//     $user = \App\Models\User::findOrFail($id);
 
-    if ($request->has('userName')) {
-        $user->userName = $request->userName;
-    }
+//     if ($request->has('userName')) {
+//         $user->userName = $request->userName;
+//     }
 
-    if ($request->has('lastModification')) {
-        $user->lastModification = $request->lastModification;
-    }
+//     if ($request->has('lastModification')) {
+//         $user->lastModification = $request->lastModification;
+//     }
 
-    if ($request->hasFile('profilePic')) {
+//     if ($request->hasFile('profilePic')) {
 
-        // Delete old image if exists
-        if ($user->profilePic && Storage::disk('public')->exists($user->profilePic)) {
-            Storage::disk('public')->delete($user->profilePic);
+//         // Delete old image if exists
+//         if ($user->profilePic && Storage::disk('public')->exists($user->profilePic)) {
+//             Storage::disk('public')->delete($user->profilePic);
+//         }
+
+//         // Store new image
+//         $path = $request->file('profilePic')->store('profilefix', 'public');
+
+//         $user->profilePic = $path;
+//     }
+
+//     $user->save();
+
+//     return response()->json([
+//         'status' => true,
+//         'message' => 'User updated successfully',
+//         'user' => $user
+//     ]);
+// }
+
+public function update(Request $request, string $id)
+    {
+        // Merge the userId for validation
+        $request->merge(['userId' => $id]);
+
+        // Validate input
+        $validated = $request->validate([
+            'userId' => 'required|integer|exists:users,id',
+            'userName' => 'sometimes|string|max:255',
+            'profilePic' => 'sometimes|file|image|max:5120', // max 5MB
+            'lastModification' => 'sometimes|date',
+        ]);
+
+        $user = User::findOrFail($id);
+
+        // Update userName if present
+        if ($request->has('userName')) {
+            $user->userName = $request->input('userName');
         }
 
-        // Store new image
-        $path = $request->file('profilePic')->store('profilefix', 'public');
+        // Update lastModification if present
+        if ($request->has('lastModification')) {
+            $user->lastModification = $request->input('lastModification');
+        }
 
-        $user->profilePic = $path;
+        // Handle profile picture update
+        if ($request->hasFile('profilePic')) {
+            $file = $request->file('profilePic');
+
+            // Delete old profile picture if exists
+            if ($user->profilePic && Storage::disk('public')->exists($user->profilePic)) {
+                Storage::disk('public')->delete($user->profilePic);
+            }
+
+            // Store new profile picture
+            $path = $file->store('profilefix', 'public');
+
+            // Save relative path in DB
+            $user->profilePic = $path;
+        }
+
+        // Save changes
+        $user->save();
+
+        // Return JSON response
+        return response()->json([
+            'status' => true,
+            'message' => 'User updated successfully',
+            'user' => $user
+        ]);
     }
-
-    $user->save();
-
-    return response()->json([
-        'status' => true,
-        'message' => 'User updated successfully',
-        'user' => $user
-    ]);
-}
 }
