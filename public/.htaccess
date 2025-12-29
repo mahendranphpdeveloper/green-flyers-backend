@@ -5,9 +5,13 @@
 
     RewriteEngine On
 
-    # Handle Authorization Header
+    # Handle Authorization Header (IMPORTANT for PUT)
+    RewriteCond %{REQUEST_METHOD} ^(PUT|DELETE|PATCH)$
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization},L]
+
+    # Handle Authorization Header (fallback)
     RewriteCond %{HTTP:Authorization} .
-    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization},L]
 
     # Handle X-XSRF-Token Header
     RewriteCond %{HTTP:x-xsrf-token} .
