@@ -170,71 +170,33 @@ class UserController extends Controller
 
 public function update(Request $request, string $id)
 {
-    Log::info('UPDATE USER API CALLED');
-    Log::info('User ID from URL', ['id' => $id]);
+    Log::info('UPDATE USER API CALLED', ['id' => $id]);
 
-    // Log full request (except files content)
-    Log::info('Request data', $request->except(['profilePic']));
+    $validated = $request->validate([
+        'userName' => 'sometimes|string|max:255',
+        'profilePic' => 'sometimes|image|mimes:jpg,jpeg,png,webp|max:5120',
+        'lastModification' => 'sometimes|date',
+    ]);
 
-    // Merge route id into request
-    $request->merge(['userId' => $id]);
-    Log::info('Merged userId into request', ['userId' => $id]);
-
-    // Validate request
-    try {
-        $validated = $request->validate([
-            'userId' => 'required|integer|exists:users,id',
-            'userName' => 'sometimes|string|max:255',
-            'profilePic' => 'sometimes|image|mimes:jpg,jpeg,png,webp|max:5120',
-            'lastModification' => 'sometimes|date',
-        ]);
-        Log::info('Validation passed', $validated);
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        Log::error('Validation failed', $e->errors());
-        throw $e;
-    }
-
-    // Fetch user
     $user = \App\Models\User::findOrFail($id);
-    Log::info('User found', ['user' => $user->toArray()]);
 
-    // Update username
-    if ($request->has('userName')) {
-        Log::info('Updating userName', ['old' => $user->userName, 'new' => $request->userName]);
+    if ($request->filled('userName')) {
         $user->userName = $request->userName;
     }
 
-    // Update last modification
-    if ($request->has('lastModification')) {
-        Log::info('Updating lastModification', [
-            'old' => $user->lastModification,
-            'new' => $request->lastModification
-        ]);
+    if ($request->filled('lastModification')) {
         $user->lastModification = $request->lastModification;
     }
 
-    // Handle profile picture
     if ($request->hasFile('profilePic')) {
-        Log::info('Profile picture upload detected');
-
-        // Delete old image
         if ($user->profilePic && Storage::disk('public')->exists($user->profilePic)) {
-            Log::info('Deleting old profile picture', ['path' => $user->profilePic]);
             Storage::disk('public')->delete($user->profilePic);
         }
 
-        // Store new image
-        $path = $request->file('profilePic')->store('profilefix', 'public');
-        Log::info('New profile picture stored', ['path' => $path]);
-
-        $user->profilePic = $path;
-    } else {
-        Log::info('No profile picture uploaded');
+        $user->profilePic = $request->file('profilePic')->store('profilefix', 'public');
     }
 
-    // Save user
     $user->save();
-    Log::info('User updated successfully', ['user' => $user->toArray()]);
 
     return response()->json([
         'status' => true,
@@ -242,5 +204,6 @@ public function update(Request $request, string $id)
         'user' => $user
     ]);
 }
+
 
 }
