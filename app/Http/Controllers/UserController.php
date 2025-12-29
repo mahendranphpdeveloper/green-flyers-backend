@@ -79,6 +79,48 @@ class UserController extends Controller
     /**
      * Update the specified resource in storage.
      */
+    // public function update(Request $request, string $id)
+    // {
+    //     Log::info($request->all());
+    //     $user = \App\Models\User::findOrFail($id);
+
+    //     $request->validate([
+    //         'userName' => 'sometimes|string|max:255',
+    //         'profilePic' => 'sometimes|file|image|max:5120'
+    //     ]);
+
+    //     // Handle userName update
+    //     if ($request->has('userName')) {
+    //         $user->userName = $request->input('userName');
+    //     }
+
+    //     if (!file_exists(public_path('uploads/profilefix'))) {
+    //         mkdir(public_path('uploads/profilefix'), 0777, true);
+    //     }
+    //     // Handle profilePic update
+    //     if ($request->hasFile('profilePic')) {
+    //         // Delete old profilePic file if it exists
+    //         if ($user->profilePic && file_exists(public_path('uploads/profilefix/' . $user->profilePic))) {
+    //             @unlink(public_path('uploads/profilefix/' . $user->profilePic));
+    //         }
+
+    //         $file = $request->file('profilePic');
+    //         $filename = uniqid('profile_') . '.' . $file->getClientOriginalExtension();
+    //         $file->move(public_path('uploads/profilefix'), $filename);
+
+    //         // Store new filename only
+    //         $user->profilePic = 'uploads/profilefix/' . $filename;
+    //     }
+
+    //     $user->save();
+
+    //     return response()->json([
+    //         'status' => true,
+    //         'message' => 'User updated successfully.',
+    //         'user' => $user
+    //     ]);
+    // }
+
     public function update(Request $request, string $id)
     {
         Log::info($request->all());
@@ -86,7 +128,8 @@ class UserController extends Controller
 
         $request->validate([
             'userName' => 'sometimes|string|max:255',
-            'profilePic' => 'sometimes|file|image|max:5120'
+            'profilePic' => 'sometimes|file|image|max:5120',
+            'lastModification' => 'sometimes|date' // Accept lastModification from frontend, should be a date/datetime format string
         ]);
 
         // Handle userName update
@@ -94,24 +137,38 @@ class UserController extends Controller
             $user->userName = $request->input('userName');
         }
 
-        if (!file_exists(public_path('uploads/profilefix'))) {
-            mkdir(public_path('uploads/profilefix'), 0777, true);
+        // Handle lastModification update if provided
+        if ($request->has('lastModification')) {
+            $user->lastModification = $request->input('lastModification');
         }
-        // Handle profilePic update
+
+        // Ensure uploads directory exists
+        $uploadDir = public_path('uploads/profilefix');
+        if (!file_exists($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+
+        // Handle profilePic update if the file exists in the request
         if ($request->hasFile('profilePic')) {
             // Delete old profilePic file if it exists
-            if ($user->profilePic && file_exists(public_path('uploads/profilefix/' . $user->profilePic))) {
-                @unlink(public_path('uploads/profilefix/' . $user->profilePic));
+            // Only delete if the saved field is not empty and file exists on disk
+            if ($user->profilePic && file_exists(public_path($user->profilePic))) {
+                @unlink(public_path($user->profilePic));
             }
 
             $file = $request->file('profilePic');
             $filename = uniqid('profile_') . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('uploads/profilefix'), $filename);
+            $file->move($uploadDir, $filename);
 
-            // Store new filename only
+            // Save the new relative path to profilePic
             $user->profilePic = 'uploads/profilefix/' . $filename;
+        } else {
+            // Handle case where no file is uploaded, but you may still want to update other fields
+            // If you want to set profilePic field to null when not passed, uncomment the below:
+            // $user->profilePic = null;
         }
 
+        // Save changes to the user, including possible updated userName, lastModification, and/or profilePic
         $user->save();
 
         return response()->json([
