@@ -126,14 +126,29 @@ class UserController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, $id)
 {
-    $request->merge(['userId' => $id]);
+    // Handle OPTIONS preflight request
+    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        header('Access-Control-Allow-Origin: http://localhost:5173');
+        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
+        header('Access-Control-Allow-Credentials: true');
+        exit; // Stop execution for OPTIONS
+    }
 
+    // Add CORS headers for actual request
+    header('Access-Control-Allow-Origin: http://localhost:5173');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization');
+    header('Access-Control-Allow-Credentials: true');
+
+    // Validate and process request
+    $request->merge(['userId' => $id]);
     $validated = $request->validate([
         'userId' => 'required|integer|exists:users,id',
         'userName' => 'sometimes|string|max:255',
-        'profilePic' => 'sometimes|image|mimes:jpg,jpeg,png,webp|max:5120',
+        'profilePic' => 'sometimes|file|image|max:5120',
         'lastModification' => 'sometimes|date',
     ]);
 
@@ -148,15 +163,7 @@ class UserController extends Controller
     }
 
     if ($request->hasFile('profilePic')) {
-
-        // Delete old image if exists
-        if ($user->profilePic && Storage::disk('public')->exists($user->profilePic)) {
-            Storage::disk('public')->delete($user->profilePic);
-        }
-
-        // Store new image
         $path = $request->file('profilePic')->store('profilefix', 'public');
-
         $user->profilePic = $path;
     }
 
@@ -168,4 +175,5 @@ class UserController extends Controller
         'user' => $user
     ]);
 }
+
 }
