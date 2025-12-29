@@ -80,51 +80,48 @@ class UserController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
-    {
-        Log::info($request->all());
-        $user = \App\Models\User::findOrFail($id);
+    // public function update(Request $request, string $id)
+    // {
+    //     Log::info($request->all());
+    //     $user = \App\Models\User::findOrFail($id);
 
-        $request->validate([
-            'userName' => 'sometimes|string|max:255',
-            'profilePic' => 'sometimes|file|image|max:5120'
-        ]);
+    //     $request->validate([
+    //         'userName' => 'sometimes|string|max:255',
+    //         'profilePic' => 'sometimes|file|image|max:5120'
+    //     ]);
 
-        // Handle userName update
-        if ($request->has('userName')) {
-            $user->userName = $request->input('userName');
-        }
+    //     // Handle userName update
+    //     if ($request->has('userName')) {
+    //         $user->userName = $request->input('userName');
+    //     }
 
-        if (!file_exists(public_path('uploads/profilefix'))) {
-            mkdir(public_path('uploads/profilefix'), 0777, true);
-        }
-        // Handle profilePic update
-        if ($request->hasFile('profilePic')) {
-            // Delete old profilePic file if it exists
-            if ($user->profilePic && file_exists(public_path('uploads/profilefix/' . $user->profilePic))) {
-                @unlink(public_path('uploads/profilefix/' . $user->profilePic));
-            }
+    //     if (!file_exists(public_path('uploads/profilefix'))) {
+    //         mkdir(public_path('uploads/profilefix'), 0777, true);
+    //     }
+    //     // Handle profilePic update
+    //     if ($request->hasFile('profilePic')) {
+    //         // Delete old profilePic file if it exists
+    //         if ($user->profilePic && file_exists(public_path('uploads/profilefix/' . $user->profilePic))) {
+    //             @unlink(public_path('uploads/profilefix/' . $user->profilePic));
+    //         }
 
-            $file = $request->file('profilePic');
-            $filename = uniqid('profile_') . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('uploads/profilefix'), $filename);
+    //         $file = $request->file('profilePic');
+    //         $filename = uniqid('profile_') . '.' . $file->getClientOriginalExtension();
+    //         $file->move(public_path('uploads/profilefix'), $filename);
 
-            // Store new filename only
-            $user->profilePic = 'uploads/profilefix/' . $filename;
-        }
+    //         // Store new filename only
+    //         $user->profilePic = 'uploads/profilefix/' . $filename;
+    //     }
 
-        $user->save();
+    //     $user->save();
 
-        return response()->json([
-            'status' => true,
-            'message' => 'User updated successfully.',
-            'user' => $user
-        ]);
-    }
-
-    
-   
-   
+    //     return response()->json([
+    //         'status' => true,
+    //         'message' => 'User updated successfully.',
+    //         'user' => $user
+    //     ]);
+    // }
+ 
 // public function update(Request $request, $id)
 // {
 //     $user = $request->user();
@@ -192,6 +189,48 @@ class UserController extends Controller
 //         'user' => $targetUser
 //     ]);
 // }
+
+public function update(Request $request, string $id)
+{
+    $request->merge(['userId' => $id]);
+
+    $validated = $request->validate([
+        'userId' => 'required|integer|exists:users,id',
+        'userName' => 'sometimes|string|max:255',
+        'profilePic' => 'sometimes|image|mimes:jpg,jpeg,png,webp|max:5120',
+        'lastModification' => 'sometimes|date',
+    ]);
+
+    $user = \App\Models\User::findOrFail($id);
+
+    if ($request->has('userName')) {
+        $user->userName = $request->userName;
+    }
+
+    if ($request->has('lastModification')) {
+        $user->lastModification = $request->lastModification;
+    }
+
+    if ($request->hasFile('profilePic')) {
+
+        // Delete old image if exists
+        if ($user->profilePic && Storage::disk('public')->exists($user->profilePic)) {
+            Storage::disk('public')->delete($user->profilePic);
+        }
+
+        // Store new image
+        $path = $request->file('profilePic')->store('profilefix', 'public');
+
+        $user->profilePic = $path;
+    }
+
+    $user->save();  
+    return response()->json([
+        'status' => true,
+        'message' => 'User updated successfully',
+        'user' => $user
+    ]);
+}
 
 
 
