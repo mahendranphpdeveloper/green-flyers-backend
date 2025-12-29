@@ -124,41 +124,117 @@ class UserController extends Controller
 
     
    
-    public function update(Request $request, string $id)
+//     public function update(Request $request, string $id)
+// {
+//     $request->merge(['userId' => $id]);
+
+//     $validated = $request->validate([
+//         'userId' => 'required|integer|exists:users,id',
+//         'userName' => 'sometimes|string|max:255',
+//         'profilePic' => 'sometimes|image|mimes:jpg,jpeg,png,webp|max:5120',
+//         'lastModification' => 'sometimes|date',
+//     ]);
+
+//     $user = \App\Models\User::findOrFail($id);
+
+//     if ($request->has('userName')) {
+//         $user->userName = $request->userName;
+//     }
+
+//     if ($request->has('lastModification')) {
+//         $user->lastModification = $request->lastModification;
+//     }
+
+//     if ($request->hasFile('profilePic')) {
+
+//         // Delete old image if exists
+//         if ($user->profilePic && Storage::disk('public')->exists($user->profilePic)) {
+//             Storage::disk('public')->delete($user->profilePic);
+//         }
+
+//         // Store new image
+//         $path = $request->file('profilePic')->store('profilefix', 'public');
+
+//         $user->profilePic = $path;
+//     }
+
+//     $user->save();
+
+//     return response()->json([
+//         'status' => true,
+//         'message' => 'User updated successfully',
+//         'user' => $user
+//     ]);
+// }
+
+
+public function update(Request $request, string $id)
 {
+    Log::info('UPDATE USER API CALLED');
+    Log::info('User ID from URL', ['id' => $id]);
+
+    // Log full request (except files content)
+    Log::info('Request data', $request->except(['profilePic']));
+
+    // Merge route id into request
     $request->merge(['userId' => $id]);
+    Log::info('Merged userId into request', ['userId' => $id]);
 
-    $validated = $request->validate([
-        'userId' => 'required|integer|exists:users,id',
-        'userName' => 'sometimes|string|max:255',
-        'profilePic' => 'sometimes|image|mimes:jpg,jpeg,png,webp|max:5120',
-        'lastModification' => 'sometimes|date',
-    ]);
+    // Validate request
+    try {
+        $validated = $request->validate([
+            'userId' => 'required|integer|exists:users,id',
+            'userName' => 'sometimes|string|max:255',
+            'profilePic' => 'sometimes|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'lastModification' => 'sometimes|date',
+        ]);
+        Log::info('Validation passed', $validated);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        Log::error('Validation failed', $e->errors());
+        throw $e;
+    }
 
+    // Fetch user
     $user = \App\Models\User::findOrFail($id);
+    Log::info('User found', ['user' => $user->toArray()]);
 
+    // Update username
     if ($request->has('userName')) {
+        Log::info('Updating userName', ['old' => $user->userName, 'new' => $request->userName]);
         $user->userName = $request->userName;
     }
 
+    // Update last modification
     if ($request->has('lastModification')) {
+        Log::info('Updating lastModification', [
+            'old' => $user->lastModification,
+            'new' => $request->lastModification
+        ]);
         $user->lastModification = $request->lastModification;
     }
 
+    // Handle profile picture
     if ($request->hasFile('profilePic')) {
+        Log::info('Profile picture upload detected');
 
-        // Delete old image if exists
+        // Delete old image
         if ($user->profilePic && Storage::disk('public')->exists($user->profilePic)) {
+            Log::info('Deleting old profile picture', ['path' => $user->profilePic]);
             Storage::disk('public')->delete($user->profilePic);
         }
 
         // Store new image
         $path = $request->file('profilePic')->store('profilefix', 'public');
+        Log::info('New profile picture stored', ['path' => $path]);
 
         $user->profilePic = $path;
+    } else {
+        Log::info('No profile picture uploaded');
     }
 
+    // Save user
     $user->save();
+    Log::info('User updated successfully', ['user' => $user->toArray()]);
 
     return response()->json([
         'status' => true,
@@ -166,4 +242,5 @@ class UserController extends Controller
         'user' => $user
     ]);
 }
+
 }
