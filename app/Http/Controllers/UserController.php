@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
@@ -123,53 +124,81 @@ class UserController extends Controller
 
     public function update(Request $request, string $id)
     {
-        Log::info($request->all());
+        
+
+        // Log raw incoming request data to help debugging frontend issues
+        Log::info('User update request payload', [
+            'request_all' => $request->all(),
+            'request_files' => $request->allFiles()
+        ]);
+
         $user = \App\Models\User::findOrFail($id);
 
-        $request->validate([
+        // Log info before validation for debugging validation problems
+        Log::info('Validating user update', [
+            'userId' => $id,
+            'input' => $request->all()
+        ]);
+
+        $validated = $request->validate([
             'userName' => 'sometimes|string|max:255',
             'profilePic' => 'sometimes|file|image|max:5120',
             'lastModification' => 'sometimes|date' // Accept lastModification from frontend, should be a date/datetime format string
         ]);
 
+        Log::info('Validated user update request', [
+            'validated' => $validated
+        ]);
+
         // Handle userName update
         if ($request->has('userName')) {
+            Log::info('Updating userName', [
+                'old' => $user->userName,
+                'new' => $request->input('userName')
+            ]);
             $user->userName = $request->input('userName');
         }
 
         // Handle lastModification update if provided
         if ($request->has('lastModification')) {
+            Log::info('Updating lastModification', [
+                'old' => $user->lastModification,
+                'new' => $request->input('lastModification')
+            ]);
             $user->lastModification = $request->input('lastModification');
         }
 
-        // Ensure uploads directory exists
-        $uploadDir = public_path('uploads/profilefix');
-        if (!file_exists($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
-        }
-
-        // Handle profilePic update if the file exists in the request
+        // Handle profilePic update using Laravel Storage
         if ($request->hasFile('profilePic')) {
-            // Delete old profilePic file if it exists
-            // Only delete if the saved field is not empty and file exists on disk
-            if ($user->profilePic && file_exists(public_path($user->profilePic))) {
+            Log::info('profilePic file found in request');
+            // Delete old profilePic file if it exists and is stored via Storage
+            if ($user->profilePic && Storage::disk('public')->exists($user->profilePic)) {
+                Log::info('Deleting old profilePic file from storage', [
+                    'old_profilePic' => $user->profilePic
+                ]);
+                Storage::disk('public')->delete($user->profilePic);
+            } elseif ($user->profilePic && file_exists(public_path($user->profilePic))) {
+                // Extra fallback for legacy: remove manually from public path
                 @unlink(public_path($user->profilePic));
             }
 
-            $file = $request->file('profilePic');
-            $filename = uniqid('profile_') . '.' . $file->getClientOriginalExtension();
-            $file->move($uploadDir, $filename);
-
-            // Save the new relative path to profilePic
-            $user->profilePic = 'uploads/profilefix/' . $filename;
+            $path = $request->file('profilePic')->store('profilefix', 'public');
+            // Store only the relative path, e.g., "profilefix/xxxx.jpg"
+            $user->profilePic = $path;
+            Log::info('Updated user profilePic file in storage', [
+                'new_profilePic' => $user->profilePic
+            ]);
         } else {
-            // Handle case where no file is uploaded, but you may still want to update other fields
-            // If you want to set profilePic field to null when not passed, uncomment the below:
-            // $user->profilePic = null;
+            Log::info('No profilePic file uploaded in update request.');
         }
 
         // Save changes to the user, including possible updated userName, lastModification, and/or profilePic
         $user->save();
+
+        Log::info('User updated successfully', [
+            'userId' => $user->id,
+            'updated_data' => $user->toArray()
+        ]);
 
         return response()->json([
             'status' => true,
