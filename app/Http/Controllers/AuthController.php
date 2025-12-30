@@ -11,32 +11,70 @@ use Illuminate\Support\Facades\File;
 
 class AuthController extends Controller
 {
+    // public function login(Request $request)
+    // {
+    //     $request->validate([
+    //         'email'    => 'required|email',
+    //         'password' => 'required'
+    //     ]);
+
+    //     $user = User::where('email', $request->email)->first();
+
+    //     if (!$user || !Hash::check($request->password, $user->password)) {
+    //         return response()->json(['message' => 'Invalid credentials'], 401);
+    //     }
+
+    //     // Create token
+    //     $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
+
+    //     return response()->json([
+    //         'message' => 'Login successful',
+    //         'token' => $token,
+    //         'user' => [
+    //             'id'    => $user->id,
+    //             'name'  => $user->name,
+    //             'email' => $user->email
+    //         ]
+    //     ]);
+    // }
+
+    //login with email id with otp
     public function login(Request $request)
     {
         $request->validate([
-            'email'    => 'required|email',
-            'password' => 'required'
+            'email' => 'required|email',
+            'google_token' => 'nullable|string',
         ]);
-
-        $user = User::where('email', $request->email)->first();
-
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json(['message' => 'Invalid credentials'], 401);
+    
+        $email = $request->email;
+        $googleToken = $request->google_token;
+    
+        $user = User::where('userEmail', $email)->first();
+    
+        if ($user) {
+            // EXISTING USER
+            if ($googleToken) {
+                $user->google_token = $googleToken;
+            }
+    
+            $user->save();
+        } else {
+            // NEW USER
+            $user = User::create([
+                'userEmail' => $email,
+                'google_token' => $googleToken,
+            ]);
         }
-
-        // Create token
+    
         $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
-
+    
         return response()->json([
             'message' => 'Login successful',
             'token' => $token,
-            'user' => [
-                'id'    => $user->id,
-                'name'  => $user->name,
-                'email' => $user->email
-            ]
+            'user' => $user
         ]);
     }
+    
 
 
 
