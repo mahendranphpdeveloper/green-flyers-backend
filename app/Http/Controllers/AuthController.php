@@ -41,114 +41,132 @@ class AuthController extends Controller
     // }
 
     //login with email id with otp
-    // public function login(Request $request)
-    // {
-    //     $request->validate([
-    //         'email' => 'required|email',
-    //         'google_token' => 'nullable|string',
-    //     ]);
     
-    //     $email = $request->email;
-    //     $googleToken = $request->google_token;
-    
-    //     $user = User::where('userEmail', $email)->first();
-    
-    //     if ($user) {
-    //         // EXISTING USER
-    //         if ($googleToken) {
-    //             $user->google_token = $googleToken;
-    //         }
-    
-    //         $user->save();
-    //     } else {
-    //         // NEW USER
-    //         $user = User::create([
-    //             'userEmail' => $email,
-    //             'google_token' => $googleToken,
-    //         ]);
-    //     }
-    
-    //     $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
-    
-    //     return response()->json([
-    //         'message' => 'Login successful',
-    //         'token' => $token,
-    //         'user' => $user
-    //     ]);
-    // }
+// public function login(Request $request)
+// {
+//     Log::info('Login API called', [
+//         'email' => $request->email
+//     ]);
 
-    
+//     $request->validate([
+//         'email' => 'required|email',
+//         'userName' => 'nullable|string|max:255',
+//         'google_token' => 'nullable|string',
+//     ]);
+
+//     $email = $request->email;
+//     $userName = $request->userName;               
+//     $googleToken = $request->google_token;
+
+//     $user = User::where('userEmail', $email)->first();
+//     $isNewUser = false;
+
+//     if ($user) {
+//         // EXISTING USER
+//         Log::info('Existing user found', [
+//             'userId' => $user->userId,
+//             'email' => $user->userEmail
+//         ]);
+
+//         if ($googleToken) {
+//             $user->google_token = $googleToken;
+//             Log::info('Google token updated', [
+//                 'userId' => $user->userId
+//             ]);
+//         }
+
+//         // Do NOT overwrite userName for existing user
+//         $user->updated_at = now();
+//         $user->save();
+
+//     } else {
+//         // NEW USER
+//         Log::info('New user detected, creating record', [
+//             'email' => $email,
+//             'userName' => $userName
+//         ]);
+
+//         $user = User::create([
+//             'userEmail' => $email,
+//             'userName' => $userName,        
+//             'google_token' => $googleToken,
+//         ]);
+
+//         $isNewUser = true;
+
+//         Log::info('New user created', [
+//             'userId' => $user->userId,
+//             'email' => $user->userEmail
+//         ]);
+//     }
+
+//     $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
+
+//     Log::info('Login successful', [
+//         'userId' => $user->userId,
+//         'is_new_user' => $isNewUser
+//     ]);
+
+//     return response()->json([
+//         'message' => 'Login successful',
+//         'is_new_user' => $isNewUser,
+//         'token' => $token,
+//         'user' => $isNewUser ? null : [
+//             'userId' => $user->userId,
+//             'userName' => $user->userName,
+//             'userEmail' => $user->userEmail,
+//             'profilePic' => $user->profilePic,
+//         ]
+//     ]);
+// }
 
 public function login(Request $request)
 {
-    Log::info('Login API called', [
-        'email' => $request->email
-    ]);
+    Log::info('Login API called', ['email' => $request->email]);
 
     $request->validate([
         'email' => 'required|email',
-        'userName' => 'nullable|string|max:255',
         'google_token' => 'nullable|string',
     ]);
 
     $email = $request->email;
-    $userName = $request->userName;               
     $googleToken = $request->google_token;
 
     $user = User::where('userEmail', $email)->first();
-    $isNewUser = false;
 
-    if ($user) {
-        // EXISTING USER
-        Log::info('Existing user found', [
-            'userId' => $user->userId,
-            'email' => $user->userEmail
+    // =========================
+    // NEW USER (DO NOT STORE)
+    // =========================
+    if (!$user) {
+        Log::info('New user detected, not stored yet', ['email' => $email]);
+
+        return response()->json([
+            'message' => 'New user',
+            'is_new_user' => true,
+            'userEmail' => $email
         ]);
+    }
 
-        if ($googleToken) {
-            $user->google_token = $googleToken;
-            Log::info('Google token updated', [
-                'userId' => $user->userId
-            ]);
-        }
+    // =========================
+    // EXISTING USER
+    // =========================
+    Log::info('Existing user found', [
+        'userId' => $user->userId,
+        'email' => $user->userEmail
+    ]);
 
-        // Do NOT overwrite userName for existing user
-        $user->updated_at = now();
+    if ($googleToken) {
+        $user->google_token = $googleToken;
         $user->save();
-
-    } else {
-        // NEW USER
-        Log::info('New user detected, creating record', [
-            'email' => $email,
-            'userName' => $userName
-        ]);
-
-        $user = User::create([
-            'userEmail' => $email,
-            'userName' => $userName,        
-            'google_token' => $googleToken,
-        ]);
-
-        $isNewUser = true;
-
-        Log::info('New user created', [
-            'userId' => $user->userId,
-            'email' => $user->userEmail
-        ]);
     }
 
     $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
 
-    Log::info('Login successful', [
-        'userId' => $user->userId,
-        'is_new_user' => $isNewUser
-    ]);
-
     return response()->json([
         'message' => 'Login successful',
-        'is_new_user' => $isNewUser,
+        'is_new_user' => false,
         'token' => $token,
-        'user' => $isNewUser ? null : [
+        'user' => [
             'userId' => $user->userId,
             'userName' => $user->userName,
             'userEmail' => $user->userEmail,
@@ -157,6 +175,59 @@ public function login(Request $request)
     ]);
 }
 
+public function register(Request $request)
+{
+    Log::info('Register API called', $request->all());
+
+    $request->validate([
+        'email'        => 'required|email',
+        'userName'     => 'required|string|max:255',
+        'google_token' => 'nullable|string',
+    ]);
+
+    $email       = $request->email;
+    $userName    = $request->userName;
+    $googleToken = $request->google_token;
+
+    // Prevent duplicate registration
+    $existingUser = User::where('userEmail', $email)->first();
+
+    if ($existingUser) {
+        Log::warning('User already exists', ['email' => $email]);
+
+        return response()->json([
+            'message' => 'User already registered',
+            'is_new_user' => false
+        ], 409);
+    }
+
+    //  Create new user
+    $user = User::create([
+        'userEmail'    => $email,
+        'userName'     => $userName,
+        'google_token' => $googleToken,
+    ]);
+
+    Log::info('New user registered', [
+        'userId' => $user->userId,
+        'email' => $user->userEmail
+    ]);
+
+    //  Create auth token
+    $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
+
+    return response()->json([
+        'message' => 'Registration successful',
+        'is_new_user' => false,
+        'token' => $token,
+        'user' => [
+            'userId'     => $user->userId,
+            'userName'   => $user->userName,
+            'userEmail'  => $user->userEmail,
+            'profilePic' => $user->profilePic,
+        ]
+    ], 201);
+}
     
 
 
