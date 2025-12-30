@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
+
 
 
 class AuthController extends Controller
@@ -39,41 +41,122 @@ class AuthController extends Controller
     // }
 
     //login with email id with otp
-    public function login(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'google_token' => 'nullable|string',
+    // public function login(Request $request)
+    // {
+    //     $request->validate([
+    //         'email' => 'required|email',
+    //         'google_token' => 'nullable|string',
+    //     ]);
+    
+    //     $email = $request->email;
+    //     $googleToken = $request->google_token;
+    
+    //     $user = User::where('userEmail', $email)->first();
+    
+    //     if ($user) {
+    //         // EXISTING USER
+    //         if ($googleToken) {
+    //             $user->google_token = $googleToken;
+    //         }
+    
+    //         $user->save();
+    //     } else {
+    //         // NEW USER
+    //         $user = User::create([
+    //             'userEmail' => $email,
+    //             'google_token' => $googleToken,
+    //         ]);
+    //     }
+    
+    //     $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
+    
+    //     return response()->json([
+    //         'message' => 'Login successful',
+    //         'token' => $token,
+    //         'user' => $user
+    //     ]);
+    // }
+
+    
+
+public function login(Request $request)
+{
+    Log::info('Login API called', [
+        'email' => $request->email
+    ]);
+
+    $request->validate([
+        'email' => 'required|email',
+        'userName' => 'nullable|string|max:255',
+        'google_token' => 'nullable|string',
+    ]);
+
+    $email = $request->email;
+    $userName = $request->userName;               
+    $googleToken = $request->google_token;
+
+    $user = User::where('userEmail', $email)->first();
+    $isNewUser = false;
+
+    if ($user) {
+        // EXISTING USER
+        Log::info('Existing user found', [
+            'userId' => $user->userId,
+            'email' => $user->userEmail
         ]);
-    
-        $email = $request->email;
-        $googleToken = $request->google_token;
-    
-        $user = User::where('userEmail', $email)->first();
-    
-        if ($user) {
-            // EXISTING USER
-            if ($googleToken) {
-                $user->google_token = $googleToken;
-            }
-    
-            $user->save();
-        } else {
-            // NEW USER
-            $user = User::create([
-                'userEmail' => $email,
-                'google_token' => $googleToken,
+
+        if ($googleToken) {
+            $user->google_token = $googleToken;
+            Log::info('Google token updated', [
+                'userId' => $user->userId
             ]);
         }
-    
-        $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
-    
-        return response()->json([
-            'message' => 'Login successful',
-            'token' => $token,
-            'user' => $user
+
+        // Do NOT overwrite userName for existing user
+        $user->updated_at = now();
+        $user->save();
+
+    } else {
+        // NEW USER
+        Log::info('New user detected, creating record', [
+            'email' => $email,
+            'userName' => $userName
+        ]);
+
+        $user = User::create([
+            'userEmail' => $email,
+            'userName' => $userName,        
+            'google_token' => $googleToken,
+        ]);
+
+        $isNewUser = true;
+
+        Log::info('New user created', [
+            'userId' => $user->userId,
+            'email' => $user->userEmail
         ]);
     }
+
+    $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
+
+    Log::info('Login successful', [
+        'userId' => $user->userId,
+        'is_new_user' => $isNewUser
+    ]);
+
+    return response()->json([
+        'message' => 'Login successful',
+        'is_new_user' => $isNewUser,
+        'token' => $token,
+        'user' => $isNewUser ? null : [
+            'userId' => $user->userId,
+            'userName' => $user->userName,
+            'userEmail' => $user->userEmail,
+            'profilePic' => $user->profilePic,
+        ]
+    ]);
+}
+
     
 
 
