@@ -6,21 +6,63 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
+use App\Models\AdminData;
 
 class UserController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
+    // public function index(Request $request)
+    // {
+    //     // Return all user data
+    //     $users = User::all();
+    //     return response()->json([
+    //         'status' => true,
+    //         'users' => $users,
+    //     ]);
+    // }
+
     public function index(Request $request)
     {
-        // Return all user data
+        Log::info('AdminController@index called', [
+            'request_user_id' => optional($request->user())->id,
+        ]);
+
+        // Get the currently authenticated user
+        $admin = $request->user();
+
+        // Check if the authenticated user exists in the admindata table
+        $isAdmin = AdminData::where('id', $admin->id)->first();
+
+        if (!$isAdmin) {
+            Log::warning('Unauthorized access attempt', [
+                'user_id' => $admin->id ?? null,
+            ]);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized - Not an admin',
+            ], 403);
+        }
+
+        Log::info('Admin verified, fetching users', [
+            'admin_id' => $admin->id,
+        ]);
+
+        // Fetch all users
         $users = User::all();
+
+        Log::info('Users fetched successfully', [
+            'total_users' => $users->count(),
+        ]);
+
         return response()->json([
             'status' => true,
             'users' => $users,
         ]);
     }
+
 
     public function profile(Request $request)
     {
@@ -60,16 +102,68 @@ class UserController extends Controller
     /**
      * Display the specified resource.
      */
+    // public function show(Request $request, string $id)
+    // {
+    //     $user = User::find($id);
+
+    //     if (!$user) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'User not found.'
+    //         ], 404);
+    //     }
+
+    //     return response()->json([
+    //         'status' => true,
+    //         'user' => $user
+    //     ]);
+    // }
+
+
     public function show(Request $request, string $id)
     {
+        Log::info('AdminController@show called', [
+            'request_user_id' => optional($request->user())->id,
+            'target_user_id' => $id,
+        ]);
+
+        // Get the currently authenticated user
+        $admin = $request->user();
+
+        // Check if the authenticated user exists in admindata table
+        $isAdmin = AdminData::where('id', $admin->id)->first();
+
+        if (!$isAdmin) {
+            Log::warning('Unauthorized access attempt to show user', [
+                'user_id' => $admin->id ?? null,
+                'target_user_id' => $id,
+            ]);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized - Not an admin',
+            ], 403);
+        }
+
+        // Fetch user by ID
         $user = User::find($id);
 
         if (!$user) {
+            Log::warning('User not found', [
+                'admin_id' => $admin->id,
+                'target_user_id' => $id,
+            ]);
+
             return response()->json([
                 'status' => false,
                 'message' => 'User not found.'
             ], 404);
         }
+
+        Log::info('User fetched successfully', [
+            'admin_id' => $admin->id,
+            'user_id' => $user->id,
+        ]);
 
         return response()->json([
             'status' => true,
