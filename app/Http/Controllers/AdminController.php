@@ -92,26 +92,34 @@ public function verifyOldPassword(Request $request)
     ], 401);
 }
 
+
 public function NewPasswordChange(Request $request)
 {
     $request->validate([
         'new_password' => 'required|string|min:6|confirmed',
     ]);
 
-    $admin = $request->user(); // Logged-in admin via Sanctum
+    // Get the logged-in admin via Sanctum
+    $admin = $request->user();
 
+    if (!$admin) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Unauthorized user'
+        ], 401);
+    }
+
+    // Update the password field in the admins table
     $admin->password = Hash::make($request->new_password);
     $admin->save();
 
     Log::info('Password updated', ['admin_id' => $admin->id]);
-
-    // Optional: Revoke all tokens if you want the admin to re-login
-    // $admin->tokens()->delete();
 
     return response()->json([
         'success' => true,
         'message' => 'Password updated successfully'
     ]);
 }
+
 
 }
