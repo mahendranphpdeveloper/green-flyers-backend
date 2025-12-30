@@ -96,7 +96,7 @@ public function verifyOldPassword(Request $request)
 public function NewPasswordChange(Request $request)
 {
     $request->validate([
-        'password' => 'required|string|min:6|confirmed', // changed field name
+        'password' => 'required|string|min:6', // changed field name
     ]);
 
     // Get the logged-in admin via Sanctum
