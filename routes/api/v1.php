@@ -115,7 +115,7 @@ Route::prefix('vendors')->group(function () {
 
 //admin to check the old password & update the password
 Route::post('/admin/password', [\App\Http\Controllers\AdminController::class, 'verifyOldPassword']);
-Route::post('/admin/passwordChange', [\App\Http\Controllers\AdminController::class, 'NewPasswordChange']);
+Route::put('/admin/passwordChange', [\App\Http\Controllers\AdminController::class, 'NewPasswordChange']);
 
 
       
