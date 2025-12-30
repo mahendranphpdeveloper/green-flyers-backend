@@ -174,7 +174,7 @@ class ItineraryController extends Controller
      
          // 3️⃣ Fetch all itineraries for that user
          $itineraries = ItineraryData::where('userId', $userId)
-             ->orderBy('id', 'desc')
+             ->orderBy('userId', 'desc')
              ->get();
      
          // 4️⃣ Attach country name & id
