@@ -145,78 +145,65 @@ class ItineraryController extends Controller
      * Display the specified resource.
      */
     
-public function show(Request $request, string $id)
-{
-    Log::info('Admin itinerary show called', [
-        'admin_auth_id' => optional($request->user())->id,
-        'itinerary_id' => $id,
-        'passed_user_id' => $request->query('userId'),
-    ]);
-
-    // Get authenticated admin
-    $admin = $request->user();
-
-    if (!$admin) {
-        return response()->json([
-            'message' => 'Unauthenticated'
-        ], 401);
-    }
-
-    // Verify admin from admindata table
-    $isAdmin = AdminData::where('id', $admin->id)->exists();
-
-    if (!$isAdmin) {
-        Log::warning('Non-admin attempted itinerary access', [
-            'auth_id' => $admin->id,
-        ]);
-
-        return response()->json([
-            'message' => 'Unauthorized - Not an admin'
-        ], 403);
-    }
-
-    // Validate passed userId
-    $request->validate([
-        'userId' => 'required|integer',
-    ]);
-
-    $userId = $request->query('userId');
-
-    // Fetch itinerary for passed userId
-    $itinerary = ItineraryData::where('id', $id)
-        ->where('userId', $userId)
-        ->first();
-
-    if (!$itinerary) {
-        return response()->json([
-            'message' => 'Itinerary not found for this user'
-        ], 404);
-    }
-
-    //  Attach country name & id
-    if (!empty($itinerary->country)) {
-        $country = Country::where('country_id', $itinerary->country)
-            ->orWhere('country_name', $itinerary->country)
-            ->first();
-
-        $itinerary->country_name = $country?->country_name;
-        $itinerary->country_id   = $country?->country_id;
-    } else {
-        $itinerary->country_name = null;
-        $itinerary->country_id   = null;
-    }
-
-    Log::info('Admin itinerary fetched successfully', [
-        'admin_id' => $admin->id,
-        'itinerary_id' => $itinerary->id,
-        'user_id' => $userId,
-    ]);
-
-    return response()->json([
-        'status' => true,
-        'data' => $itinerary
-    ]);
-}
+     public function show(Request $request, string $userId)
+     {
+         Log::info('Admin user itineraries list called', [
+             'admin_auth_id' => optional($request->user())->id,
+             'passed_user_id' => $userId,
+         ]);
+     
+         // 1️⃣ Get authenticated admin
+         $admin = $request->user();
+     
+         if (!$admin) {
+             return response()->json([
+                 'message' => 'Unauthenticated'
+             ], 401);
+         }
+     
+         // 2️⃣ Verify admin
+         if (!AdminData::where('id', $admin->id)->exists()) {
+             Log::warning('Non-admin attempted itinerary access', [
+                 'auth_id' => $admin->id,
+             ]);
+     
+             return response()->json([
+                 'message' => 'Unauthorized - Not an admin'
+             ], 403);
+         }
+     
+         // 3️⃣ Fetch all itineraries for that user
+         $itineraries = ItineraryData::where('userId', $userId)
+             ->orderBy('id', 'desc')
+             ->get();
+     
+         // 4️⃣ Attach country name & id
+         $itineraries->transform(function ($itinerary) {
+             if (!empty($itinerary->country)) {
+                 $country = Country::where('country_id', $itinerary->country)
+                     ->orWhere('country_name', $itinerary->country)
+                     ->first();
+     
+                 $itinerary->country_name = $country?->country_name;
+                 $itinerary->country_id   = $country?->country_id;
+             } else {
+                 $itinerary->country_name = null;
+                 $itinerary->country_id   = null;
+             }
+             return $itinerary;
+         });
+     
+         Log::info('Admin itineraries fetched successfully', [
+             'admin_id' => $admin->id,
+             'user_id' => $userId,
+             'count' => $itineraries->count(),
+         ]);
+     
+         return response()->json([
+             'status' => true,
+             'data' => $itineraries
+         ]);
+     }
 
 
     /**
