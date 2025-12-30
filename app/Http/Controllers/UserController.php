@@ -266,6 +266,61 @@ public function update(Request $request, string $id)
 }
 
 
+public function destroy(Request $request, string $id)
+{
+    Log::info('AdminController@destroy called', [
+        'request_user_id' => optional($request->user())->id,
+        'target_user_id' => $id,
+    ]);
+
+    // Get authenticated user
+    $admin = $request->user();
+
+    // Verify admin exists in admindata table
+    $isAdmin = AdminData::where('id', $admin->id)->exists();
+
+    if (!$isAdmin) {
+        Log::warning('Unauthorized delete attempt', [
+            'user_id' => $admin->id ?? null,
+            'target_user_id' => $id,
+        ]);
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Unauthorized - Not an admin',
+        ], 403);
+    }
+
+    // Find user
+    $user = User::find($id);
+
+    if (!$user) {
+        Log::warning('User not found for delete', [
+            'admin_id' => $admin->id,
+            'target_user_id' => $id,
+        ]);
+
+        return response()->json([
+            'status' => false,
+            'message' => 'User not found.',
+        ], 404);
+    }
+
+    // Delete user
+    $user->delete();
+
+    Log::info('User deleted successfully', [
+        'admin_id' => $admin->id,
+        'deleted_user_id' => $id,
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'User deleted successfully.',
+    ]);
+}
+
+
 
 
 
