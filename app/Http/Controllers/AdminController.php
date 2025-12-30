@@ -96,7 +96,7 @@ public function verifyOldPassword(Request $request)
 public function NewPasswordChange(Request $request)
 {
     $request->validate([
-        'new_password' => 'required|string|min:6|confirmed',
+        'password' => 'required|string|min:6|confirmed', // changed field name
     ]);
 
     // Get the logged-in admin via Sanctum
@@ -110,7 +110,7 @@ public function NewPasswordChange(Request $request)
     }
 
     // Update the password field in the admins table
-    $admin->password = Hash::make($request->new_password);
+    $admin->password = Hash::make($request->password); // changed field name
     $admin->save();
 
     Log::info('Password updated', ['admin_id' => $admin->id]);
@@ -120,6 +120,7 @@ public function NewPasswordChange(Request $request)
         'message' => 'Password updated successfully'
     ]);
 }
+
 
 
 }
