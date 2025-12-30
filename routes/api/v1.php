@@ -113,6 +113,9 @@ Route::prefix('vendors')->group(function () {
     Route::delete('/{id}', [\App\Http\Controllers\VendorController::class, 'destroy']);
 });
 
+//admin to check the old password & update the password
+Route::post('/admin/password', [\App\Http\Controllers\AdminController::class, 'verifyOldPassword']);
+Route::post('/admin/passwordChange', [\App\Http\Controllers\AdminController::class, 'NewPasswordChange']);
       
 });
 
@@ -122,6 +125,9 @@ Route::prefix('vendors')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::post('/admin/login', [\App\Http\Controllers\AdminController::class, 'adminLogin']);
+
+
+
 
 //email controller
 Route::post('/email', [\App\Http\Controllers\EmailController::class, 'send']);

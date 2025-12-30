@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\AdminData;
+use Illuminate\Support\Facades\Log;
 
 class AdminController extends Controller
 {
@@ -63,6 +64,53 @@ class AdminController extends Controller
             'adminname' => $admin->adminname,
             'email' => $admin->email,
         ],
+    ]);
+}
+
+public function verifyOldPassword(Request $request)
+{
+    $request->validate([
+        'old_password' => 'required|string',
+    ]);
+
+    $admin = $request->user(); // Logged-in admin via Sanctum
+
+    Log::info('Verify old password called', [
+        'admin_id' => $admin->id
+    ]);
+
+    if (Hash::check($request->old_password, $admin->password)) {
+        return response()->json([
+            'success' => true,
+            'message' => 'Old password matched'
+        ]);
+    }
+
+    return response()->json([
+        'success' => false,
+        'message' => 'Old password does not match'
+    ], 401);
+}
+
+public function NewPasswordChange(Request $request)
+{
+    $request->validate([
+        'new_password' => 'required|string|min:6|confirmed',
+    ]);
+
+    $admin = $request->user(); // Logged-in admin via Sanctum
+
+    $admin->password = Hash::make($request->new_password);
+    $admin->save();
+
+    Log::info('Password updated', ['admin_id' => $admin->id]);
+
+    // Optional: Revoke all tokens if you want the admin to re-login
+    // $admin->tokens()->delete();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Password updated successfully'
     ]);
 }
 
