@@ -6,6 +6,7 @@ use App\Models\ItineraryData;
 use App\Models\Country;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Models\AdminData;
 
 class ItineraryController extends Controller
 {
@@ -143,40 +144,80 @@ class ItineraryController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Request $request, string $id)
-    {
-        // Fetch the itinerary
-        $itinerary = ItineraryData::find($id);
+    
+public function show(Request $request, string $id)
+{
+    Log::info('Admin itinerary show called', [
+        'admin_auth_id' => optional($request->user())->id,
+        'itinerary_id' => $id,
+        'passed_user_id' => $request->query('userId'),
+    ]);
 
-        if (!$itinerary) {
-            return response()->json([
-                'message' => 'Itinerary not found'
-            ], 404);
-        }
+    // Get authenticated admin
+    $admin = $request->user();
 
-        // Only allow access if this itinerary belongs to the authenticated user
-        if ($itinerary->userId != $request->user()->userId) {
-            return response()->json([
-                'message' => 'Unauthorized: You do not have access to this itinerary.'
-            ], 403);
-        }
+    if (!$admin) {
+        return response()->json([
+            'message' => 'Unauthenticated'
+        ], 401);
+    }
 
-        // Attach country name and id
-        if ($itinerary->country) {
-            $country = Country::where('country_id', $itinerary->country)
-                ->orWhere('country_name', $itinerary->country)
-                ->first();
-            $itinerary->country_name = $country ? $country->country_name : null;
-            $itinerary->country_id = $country ? $country->country_id : null;
-        } else {
-            $itinerary->country_name = null;
-            $itinerary->country_id = null;
-        }
+    // Verify admin from admindata table
+    $isAdmin = AdminData::where('id', $admin->id)->exists();
+
+    if (!$isAdmin) {
+        Log::warning('Non-admin attempted itinerary access', [
+            'auth_id' => $admin->id,
+        ]);
 
         return response()->json([
-            'data' => $itinerary
-        ]);
+            'message' => 'Unauthorized - Not an admin'
+        ], 403);
     }
+
+    // Validate passed userId
+    $request->validate([
+        'userId' => 'required|integer',
+    ]);
+
+    $userId = $request->query('userId');
+
+    // Fetch itinerary for passed userId
+    $itinerary = ItineraryData::where('id', $id)
+        ->where('userId', $userId)
+        ->first();
+
+    if (!$itinerary) {
+        return response()->json([
+            'message' => 'Itinerary not found for this user'
+        ], 404);
+    }
+
+    //  Attach country name & id
+    if (!empty($itinerary->country)) {
+        $country = Country::where('country_id', $itinerary->country)
+            ->orWhere('country_name', $itinerary->country)
+            ->first();
+
+        $itinerary->country_name = $country?->country_name;
+        $itinerary->country_id   = $country?->country_id;
+    } else {
+        $itinerary->country_name = null;
+        $itinerary->country_id   = null;
+    }
+
+    Log::info('Admin itinerary fetched successfully', [
+        'admin_id' => $admin->id,
+        'itinerary_id' => $itinerary->id,
+        'user_id' => $userId,
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'data' => $itinerary
+    ]);
+}
+
 
     /**
      * Update the specified resource in storage.
