@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use App\Models\AdminData;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class SingleItineraryController extends Controller
 {
@@ -272,70 +273,214 @@ public function index(Request $request)
     //     ]);
     // }
 
-    public function update(Request $request, $id)
+    // public function update(Request $request, $id)
+    // {
+    //     $authUser = $request->user();
+    
+    //     Log::info('update() called in SingleItineraryController', [
+    //         'auth_id' => optional($authUser)->id,
+    //         'singleItineraryId' => $id
+    //     ]);
+    
+    //     if (!$authUser) {
+    //         return response()->json(['message' => 'Unauthorized.'], 401);
+    //     }
+    
+    //     // Check if admin
+    //     $isAdmin = AdminData::where('id', $authUser->id)->exists();
+    
+    //     // Find single itinerary
+    //     $singleItinerary = SingleItineraryData::find($id);
+    
+    //     if (!$singleItinerary) {
+    //         return response()->json(['message' => 'SingleItinerary not found.'], 404);
+    //     }
+    
+    //     /**
+    //      * USER AUTHORIZATION CHECK
+    //      * - Admin → allowed
+    //      * - User  → must own the record
+    //      */
+    //     if (!$isAdmin && $singleItinerary->userId !== $authUser->userId) {
+    //         Log::warning('Unauthorized update attempt on SingleItinerary', [
+    //             'authUserId' => $authUser->userId,
+    //             'ownerUserId' => $singleItinerary->userId
+    //         ]);
+    
+    //         return response()->json([
+    //             'message' => 'Unauthorized: You do not have access to this resource.'
+    //         ], 403);
+    //     }
+    
+    //     // Validation
+    //     $validatedData = $request->validate([
+    //         'ItineraryId'     => 'sometimes|integer|exists:itinerarydata,ItineraryId',
+    //         'uploadDate'      => 'nullable|date',
+    //         'certificateFile' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+    //         'approvelStatus'  => 'nullable|string|max:255',
+    //         'emissionOffset'  => 'nullable|numeric',
+    //         'treesPlanted'    => 'nullable|integer',
+    //         'projectTypes'    => 'nullable|string|max:255',
+    //         'comments'        => 'nullable|string|max:1000',
+    //     ]);
+    
+    //     Log::info('Validated data in update()', [
+    //         'validatedData' => $validatedData,
+    //         'is_admin' => $isAdmin
+    //     ]);
+    
+    //     /**
+    //      * Extra check:
+    //      * - Only USERS are restricted by itinerary ownership
+    //      * - ADMIN can assign any itinerary
+    //      */
+    //     if (
+    //         isset($validatedData['ItineraryId']) &&
+    //         !$isAdmin
+    //     ) {
+    //         $itinerary = ItineraryData::where('ItineraryId', $validatedData['ItineraryId'])
+    //             ->where('userId', $authUser->userId)
+    //             ->first();
+    
+    //         if (!$itinerary) {
+    //             return response()->json([
+    //                 'message' => 'Unauthorized: ItineraryId does not belong to the authenticated user.'
+    //             ], 403);
+    //         }
+    //     }
+    
+    //     // Handle certificate file (both admin & user allowed)
+    //     if ($request->hasFile('certificateFile')) {
+    
+    //         if (
+    //             $singleItinerary->certificateFile &&
+    //             Storage::disk('public')->exists($singleItinerary->certificateFile)
+    //         ) {
+    //             Storage::disk('public')->delete($singleItinerary->certificateFile);
+    //         }
+    
+    //         $file = $request->file('certificateFile');
+    //         $path = $file->store('certificates', 'public');
+    //         $validatedData['certificateFile'] = $path;
+    //     } else {
+    //         unset($validatedData['certificateFile']);
+    //     }
+    
+    //     // Update record
+    //     $singleItinerary->update($validatedData);
+    
+    //     Log::info('SingleItinerary updated successfully', [
+    //         'singleItineraryId' => $id,
+    //         'updatedBy' => $isAdmin ? 'admin' : 'user'
+    //     ]);
+    
+    //     return response()->json([
+    //         'message' => 'SingleItinerary updated successfully.',
+    //         'data' => $singleItinerary
+    //     ]);
+    // }
+
+
+public function update(Request $request, $id)
 {
-    Log::info('Admin update() called for SingleItinerary', [
-        'admin_auth_id' => optional($request->user())->id,
+    $authUser = $request->user();
+
+    Log::info('update() called in SingleItineraryController', [
+        'auth_id' => optional($authUser)->id,
         'singleItineraryId' => $id
     ]);
 
-    // Get authenticated admin
-    $admin = $request->user();
-
-    if (!$admin) {
-        return response()->json(['message' => 'Unauthenticated'], 401);
+    if (!$authUser) {
+        return response()->json(['message' => 'Unauthorized'], 401);
     }
 
-    // Verify admin
-    if (!AdminData::where('id', $admin->id)->exists()) {
-        return response()->json([
-            'message' => 'Unauthorized - Not an admin'
-        ], 403);
-    }
+    // Check Admin
+    $isAdmin = AdminData::where('id', $authUser->id)->exists();
 
-    // Find single itinerary
+    // Find Single Itinerary
     $singleItinerary = SingleItineraryData::find($id);
-
     if (!$singleItinerary) {
-        return response()->json(['message' => 'SingleItinerary not found.'], 404);
+        return response()->json(['message' => 'SingleItinerary not found'], 404);
     }
 
-    // Validation (certificateFile REMOVED)
+    // USER authorization
+    if (!$isAdmin && $singleItinerary->userId !== $authUser->userId) {
+        return response()->json(['message' => 'Unauthorized access'], 403);
+    }
+
+    // Validate request
     $validatedData = $request->validate([
-        'ItineraryId'    => 'sometimes|integer|exists:itinerarydata,ItineraryId',
-        'uploadDate'     => 'nullable|date',
-        'approvelStatus' => 'nullable|string|max:255',
-        'emissionOffset' => 'nullable|numeric',
-        'treesPlanted'   => 'nullable|integer',
-        'projectTypes'   => 'nullable|string|max:255',
-        'comments'       => 'nullable|string|max:1000',
+        'ItineraryId'     => 'required|integer|exists:itinerarydata,ItineraryId',
+        'approvelStatus'  => 'nullable|string|max:255',
+        'emissionOffset'  => 'required|numeric|min:0',
+        'treesPlanted'    => 'required|integer|min:0',
     ]);
 
-    Log::info('Validated data in admin update()', [
-        'validatedData' => $validatedData
-    ]);
-
-    // Explicitly block certificateFile even if sent
-    if ($request->hasFile('certificateFile')) {
-        Log::warning('Admin attempted to update certificateFile - blocked', [
-            'singleItineraryId' => $id
-        ]);
+    // Fetch Itinerary
+    $itinerary = ItineraryData::where('ItineraryId', $validatedData['ItineraryId'])->first();
+    if (!$itinerary) {
+        return response()->json(['message' => 'Itinerary not found'], 404);
     }
 
-    // Update record (no file changes possible)
-    $singleItinerary->update($validatedData);
+    // USER restriction for itinerary
+    if (!$isAdmin && $itinerary->userId !== $authUser->userId) {
+        return response()->json(['message' => 'Unauthorized itinerary access'], 403);
+    }
 
-    Log::info('SingleItinerary updated successfully by admin', [
+    DB::transaction(function () use ($validatedData, $singleItinerary, $itinerary) {
+
+        // STEP 1: Store old values
+        $oldOffset = $singleItinerary->emissionOffset ?? 0;
+        $oldTrees  = $singleItinerary->treesPlanted ?? 0;
+
+        // STEP 2: Update SingleItinerary
+        $singleItinerary->update([
+            'approvelStatus' => $validatedData['approvelStatus'] ?? $singleItinerary->approvelStatus,
+            'emissionOffset' => $validatedData['emissionOffset'],
+            'treesPlanted'   => $validatedData['treesPlanted'],
+        ]);
+
+        // STEP 3: Update Itinerary totals (NO double counting)
+        $newOffsetAmount = ($itinerary->offsetAmount ?? 0) - $oldOffset + $validatedData['emissionOffset'];
+        $newTreeCount    = ($itinerary->numberOfTrees ?? 0) - $oldTrees + $validatedData['treesPlanted'];
+
+        // STEP 4: Calculate offset percentage
+        $offsetPercentage = 0;
+        if ($itinerary->emissionAmount > 0) {
+            $offsetPercentage = round(($newOffsetAmount / $itinerary->emissionAmount) * 100, 2);
+        }
+
+        // STEP 5: Determine status
+        if ($offsetPercentage == 0) {
+            $status = 'pending';
+        } elseif ($offsetPercentage < 100) {
+            $status = 'partial';
+        } else {
+            $status = 'completed';
+        }
+
+        // STEP 6: Update Itinerary
+        $itinerary->update([
+            'offsetAmount'     => $newOffsetAmount,
+            'offsetPercentage' => $offsetPercentage,
+            'numberOfTrees'    => $newTreeCount,
+            'status'           => $status,
+        ]);
+    });
+
+    Log::info('SingleItinerary & Itinerary updated successfully', [
         'singleItineraryId' => $id,
-        'updatedFields' => array_keys($validatedData)
+        'itineraryId' => $validatedData['ItineraryId']
     ]);
 
     return response()->json([
         'status' => true,
-        'message' => 'SingleItinerary updated successfully.',
+        'message' => 'Single itinerary and itinerary updated successfully',
         'data' => $singleItinerary
     ]);
 }
+
+    
 
 
 
