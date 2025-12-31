@@ -42,6 +42,106 @@ class ItineraryController extends Controller
     /**
      * Store a newly created resource in storage.
      */
+    // public function store(Request $request)
+    // {
+    //     Log::info($request->all());
+    //     Log::info('Current user:', ['user' => $request->user()]);
+
+    //     // Validation updated to reflect table columns from the provided structure (including all fields)
+    //     $validated = $request->validate([
+    //         // Required fields
+    //         'userId'             => 'required|integer',
+    //         'date'               => 'required|date',
+
+    //         'airline'            => 'required|string|max:255',
+    //         'origin'             => 'required|string|max:255',
+    //         'destination'        => 'required|string|max:255',
+    //         'class'              => 'required|string|max:255',
+    //         'passengers'         => 'required|integer',
+    //         'tripType'           => 'required|string|max:255',
+    //         'distance'           => 'required|string|max:255',
+
+    //         'flightcode'         => 'nullable|string|max:255',
+    //         'originCity'         => 'nullable|string|max:255',
+    //         'destinationCity'    => 'nullable|string|max:255',
+    //         'emission'           => 'nullable|numeric',
+    //         'offsetAmount'       => 'nullable|integer',
+    //         'offsetPercentage'   => 'nullable|integer',
+    //         'totalTrees'         => 'nullable|integer',
+    //         'numberOfTrees'      => 'nullable|integer',
+    //         'country' => [
+    //             'nullable',
+    //             'string',
+    //             'max:255',
+    //             function ($attribute, $value, $fail) {
+    //                 // Accept either country name or primary key (country_id)
+    //                 if (
+    //                     $value &&
+    //                     !Country::where('country_name', $value)
+    //                         ->orWhere('country_id', $value)
+    //                         ->exists()
+    //                 ) {
+    //                     $fail('The selected country is invalid.');
+    //                 }
+    //             }
+    //         ],
+
+    //         'status'             => 'nullable|string|max:255',
+    //         'approvelStatus'     => 'nullable|string|max:255',
+    //     ]);
+
+    //     // If a country is provided as a name, convert to country_id for storage if needed
+    //     if (!empty($validated['country'])) {
+    //         $country = Country::where('country_name', $validated['country'])
+    //             ->orWhere('country_id', $validated['country'])
+    //             ->first();
+    //         // Store the country_id in the DB if it's available, otherwise store the original value as fallback
+    //         $validated['country'] = $country ? $country->country_id : $validated['country'];
+    //     }
+
+    //     // Check if userId in request matches the current authenticated userId
+    //     if ($request->user()->userId != $validated['userId']) {
+    //         return response()->json([
+    //             'message' => 'Unauthorized: userId does not match the authenticated user.'
+    //         ], 403);
+    //     }
+
+    //     $itinerary = ItineraryData::create($validated);
+
+    //     // Attach country name and id if exists
+    //     if ($itinerary->country) {
+    //         $country = Country::where('country_id', $itinerary->country)
+    //             ->orWhere('country_name', $itinerary->country)
+    //             ->first();
+    //         $itinerary->country_name = $country ? $country->country_name : null;
+    //         $itinerary->country_id = $country ? $country->country_id : null;
+    //     } else {
+    //         $itinerary->country_name = null;
+    //         $itinerary->country_id = null;
+    //     }
+
+    //     $itineraries = ItineraryData::where('userId', $request->user()->userId)->get();
+    //     // Attach country names to the list
+    //     $itineraries->transform(function ($itinerary) {
+    //         if ($itinerary->country) {
+    //             $country = Country::where('country_id', $itinerary->country)
+    //                 ->orWhere('country_name', $itinerary->country)
+    //                 ->first();
+    //             $itinerary->country_name = $country ? $country->country_name : null;
+    //             $itinerary->country_id = $country ? $country->country_id : null;
+    //         } else {
+    //             $itinerary->country_name = null;
+    //             $itinerary->country_id = null;
+    //         }
+    //         return $itinerary;
+    //     });
+
+    //     return response()->json([
+    //         'message' => 'Itinerary created successfully',
+    //         'data' => $itineraries
+    //     ]);
+    // }
+
     public function store(Request $request)
     {
         Log::info($request->all());
@@ -67,7 +167,7 @@ class ItineraryController extends Controller
             'emission'           => 'nullable|numeric',
             'offsetAmount'       => 'nullable|integer',
             'offsetPercentage'   => 'nullable|integer',
-            'totalTrees' => 'nullable|integer',
+            // don't include totalTrees here; we'll handle it below to ensure clean write
             'numberOfTrees'      => 'nullable|integer',
             'country' => [
                 'nullable',
@@ -106,7 +206,14 @@ class ItineraryController extends Controller
             ], 403);
         }
 
+        // Fix for totalTrees not storing: handle it explicitly after creation
         $itinerary = ItineraryData::create($validated);
+
+        // Explicitly set totalTrees and save, if present in request
+        if ($request->has('totalTrees')) {
+            $itinerary->totalTrees = $request->input('totalTrees');
+            $itinerary->save();
+        }
 
         // Attach country name and id if exists
         if ($itinerary->country) {
@@ -141,6 +248,7 @@ class ItineraryController extends Controller
             'data' => $itineraries
         ]);
     }
+
 
     /**
      * Display the specified resource.
