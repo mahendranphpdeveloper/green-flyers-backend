@@ -324,7 +324,7 @@ class ItineraryController extends Controller
         }
     
         // Find itinerary belongs to user
-        $itinerary = ItineraryData::where('id', $itineraryId)
+        $itinerary = ItineraryData::where('ItineraryId', $itineraryId)
             ->where('userId', $userId)
             ->first();
     
