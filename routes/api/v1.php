@@ -67,7 +67,7 @@ Route::prefix('itineraries')->group(function () {
     Route::post('/store/', [\App\Http\Controllers\ItineraryController::class, 'store']);
     Route::get('/{id}', [\App\Http\Controllers\ItineraryController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\ItineraryController::class, 'update']);
-    Route::delete('/{id}', [\App\Http\Controllers\ItineraryController::class, 'destroy']);
+    Route::delete('/{userId}/{itineraryId}', [\App\Http\Controllers\ItineraryController::class, 'destroy']);
 });
 
 

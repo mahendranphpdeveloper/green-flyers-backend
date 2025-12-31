@@ -152,7 +152,7 @@ class ItineraryController extends Controller
              'passed_user_id' => $userId,
          ]);
      
-         // 1️⃣ Get authenticated admin
+         // Get authenticated admin
          $admin = $request->user();
      
          if (!$admin) {
@@ -161,7 +161,7 @@ class ItineraryController extends Controller
              ], 401);
          }
      
-         // 2️⃣ Verify admin
+         // Verify admin
          if (!AdminData::where('id', $admin->id)->exists()) {
              Log::warning('Non-admin attempted itinerary access', [
                  'auth_id' => $admin->id,
@@ -172,12 +172,12 @@ class ItineraryController extends Controller
              ], 403);
          }
      
-         // 3️⃣ Fetch all itineraries for that user
+         // Fetch all itineraries for that user
          $itineraries = ItineraryData::where('userId', $userId)
              ->orderBy('userId', 'desc')
              ->get();
      
-         // 4️⃣ Attach country name & id
+         //  Attach country name & id
          $itineraries->transform(function ($itinerary) {
              if (!empty($itinerary->country)) {
                  $country = Country::where('country_id', $itinerary->country)
@@ -295,28 +295,64 @@ class ItineraryController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Request $request, string $id)
+    public function destroy(Request $request, string $userId, string $itineraryId)
     {
-        // Find the itinerary
-        $itinerary = ItineraryData::find($id);
-
-        if (!$itinerary) {
+        Log::info('Admin delete itinerary called', [
+            'admin_auth_id'   => optional($request->user())->id,
+            'passed_user_id'  => $userId,
+            'itinerary_id'    => $itineraryId,
+        ]);
+    
+        // Get authenticated admin
+        $admin = $request->user();
+    
+        if (!$admin) {
             return response()->json([
-                'message' => 'Itinerary not found'
-            ], 404);
+                'message' => 'Unauthenticated'
+            ], 401);
         }
-
-        // Only allow delete if this itinerary belongs to the authenticated user
-        if ($itinerary->userId != $request->user()->userId) {
+    
+        // Verify admin
+        if (!AdminData::where('id', $admin->id)->exists()) {
+            Log::warning('Non-admin attempted itinerary delete', [
+                'auth_id' => $admin->id,
+            ]);
+    
             return response()->json([
-                'message' => 'Unauthorized: You do not have permission to delete this itinerary.'
+                'message' => 'Unauthorized - Not an admin'
             ], 403);
         }
-
+    
+        // Find itinerary belongs to user
+        $itinerary = ItineraryData::where('id', $itineraryId)
+            ->where('userId', $userId)
+            ->first();
+    
+        if (!$itinerary) {
+            Log::warning('Itinerary not found for delete', [
+                'user_id'      => $userId,
+                'itinerary_id' => $itineraryId,
+            ]);
+    
+            return response()->json([
+                'status'  => false,
+                'message' => 'Itinerary not found for this user'
+            ], 404);
+        }
+    
+        // Delete itinerary
         $itinerary->delete();
-
+    
+        Log::info('Admin itinerary deleted successfully', [
+            'admin_id'     => $admin->id,
+            'user_id'      => $userId,
+            'itinerary_id' => $itineraryId,
+        ]);
+    
         return response()->json([
+            'status'  => true,
             'message' => 'Itinerary deleted successfully'
         ]);
     }
+    
 }
