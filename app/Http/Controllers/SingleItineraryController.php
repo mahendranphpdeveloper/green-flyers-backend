@@ -338,10 +338,10 @@ public function update(Request $request, $id)
         $newTreeCount    = ($itinerary->numberOfTrees ?? 0) - $oldTrees + $validatedData['treesPlanted'];
 
         // STEP 4: Calculate offset percentage
-        // $offsetPercentage = 0;
-        // if ($itinerary->emissionAmount > 0) {
-            $offsetPercentage = round(($newOffsetAmount / $itinerary->emissionAmount) * 100, 2);
-        // }
+        $offsetPercentage = 0;
+        if ($itinerary->emission > 0) {
+            $offsetPercentage = round(($newOffsetAmount / $itinerary->emission) * 100, 2);
+        }
 
         // STEP 5: Determine status
         if ($offsetPercentage == 0) {
