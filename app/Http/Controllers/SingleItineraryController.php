@@ -7,22 +7,69 @@ use App\Models\SingleItineraryData;
 use App\Models\ItineraryData;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use App\Models\AdminData;
 
 class SingleItineraryController extends Controller
 {
 
+    // public function index(Request $request)
+    // {
+    //     $user = $request->user();
+    //     Log::info('index() called in SingleItineraryController', ['user' => $user]);
+    //     if (!$user) {
+    //         Log::warning('Unauthorized access attempt in index()');
+    //         return response()->json(['message' => 'Unauthorized.'], 401);
+    //     }
+    //     $singleItineraries = SingleItineraryData::where('userId', $user->userId)->get();
+    //     Log::info('index() returning single itineraries', ['userId' => $user->userId, 'count' => $singleItineraries->count()]);
+    //     return response()->json($singleItineraries);
+    // }
+
     public function index(Request $request)
-    {
-        $user = $request->user();
-        Log::info('index() called in SingleItineraryController', ['user' => $user]);
-        if (!$user) {
-            Log::warning('Unauthorized access attempt in index()');
-            return response()->json(['message' => 'Unauthorized.'], 401);
-        }
-        $singleItineraries = SingleItineraryData::where('userId', $user->userId)->get();
-        Log::info('index() returning single itineraries', ['userId' => $user->userId, 'count' => $singleItineraries->count()]);
-        return response()->json($singleItineraries);
+{
+    Log::info('Admin SingleItinerary index() called');
+
+    // Get authenticated admin
+    $admin = $request->user();
+
+    if (!$admin) {
+        Log::warning('Unauthorized access attempt in admin single itinerary index()');
+        return response()->json(['message' => 'Unauthenticated'], 401);
     }
+
+    // Verify admin
+    if (!AdminData::where('id', $admin->id)->exists()) {
+        Log::warning('Non-admin attempted to access admin single itineraries', [
+            'auth_id' => $admin->id,
+        ]);
+
+        return response()->json([
+            'message' => 'Unauthorized - Not an admin'
+        ], 403);
+    }
+
+    // Fetch ALL single itineraries
+    $singleItineraries = SingleItineraryData::orderBy('id', 'desc')->get();
+
+    if ($singleItineraries->isEmpty()) {
+        Log::warning('No single itineraries found');
+        return response()->json([
+            'status' => false,
+            'message' => 'No records found'
+        ], 404);
+    }
+
+    Log::info('Admin single itineraries fetched successfully', [
+        'admin_id' => $admin->id,
+        'count' => $singleItineraries->count(),
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'data' => $singleItineraries
+    ]);
+}
+
 
 
     public function store(Request $request)
