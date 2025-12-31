@@ -108,7 +108,7 @@ public function index(Request $request)
     // Attach User & Itinerary data
     $singleItineraries->transform(function ($single) {
         $single->user = User::where('userId', $single->userId)->first();
-        $single->itinerary = ItineraryData::where('ItineraryId', $single->itineraryId)->first();
+        $single->itinerary = ItineraryData::where('ItineraryId', $single->ItineraryId)->first();
         return $single;
     });
 
