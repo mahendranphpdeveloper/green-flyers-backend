@@ -67,6 +67,7 @@ class ItineraryController extends Controller
             'emission'           => 'nullable|numeric',
             'offsetAmount'       => 'nullable|integer',
             'offsetPercentage'   => 'nullable|integer',
+            'totalTrees' => 'nullable|integer',
             'numberOfTrees'      => 'nullable|integer',
             'country' => [
                 'nullable',
