@@ -8,6 +8,7 @@ use App\Models\ItineraryData;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use App\Models\AdminData;
+use App\Models\User;
 
 class SingleItineraryController extends Controller
 {
@@ -25,7 +26,52 @@ class SingleItineraryController extends Controller
     //     return response()->json($singleItineraries);
     // }
 
-    public function index(Request $request)
+//     public function index(Request $request)
+// {
+//     Log::info('Admin SingleItinerary index() called');
+
+//     // Get authenticated admin
+//     $admin = $request->user();
+
+//     if (!$admin) {
+//         Log::warning('Unauthorized access attempt in admin single itinerary index()');
+//         return response()->json(['message' => 'Unauthenticated'], 401);
+//     }
+
+//     // Verify admin
+//     if (!AdminData::where('id', $admin->id)->exists()) {
+//         Log::warning('Non-admin attempted to access admin single itineraries', [
+//             'auth_id' => $admin->id,
+//         ]);
+
+//         return response()->json([
+//             'message' => 'Unauthorized - Not an admin'
+//         ], 403);
+//     }
+
+//     // Fetch ALL single itineraries
+//     $singleItineraries = SingleItineraryData::orderBy('id', 'desc')->get();
+
+//     if ($singleItineraries->isEmpty()) {
+//         Log::warning('No single itineraries found');
+//         return response()->json([
+//             'status' => false,
+//             'message' => 'No records found'
+//         ], 404);
+//     }
+
+//     Log::info('Admin single itineraries fetched successfully', [
+//         'admin_id' => $admin->id,
+//         'count' => $singleItineraries->count(),
+//     ]);
+
+//     return response()->json([
+//         'status' => true,
+//         'data' => $singleItineraries
+//     ]);
+// }
+
+public function index(Request $request)
 {
     Log::info('Admin SingleItinerary index() called');
 
@@ -59,6 +105,13 @@ class SingleItineraryController extends Controller
         ], 404);
     }
 
+    // Attach User & Itinerary data
+    $singleItineraries->transform(function ($single) {
+        $single->user = User::where('userId', $single->userId)->first();
+        $single->itinerary = ItineraryData::where('ItineraryId', $single->itineraryId)->first();
+        return $single;
+    });
+
     Log::info('Admin single itineraries fetched successfully', [
         'admin_id' => $admin->id,
         'count' => $singleItineraries->count(),
@@ -69,6 +122,7 @@ class SingleItineraryController extends Controller
         'data' => $singleItineraries
     ]);
 }
+
 
 
 
