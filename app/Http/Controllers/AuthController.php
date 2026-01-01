@@ -171,6 +171,8 @@ public function login(Request $request)
             'userName' => $user->userName,
             'userEmail' => $user->userEmail,
             'profilePic' => $user->profilePic,
+            'offsetCredit' => $user->offsetCredit,
+            'treeCredit' => $user->treeCredit,
         ]
     ]);
 }
@@ -225,6 +227,8 @@ public function register(Request $request)
             'userName'   => $user->userName,
             'userEmail'  => $user->userEmail,
             'profilePic' => $user->profilePic,
+            'offsetCredit' => $user->offsetCredit,
+            'treeCredit' => $user->treeCredit,
         ]
     ], 201);
 }
@@ -331,6 +335,8 @@ public function register(Request $request)
             'name'       => $user->userName,   // always DB value
             'email'      => $user->userEmail,
             'profilePic' => $user->profilePic, // always DB value
+            'offsetCredit' => $user->offsetCredit,
+            'treeCredit' => $user->treeCredit,
         ]
     ]);
 }
