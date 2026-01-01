@@ -72,7 +72,7 @@ class VendorController extends Controller
 
         $request->validate([
             'name'        => 'required|string|max:255',
-            'projects'    => 'nullable', // projects field is JSON, accept any valid JSON value
+            'projects'    => 'nullable|array',
             'status'      => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'projectUrl'  => 'nullable|string|max:255',
