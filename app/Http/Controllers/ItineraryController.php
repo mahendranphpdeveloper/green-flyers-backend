@@ -7,6 +7,9 @@ use App\Models\Country;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Models\AdminData;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+
 
 class ItineraryController extends Controller
 {
@@ -142,112 +145,236 @@ class ItineraryController extends Controller
     //     ]);
     // }
 
+    // public function store(Request $request)
+    // {
+    //     Log::info($request->all());
+    //     Log::info('Current user:', ['user' => $request->user()]);
+
+    //     // Validation updated to reflect table columns from the provided structure (including all fields)
+    //     $validated = $request->validate([
+    //         // Required fields
+    //         'userId'             => 'required|integer',
+    //         'date'               => 'required|date',
+
+    //         'airline'            => 'required|string|max:255',
+    //         'origin'             => 'required|string|max:255',
+    //         'destination'        => 'required|string|max:255',
+    //         'class'              => 'required|string|max:255',
+    //         'passengers'         => 'required|integer',
+    //         'tripType'           => 'required|string|max:255',
+    //         'distance'           => 'required|string|max:255',
+
+    //         'flightcode'         => 'nullable|string|max:255',
+    //         'originCity'         => 'nullable|string|max:255',
+    //         'destinationCity'    => 'nullable|string|max:255',
+    //         'emission'           => 'nullable|numeric',
+    //         'offsetAmount'       => 'nullable|integer',
+    //         'offsetPercentage'   => 'nullable|integer',
+    //         // don't include totalTrees here; we'll handle it below to ensure clean write
+    //         'numberOfTrees'      => 'nullable|integer',
+    //         'country' => [
+    //             'nullable',
+    //             'string',
+    //             'max:255',
+    //             function ($attribute, $value, $fail) {
+    //                 // Accept either country name or primary key (country_id)
+    //                 if (
+    //                     $value &&
+    //                     !Country::where('country_name', $value)
+    //                         ->orWhere('country_id', $value)
+    //                         ->exists()
+    //                 ) {
+    //                     $fail('The selected country is invalid.');
+    //                 }
+    //             }
+    //         ],
+
+    //         'status'             => 'nullable|string|max:255',
+    //         'approvelStatus'     => 'nullable|string|max:255',
+    //     ]);
+
+    //     // If a country is provided as a name, convert to country_id for storage if needed
+    //     if (!empty($validated['country'])) {
+    //         $country = Country::where('country_name', $validated['country'])
+    //             ->orWhere('country_id', $validated['country'])
+    //             ->first();
+    //         // Store the country_id in the DB if it's available, otherwise store the original value as fallback
+    //         $validated['country'] = $country ? $country->country_id : $validated['country'];
+    //     }
+
+    //     // Check if userId in request matches the current authenticated userId
+    //     if ($request->user()->userId != $validated['userId']) {
+    //         return response()->json([
+    //             'message' => 'Unauthorized: userId does not match the authenticated user.'
+    //         ], 403);
+    //     }
+
+    //     // Fix for totalTrees not storing: handle it explicitly after creation
+    //     $itinerary = ItineraryData::create($validated);
+
+    //     // Explicitly set totalTrees and save, if present in request
+    //     if ($request->has('totalTrees')) {
+    //         $itinerary->totalTrees = $request->input('totalTrees');
+    //         $itinerary->save();
+    //     }
+
+    //     // Attach country name and id if exists
+    //     if ($itinerary->country) {
+    //         $country = Country::where('country_id', $itinerary->country)
+    //             ->orWhere('country_name', $itinerary->country)
+    //             ->first();
+    //         $itinerary->country_name = $country ? $country->country_name : null;
+    //         $itinerary->country_id = $country ? $country->country_id : null;
+    //     } else {
+    //         $itinerary->country_name = null;
+    //         $itinerary->country_id = null;
+    //     }
+
+    //     $itineraries = ItineraryData::where('userId', $request->user()->userId)->get();
+    //     // Attach country names to the list
+    //     $itineraries->transform(function ($itinerary) {
+    //         if ($itinerary->country) {
+    //             $country = Country::where('country_id', $itinerary->country)
+    //                 ->orWhere('country_name', $itinerary->country)
+    //                 ->first();
+    //             $itinerary->country_name = $country ? $country->country_name : null;
+    //             $itinerary->country_id = $country ? $country->country_id : null;
+    //         } else {
+    //             $itinerary->country_name = null;
+    //             $itinerary->country_id = null;
+    //         }
+    //         return $itinerary;
+    //     });
+
+    //     return response()->json([
+    //         'message' => 'Itinerary created successfully',
+    //         'data' => $itineraries
+    //     ]);
+    // }
+
     public function store(Request $request)
-    {
-        Log::info($request->all());
-        Log::info('Current user:', ['user' => $request->user()]);
+{
+    Log::info($request->all());
+    $authUser = $request->user();
 
-        // Validation updated to reflect table columns from the provided structure (including all fields)
-        $validated = $request->validate([
-            // Required fields
-            'userId'             => 'required|integer',
-            'date'               => 'required|date',
+    if (!$authUser) {
+        return response()->json(['message' => 'Unauthorized'], 401);
+    }
 
-            'airline'            => 'required|string|max:255',
-            'origin'             => 'required|string|max:255',
-            'destination'        => 'required|string|max:255',
-            'class'              => 'required|string|max:255',
-            'passengers'         => 'required|integer',
-            'tripType'           => 'required|string|max:255',
-            'distance'           => 'required|string|max:255',
+    $validated = $request->validate([
+        'userId'       => 'required|integer',
+        'date'         => 'required|date',
 
-            'flightcode'         => 'nullable|string|max:255',
-            'originCity'         => 'nullable|string|max:255',
-            'destinationCity'    => 'nullable|string|max:255',
-            'emission'           => 'nullable|numeric',
-            'offsetAmount'       => 'nullable|integer',
-            'offsetPercentage'   => 'nullable|integer',
-            // don't include totalTrees here; we'll handle it below to ensure clean write
-            'numberOfTrees'      => 'nullable|integer',
-            'country' => [
-                'nullable',
-                'string',
-                'max:255',
-                function ($attribute, $value, $fail) {
-                    // Accept either country name or primary key (country_id)
-                    if (
-                        $value &&
-                        !Country::where('country_name', $value)
-                            ->orWhere('country_id', $value)
-                            ->exists()
-                    ) {
-                        $fail('The selected country is invalid.');
-                    }
+        'airline'      => 'required|string|max:255',
+        'origin'       => 'required|string|max:255',
+        'destination'  => 'required|string|max:255',
+        'class'        => 'required|string|max:255',
+        'passengers'   => 'required|integer',
+        'tripType'     => 'required|string|max:255',
+        'distance'     => 'required|string|max:255',
+
+        'flightcode'      => 'nullable|string|max:255',
+        'originCity'      => 'nullable|string|max:255',
+        'destinationCity' => 'nullable|string|max:255',
+        'emission'        => 'nullable|numeric',
+        'offsetAmount'    => 'nullable|integer',
+        'offsetPercentage'=> 'nullable|integer',
+        'numberOfTrees'   => 'nullable|integer',
+
+        'country' => [
+            'nullable','string','max:255',
+            function ($attribute, $value, $fail) {
+                if (
+                    $value &&
+                    !Country::where('country_name', $value)
+                        ->orWhere('country_id', $value)
+                        ->exists()
+                ) {
+                    $fail('The selected country is invalid.');
                 }
-            ],
+            }
+        ],
 
-            'status'             => 'nullable|string|max:255',
-            'approvelStatus'     => 'nullable|string|max:255',
-        ]);
+        'status'         => 'nullable|string|max:255',
+        'approvelStatus' => 'nullable|string|max:255',
+    ]);
 
-        // If a country is provided as a name, convert to country_id for storage if needed
-        if (!empty($validated['country'])) {
-            $country = Country::where('country_name', $validated['country'])
-                ->orWhere('country_id', $validated['country'])
-                ->first();
-            // Store the country_id in the DB if it's available, otherwise store the original value as fallback
-            $validated['country'] = $country ? $country->country_id : $validated['country'];
-        }
+    /** USER OWNERSHIP CHECK */
+    if ($authUser->userId != $validated['userId']) {
+        return response()->json([
+            'message' => 'Unauthorized: userId does not match authenticated user'
+        ], 403);
+    }
 
-        // Check if userId in request matches the current authenticated userId
-        if ($request->user()->userId != $validated['userId']) {
-            return response()->json([
-                'message' => 'Unauthorized: userId does not match the authenticated user.'
-            ], 403);
-        }
+    /** NORMALIZE COUNTRY */
+    if (!empty($validated['country'])) {
+        $country = Country::where('country_name', $validated['country'])
+            ->orWhere('country_id', $validated['country'])
+            ->first();
+        $validated['country'] = $country ? $country->country_id : $validated['country'];
+    }
 
-        // Fix for totalTrees not storing: handle it explicitly after creation
+    DB::transaction(function () use (&$itinerary, $validated, $request, $authUser) {
+
+        /** CREATE ITINERARY */
         $itinerary = ItineraryData::create($validated);
 
-        // Explicitly set totalTrees and save, if present in request
         if ($request->has('totalTrees')) {
             $itinerary->totalTrees = $request->input('totalTrees');
             $itinerary->save();
         }
 
-        // Attach country name and id if exists
-        if ($itinerary->country) {
-            $country = Country::where('country_id', $itinerary->country)
-                ->orWhere('country_name', $itinerary->country)
-                ->first();
-            $itinerary->country_name = $country ? $country->country_name : null;
-            $itinerary->country_id = $country ? $country->country_id : null;
-        } else {
-            $itinerary->country_name = null;
-            $itinerary->country_id = null;
-        }
+        /**  CARRY FORWARD USER CREDITS ONLY */
+        $user = User::where('userId', $authUser->userId)
+            ->lockForUpdate()
+            ->first();
 
-        $itineraries = ItineraryData::where('userId', $request->user()->userId)->get();
-        // Attach country names to the list
-        $itineraries->transform(function ($itinerary) {
-            if ($itinerary->country) {
-                $country = Country::where('country_id', $itinerary->country)
-                    ->orWhere('country_name', $itinerary->country)
-                    ->first();
-                $itinerary->country_name = $country ? $country->country_name : null;
-                $itinerary->country_id = $country ? $country->country_id : null;
-            } else {
-                $itinerary->country_name = null;
-                $itinerary->country_id = null;
+        $remainingEmission = max(($itinerary->emission ?? 0) - ($itinerary->offsetAmount ?? 0), 0);
+        $remainingTrees    = max(($itinerary->totalTrees ?? 0) - ($itinerary->numberOfTrees ?? 0), 0);
+
+        $useOffset = min($user->offsetCredit ?? 0, $remainingEmission);
+        $useTrees  = min($user->treeCredit ?? 0, $remainingTrees);
+
+        if ($useOffset > 0 || $useTrees > 0) {
+
+            /** APPLY TO ITINERARY */
+            $itinerary->offsetAmount  = ($itinerary->offsetAmount ?? 0) + $useOffset;
+            $itinerary->numberOfTrees = ($itinerary->numberOfTrees ?? 0) + $useTrees;
+
+            /** OPTIONAL STATUS UPDATE */
+            if (($itinerary->emission ?? 0) > 0) {
+                $itinerary->offsetPercentage = min(
+                    round(($itinerary->offsetAmount / $itinerary->emission) * 100, 2),
+                    100
+                );
+
+                $itinerary->status = match (true) {
+                    $itinerary->offsetPercentage == 0  => 'pending',
+                    $itinerary->offsetPercentage < 100 => 'partial',
+                    default                            => 'completed',
+                };
             }
-            return $itinerary;
-        });
 
-        return response()->json([
-            'message' => 'Itinerary created successfully',
-            'data' => $itineraries
-        ]);
-    }
+            $itinerary->save();
+
+            /** REDUCE USER CREDITS */
+            $user->offsetCredit -= $useOffset;
+            $user->treeCredit   -= $useTrees;
+            $user->save();
+        }
+    });
+
+    /** RETURN USER ITINERARIES */
+    $itineraries = ItineraryData::where('userId', $authUser->userId)->get();
+
+    return response()->json([
+        'message' => 'Itinerary created successfully. Available credits were carried forward.',
+        'data'    => $itineraries
+    ], 201);
+}
+
+
+    
 
 
     /**

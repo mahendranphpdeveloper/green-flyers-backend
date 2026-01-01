@@ -132,6 +132,10 @@ public function index(Request $request)
         ], 201);
     }
 
+    
+
+
+
 
     public function show(Request $request, $id)
     {
