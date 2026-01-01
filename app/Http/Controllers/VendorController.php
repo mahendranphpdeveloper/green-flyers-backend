@@ -54,6 +54,54 @@ class VendorController extends Controller
      * POST /api/vendors
      * Create a new vendor
      */
+    // public function store(Request $request)
+    // {
+    //     $admin = $request->user();
+    //     Log::info('Checking admin for vendor store', ['user' => $admin]);
+
+    //     if (
+    //         !$admin ||
+    //         !\App\Models\AdminData::where('id', $admin->id)->exists()
+    //     ) {
+    //         Log::warning('Unauthorized admin access in store', ['user' => $admin]);
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Unauthorized admin access',
+    //         ], 403);
+    //     }
+
+    //     $request->validate([
+    //         'name'        => 'required|string|max:255',
+    //         'projects'    => 'nullable|array',
+    //         'status'      => 'nullable|string|max:255',
+    //         'description' => 'nullable|string',
+    //         'projectUrl'  => 'nullable|string|max:255',
+    //         'email'       => 'nullable|email|max:255',
+    //         'state'       => 'nullable|string|max:255',
+    //         'country'     => 'nullable|string|max:255',
+    //     ]);
+    //     Log::info('Vendor validated for creation', ['admin_id' => $admin->id, 'data' => $request->all()]);
+
+    //     $vendor = VendorsData::create($request->only([
+    //         'name',
+    //         'projects',
+    //         'status',
+    //         'description',
+    //         'projectUrl',
+    //         'email',
+    //         'state',
+    //         'country'
+    //     ]));
+
+    //     Log::info('Vendor created', ['vendor_id' => $vendor->id, 'admin_id' => $admin->id]);
+
+    //     return response()->json([
+    //         'status' => true,
+    //         'message' => 'Vendor created successfully',
+    //         'data' => $vendor
+    //     ], 201);
+    // }
+
     public function store(Request $request)
     {
         $admin = $request->user();
@@ -82,7 +130,7 @@ class VendorController extends Controller
         ]);
         Log::info('Vendor validated for creation', ['admin_id' => $admin->id, 'data' => $request->all()]);
 
-        $vendor = VendorsData::create($request->only([
+        $data = $request->only([
             'name',
             'projects',
             'status',
@@ -91,7 +139,14 @@ class VendorController extends Controller
             'email',
             'state',
             'country'
-        ]));
+        ]);
+
+        // Fix: Convert projects array to JSON if present (Frontend sends ["Wind Farms", "Reforestation"])
+        if (isset($data['projects']) && is_array($data['projects'])) {
+            $data['projects'] = json_encode($data['projects']);
+        }
+
+        $vendor = VendorsData::create($data);
 
         Log::info('Vendor created', ['vendor_id' => $vendor->id, 'admin_id' => $admin->id]);
 
