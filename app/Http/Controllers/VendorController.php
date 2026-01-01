@@ -72,7 +72,7 @@ class VendorController extends Controller
 
         $request->validate([
             'name'        => 'required|string|max:255',
-            'projects'    => 'nullable|string|max:255',
+            'projects'    => 'nullable|array',
             'status'      => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'projectUrl'  => 'nullable|string|max:255',
