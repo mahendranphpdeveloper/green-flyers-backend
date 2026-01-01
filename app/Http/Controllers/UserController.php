@@ -122,7 +122,6 @@ class UserController extends Controller
 
     public function show(Request $request, string $id)
     {
-        // Following the same auth pattern as @file_context_0 (see lines 105-120)
         $authUser = $request->user();
 
         if (!$authUser) {
@@ -132,8 +131,8 @@ class UserController extends Controller
             ], 401);
         }
 
-        // Fetch from User model to ensure up-to-date information
-        $user = User::find($authUser->id);
+        // Fetch the requested user by the provided ID, not the authenticated user's ID
+        $user = User::find($id);
 
         if (!$user) {
             return response()->json([
