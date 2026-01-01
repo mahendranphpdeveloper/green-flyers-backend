@@ -122,26 +122,33 @@ class UserController extends Controller
 
     public function show(Request $request, string $id)
     {
-        Log::info('AdminController@show called', [
-            'request_user_id' => optional($request->user())->id,
+        Log::info('UserController@show called', [
+            'auth_user_id' => optional($request->user())->id,
             'target_user_id' => $id,
         ]);
 
         // Get the currently authenticated user
-        $admin = $request->user();
+        $authUser = $request->user();
 
-        // Check if the authenticated user exists in admindata table
-        $isAdmin = AdminData::where('id', $admin->id)->first();
-
-        if (!$isAdmin) {
-            Log::warning('Unauthorized access attempt to show user', [
-                'user_id' => $admin->id ?? null,
+        if (!$authUser) {
+            Log::warning('Unauthenticated access attempt to show user', [
                 'target_user_id' => $id,
             ]);
-
             return response()->json([
                 'status' => false,
-                'message' => 'Unauthorized - Not an admin',
+                'message' => 'User not authenticated.'
+            ], 401);
+        }
+
+        // Allow users to only view their own data (or, if needed, implement extra authorization logic here)
+        if ($authUser->id != $id) {
+            Log::warning('Unauthorized access attempt: user tried to access another user\'s info', [
+                'auth_user_id' => $authUser->id,
+                'target_user_id' => $id,
+            ]);
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized - You can only view your own user data.'
             ], 403);
         }
 
@@ -150,7 +157,7 @@ class UserController extends Controller
 
         if (!$user) {
             Log::warning('User not found', [
-                'admin_id' => $admin->id,
+                'auth_user_id' => $authUser->id,
                 'target_user_id' => $id,
             ]);
 
@@ -161,7 +168,7 @@ class UserController extends Controller
         }
 
         Log::info('User fetched successfully', [
-            'admin_id' => $admin->id,
+            'auth_user_id' => $authUser->id,
             'user_id' => $user->id,
         ]);
 

@@ -134,6 +134,11 @@ Route::post('/admin/login', [\App\Http\Controllers\AdminController::class, 'admi
 //email controller
 Route::post('/email', [\App\Http\Controllers\EmailController::class, 'send']);
 
+Route::get('/admin/email-templates/offset-reminder', [\App\Http\Controllers\EmailController::class, 'getOffsetReminderTemplate']);
+Route::get('/admin/email-templates/deletion-notification', [\App\Http\Controllers\EmailController::class, 'getDeletionNotificationTemplate']);
+
+
+
 
 
 
