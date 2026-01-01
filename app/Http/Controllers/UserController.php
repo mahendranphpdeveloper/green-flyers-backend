@@ -122,55 +122,25 @@ class UserController extends Controller
 
     public function show(Request $request, string $id)
     {
-        Log::info('UserController@show called', [
-            'auth_user_id' => optional($request->user())->id,
-            'target_user_id' => $id,
-        ]);
-
-        // Get the currently authenticated user
+        // Following the same auth pattern as @file_context_0 (see lines 105-120)
         $authUser = $request->user();
 
         if (!$authUser) {
-            Log::warning('Unauthenticated access attempt to show user', [
-                'target_user_id' => $id,
-            ]);
             return response()->json([
                 'status' => false,
                 'message' => 'User not authenticated.'
             ], 401);
         }
 
-        // Allow users to only view their own data (or, if needed, implement extra authorization logic here)
-        if ($authUser->id != $id) {
-            Log::warning('Unauthorized access attempt: user tried to access another user\'s info', [
-                'auth_user_id' => $authUser->id,
-                'target_user_id' => $id,
-            ]);
-            return response()->json([
-                'status' => false,
-                'message' => 'Unauthorized - You can only view your own user data.'
-            ], 403);
-        }
-
-        // Fetch user by ID
-        $user = User::find($id);
+        // Fetch from User model to ensure up-to-date information
+        $user = User::find($authUser->id);
 
         if (!$user) {
-            Log::warning('User not found', [
-                'auth_user_id' => $authUser->id,
-                'target_user_id' => $id,
-            ]);
-
             return response()->json([
                 'status' => false,
                 'message' => 'User not found.'
             ], 404);
         }
-
-        Log::info('User fetched successfully', [
-            'auth_user_id' => $authUser->id,
-            'user_id' => $user->id,
-        ]);
 
         return response()->json([
             'status' => true,
