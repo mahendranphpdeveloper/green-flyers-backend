@@ -584,8 +584,8 @@ public function update(Request $request, $id)
 
         /** STORE CREDIT IN USER */
         $user = User::where('userId', $itinerary->userId)->lockForUpdate()->first();
-        $user->creditOffset += $extraOffset;
-        $user->creditTrees  += $extraTrees;
+        $user->offsetCredit += $extraOffset;
+        $user->treeCredit  += $extraTrees;
         $user->save();
 
         /** 🔁 AUTO-ALLOCATE USER CREDIT TO NEXT ITINERARIES (DATE WISE) */
@@ -597,15 +597,15 @@ public function update(Request $request, $id)
 
         foreach ($eligibleItineraries as $nextItinerary) {
 
-            if ($user->creditOffset <= 0 && $user->creditTrees <= 0) {
+            if ($user->offsetCredit <= 0 && $user->treeCredit <= 0) {
                 break;
             }
 
             $remainingEmission = max($nextItinerary->emission - $nextItinerary->offsetAmount, 0);
             $remainingTrees    = max($nextItinerary->totalTrees - $nextItinerary->numberOfTrees, 0);
 
-            $useOffset = min($remainingEmission, $user->creditOffset);
-            $useTrees  = min($remainingTrees, $user->creditTrees);
+            $useOffset = min($remainingEmission, $user->offsetCredit);
+            $useTrees  = min($remainingTrees, $user->treeCredit);
 
             if ($useOffset > 0 || $useTrees > 0) {
 
@@ -621,8 +621,8 @@ public function update(Request $request, $id)
                 $nextItinerary->offsetPercentage = $percent;
                 $nextItinerary->save();
 
-                $user->creditOffset -= $useOffset;
-                $user->creditTrees  -= $useTrees;
+                $user->offsetCredit -= $useOffset;
+                $user->treeCredit  -= $useTrees;
             }
         }
 
