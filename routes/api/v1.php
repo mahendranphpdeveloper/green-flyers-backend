@@ -117,6 +117,11 @@ Route::prefix('vendors')->group(function () {
 Route::post('/admin/password', [\App\Http\Controllers\AdminController::class, 'verifyOldPassword']);
 Route::put('/admin/passwordChange', [\App\Http\Controllers\AdminController::class, 'NewPasswordChange']);
 
+Route::get('/admin/email-templates/offset-reminder', [\App\Http\Controllers\EmailController::class, 'getOffsetReminderTemplate']);
+Route::get('/admin/email-templates/deletion-notification', [\App\Http\Controllers\EmailController::class, 'getDeletionNotificationTemplate']);
+Route::put('/admin/email-templates/offset-reminder', [\App\Http\Controllers\EmailController::class, 'updateOffsetReminderTemplate']);
+Route::put('/admin/email-templates/deletion-notification', [\App\Http\Controllers\EmailController::class, 'updateDeletionNotificationTemplate']);
+
 
       
 });
@@ -134,8 +139,7 @@ Route::post('/admin/login', [\App\Http\Controllers\AdminController::class, 'admi
 //email controller
 Route::post('/email', [\App\Http\Controllers\EmailController::class, 'send']);
 
-Route::get('/admin/email-templates/offset-reminder', [\App\Http\Controllers\EmailController::class, 'getOffsetReminderTemplate']);
-Route::get('/admin/email-templates/deletion-notification', [\App\Http\Controllers\EmailController::class, 'getDeletionNotificationTemplate']);
+
 
 
 
