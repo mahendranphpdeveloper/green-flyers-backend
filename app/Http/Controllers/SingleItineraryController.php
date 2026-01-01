@@ -549,7 +549,7 @@ public function update(Request $request, $id)
         $user->treeCredit  += $extraTrees;
         $user->save();
 
-        /** 🔁 AUTO-ALLOCATE USER CREDIT TO NEXT ITINERARIES (DATE WISE) */
+        /** AUTO-ALLOCATE USER CREDIT TO NEXT ITINERARIES (DATE WISE) */
         $eligibleItineraries = ItineraryData::where('userId', $user->userId)
             ->whereIn('status', ['pending', 'partial'])
             ->orderBy('date', 'asc')
