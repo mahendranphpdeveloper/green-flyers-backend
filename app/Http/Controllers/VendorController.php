@@ -44,65 +44,79 @@ class VendorController extends Controller
     //     }
 
     //     Log::info('VendorsData::all() called by user', ['user_id' => $user->id]);
+        
+    //     // Fetch vendors
+    //     $vendors = VendorsData::all();
+
+    //     // For each vendor, if projects is a JSON string, convert to array before returning
+    //     $transformed = $vendors->map(function($vendor) {
+    //         $vendorArr = $vendor->toArray();
+
+    //         if (isset($vendorArr['projects']) && is_string($vendorArr['projects'])) {
+    //             $decoded = json_decode($vendorArr['projects'], true);
+    //             $vendorArr['projects'] = is_array($decoded) ? $decoded : $vendorArr['projects'];
+    //         }
+
+    //         return $vendorArr;
+    //     });
+
     //     return response()->json([
     //         'status' => true,
-    //         'data' => VendorsData::all()
+    //         'data' => $transformed
     //     ]);
     // }
 
     public function index(Request $request)
     {
-        $user = $request->user();
-        Log::info('Checking user authentication for vendors index', ['user' => $user]);
-
-        // Check for admin or user
-        if (!$user) {
-            Log::warning('Unauthorized access - no user in request');
-            return response()->json([
-                'status' => false,
-                'message' => 'Unauthorized access'
-            ], 403);
-        }
-
-        $isAdmin = \App\Models\AdminData::where('id', $user->id)->exists();
-        $isNormalUser = \App\Models\User::where('userId', $user->id)->exists();
-
-        Log::info('User role check', [
-            'user_id' => $user->id,
-            'isAdmin' => $isAdmin,
-            'isNormalUser' => $isNormalUser
+        $authUser = $request->user(); // Sanctum resolves automatically
+    
+        Log::info('Auth check for vendors index', [
+            'authUser' => $authUser,
+            'model' => $authUser ? get_class($authUser) : null
         ]);
-
-        if (!$isAdmin && !$isNormalUser) {
-            Log::warning('Unauthorized access - not admin or user', ['user_id' => $user->id]);
+    
+        if (!$authUser) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized access'
+            ], 401);
+        }
+    
+        $isAdmin = $authUser instanceof \App\Models\AdminData;
+        $isUser  = $authUser instanceof \App\Models\User;
+    
+        Log::info('Role resolved', [
+            'isAdmin' => $isAdmin,
+            'isUser' => $isUser
+        ]);
+    
+        if (!$isAdmin && !$isUser) {
             return response()->json([
                 'status' => false,
                 'message' => 'Unauthorized access'
             ], 403);
         }
-
-        Log::info('VendorsData::all() called by user', ['user_id' => $user->id]);
-        
+    
         // Fetch vendors
         $vendors = VendorsData::all();
-
-        // For each vendor, if projects is a JSON string, convert to array before returning
-        $transformed = $vendors->map(function($vendor) {
+    
+        $transformed = $vendors->map(function ($vendor) {
             $vendorArr = $vendor->toArray();
-
+    
             if (isset($vendorArr['projects']) && is_string($vendorArr['projects'])) {
                 $decoded = json_decode($vendorArr['projects'], true);
-                $vendorArr['projects'] = is_array($decoded) ? $decoded : $vendorArr['projects'];
+                $vendorArr['projects'] = is_array($decoded) ? $decoded : [];
             }
-
+    
             return $vendorArr;
         });
-
+    
         return response()->json([
             'status' => true,
             'data' => $transformed
         ]);
     }
+    
 
     /**
      * POST /api/vendors
