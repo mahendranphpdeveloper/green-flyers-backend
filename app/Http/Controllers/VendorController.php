@@ -168,9 +168,9 @@ class VendorController extends Controller
             $vendorArr['projects'] = [];
         }
         if (!empty($vendorArr['logo'])) {
-            $vendorArr['logo_url'] = Storage::url($vendorArr['logo']);
+            $vendorArr['logo'] = Storage::url($vendorArr['logo']);
         } else {
-            $vendorArr['logo_url'] = null;
+            $vendorArr['logo'] = null;
         }
 
         return response()->json([
@@ -217,11 +217,11 @@ class VendorController extends Controller
         }
         // Attach logo URL if exists
         if (!empty($vendorArr['logo'])) {
-            $vendorArr['logo_url'] = Storage::disk('public')->exists($vendorArr['logo'])
+            $vendorArr['logo'] = Storage::disk('public')->exists($vendorArr['logo'])
                 ? Storage::url($vendorArr['logo'])
                 : null;
         } else {
-            $vendorArr['logo_url'] = null;
+            $vendorArr['logo'] = null;
         }
 
         Log::info('Vendor found', ['vendor_id' => $id]);
@@ -327,9 +327,9 @@ class VendorController extends Controller
             $vendorArr['projects'] = [];
         }
         if (!empty($vendorArr['logo'])) {
-            $vendorArr['logo_url'] = Storage::url($vendorArr['logo']);
+            $vendorArr['logo'] = Storage::url($vendorArr['logo']);
         } else {
-            $vendorArr['logo_url'] = null;
+            $vendorArr['logo'] = null;
         }
 
         return response()->json([
