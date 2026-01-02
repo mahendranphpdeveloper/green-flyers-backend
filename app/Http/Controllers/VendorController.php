@@ -94,6 +94,26 @@ class VendorController extends Controller
             ], 403);
         }
 
+        // Fix incoming projects and logo data before validation
+
+        // Handle: If projects sent as JSON string (from e.g. JS clients), decode to array
+        if ($request->has('projects')) {
+            $projects = $request->input('projects');
+            if (is_string($projects)) {
+                $decoded = json_decode($projects, true);
+                if (is_array($decoded)) {
+                    // Overwrite the input value with the array (important for Validator)
+                    $request->merge(['projects' => $decoded]);
+                }
+            }
+        }
+
+        // Handle: If logo is sent as empty object, treat as "no file"
+        if ($request->has('logo') && is_array($request->input('logo')) && empty($request->input('logo'))) {
+            // Remove logo from request if it's an empty object (i.e., `{}`)
+            $request->request->remove('logo');
+        }
+
         $request->validate([
             'name'        => 'required|string|max:255',
             'projects'    => 'nullable|array',
@@ -126,8 +146,12 @@ class VendorController extends Controller
             $data['logo'] = $path;
         }
 
-        if (isset($data['projects']) && is_array($data['projects'])) {
-            $data['projects'] = json_encode($data['projects']);
+        // Always ensure projects is JSON or NULL in DB
+        if (isset($data['projects'])) {
+            // After validation, always projects must be array or null
+            $data['projects'] = is_array($data['projects'])
+                ? json_encode($data['projects'])
+                : json_encode([]);
         }
 
         $vendor = VendorsData::create($data);
@@ -136,6 +160,13 @@ class VendorController extends Controller
 
         // Attach logo url to response if exists
         $vendorArr = $vendor->toArray();
+        // Always decode "projects" as array for output
+        if (isset($vendorArr['projects']) && !is_array($vendorArr['projects'])) {
+            $decoded = json_decode($vendorArr['projects'], true);
+            $vendorArr['projects'] = is_array($decoded) ? $decoded : [];
+        } elseif (!isset($vendorArr['projects'])) {
+            $vendorArr['projects'] = [];
+        }
         if (!empty($vendorArr['logo'])) {
             $vendorArr['logo_url'] = Storage::url($vendorArr['logo']);
         } else {
@@ -176,11 +207,13 @@ class VendorController extends Controller
             ], 404);
         }
 
-        // Decode projects field for single show
+        // Always decode projects field for single show as an array
         $vendorArr = $vendor->toArray();
-        if (isset($vendorArr['projects']) && is_string($vendorArr['projects'])) {
+        if (isset($vendorArr['projects']) && !is_array($vendorArr['projects'])) {
             $decoded = json_decode($vendorArr['projects'], true);
             $vendorArr['projects'] = is_array($decoded) ? $decoded : [];
+        } elseif (!isset($vendorArr['projects'])) {
+            $vendorArr['projects'] = [];
         }
         // Attach logo URL if exists
         if (!empty($vendorArr['logo'])) {
@@ -225,6 +258,20 @@ class VendorController extends Controller
             ], 404);
         }
 
+        // Fix incoming projects and logo data before validation (same logic as store)
+        if ($request->has('projects')) {
+            $projects = $request->input('projects');
+            if (is_string($projects)) {
+                $decoded = json_decode($projects, true);
+                if (is_array($decoded)) {
+                    $request->merge(['projects' => $decoded]);
+                }
+            }
+        }
+        if ($request->has('logo') && is_array($request->input('logo')) && empty($request->input('logo'))) {
+            $request->request->remove('logo');
+        }
+
         $request->validate([
             'name'        => 'sometimes|required|string|max:255',
             'projects'    => 'nullable|array',
@@ -260,8 +307,11 @@ class VendorController extends Controller
             $data['logo'] = $path;
         }
 
-        if (isset($data['projects']) && is_array($data['projects'])) {
-            $data['projects'] = json_encode($data['projects']);
+        // Always ensure projects is JSON or NULL in DB
+        if (isset($data['projects'])) {
+            $data['projects'] = is_array($data['projects'])
+                ? json_encode($data['projects'])
+                : json_encode([]);
         }
 
         $vendor->update($data);
@@ -269,14 +319,17 @@ class VendorController extends Controller
         Log::info('Vendor updated', ['vendor_id' => $vendor->id, 'admin_id' => $admin->id]);
 
         $vendorArr = $vendor->toArray();
+        // Always decode projects as array for API response
+        if (isset($vendorArr['projects']) && !is_array($vendorArr['projects'])) {
+            $decoded = json_decode($vendorArr['projects'], true);
+            $vendorArr['projects'] = is_array($decoded) ? $decoded : [];
+        } elseif (!isset($vendorArr['projects'])) {
+            $vendorArr['projects'] = [];
+        }
         if (!empty($vendorArr['logo'])) {
             $vendorArr['logo_url'] = Storage::url($vendorArr['logo']);
         } else {
             $vendorArr['logo_url'] = null;
-        }
-        if (isset($vendorArr['projects']) && is_string($vendorArr['projects'])) {
-            $decoded = json_decode($vendorArr['projects'], true);
-            $vendorArr['projects'] = is_array($decoded) ? $decoded : [];
         }
 
         return response()->json([
