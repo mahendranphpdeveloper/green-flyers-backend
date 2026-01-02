@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\VendorsData;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class VendorController extends Controller
 {
@@ -12,111 +13,66 @@ class VendorController extends Controller
      * GET /api/vendors
      * List all vendors
      */
-    // public function index(Request $request)
-    // {
-    //     $user = $request->user();
-    //     Log::info('Checking user authentication for vendors index', ['user' => $user]);
-
-    //     // Check for admin or user
-    //     if (!$user) {
-    //         Log::warning('Unauthorized access - no user in request');
-    //         return response()->json([
-    //             'status' => false,
-    //             'message' => 'Unauthorized access'
-    //         ], 403);
-    //     }
-
-    //     $isAdmin = \App\Models\AdminData::where('id', $user->id)->exists();
-    //     $isNormalUser = \App\Models\User::where('userId', $user->id)->exists();
-
-    //     Log::info('User role check', [
-    //         'user_id' => $user->id,
-    //         'isAdmin' => $isAdmin,
-    //         'isNormalUser' => $isNormalUser
-    //     ]);
-
-    //     if (!$isAdmin && !$isNormalUser) {
-    //         Log::warning('Unauthorized access - not admin or user', ['user_id' => $user->id]);
-    //         return response()->json([
-    //             'status' => false,
-    //             'message' => 'Unauthorized access'
-    //         ], 403);
-    //     }
-
-    //     Log::info('VendorsData::all() called by user', ['user_id' => $user->id]);
-        
-    //     // Fetch vendors
-    //     $vendors = VendorsData::all();
-
-    //     // For each vendor, if projects is a JSON string, convert to array before returning
-    //     $transformed = $vendors->map(function($vendor) {
-    //         $vendorArr = $vendor->toArray();
-
-    //         if (isset($vendorArr['projects']) && is_string($vendorArr['projects'])) {
-    //             $decoded = json_decode($vendorArr['projects'], true);
-    //             $vendorArr['projects'] = is_array($decoded) ? $decoded : $vendorArr['projects'];
-    //         }
-
-    //         return $vendorArr;
-    //     });
-
-    //     return response()->json([
-    //         'status' => true,
-    //         'data' => $transformed
-    //     ]);
-    // }
-
     public function index(Request $request)
     {
         $authUser = $request->user(); // Sanctum resolves automatically
-    
+
         Log::info('Auth check for vendors index', [
             'authUser' => $authUser,
             'model' => $authUser ? get_class($authUser) : null
         ]);
-    
+
         if (!$authUser) {
             return response()->json([
                 'status' => false,
                 'message' => 'Unauthorized access'
             ], 401);
         }
-    
+
         $isAdmin = $authUser instanceof \App\Models\AdminData;
         $isUser  = $authUser instanceof \App\Models\User;
-    
+
         Log::info('Role resolved', [
             'isAdmin' => $isAdmin,
             'isUser' => $isUser
         ]);
-    
+
         if (!$isAdmin && !$isUser) {
             return response()->json([
                 'status' => false,
                 'message' => 'Unauthorized access'
             ], 403);
         }
-    
+
         // Fetch vendors
         $vendors = VendorsData::all();
-    
+
         $transformed = $vendors->map(function ($vendor) {
             $vendorArr = $vendor->toArray();
-    
+
             if (isset($vendorArr['projects']) && is_string($vendorArr['projects'])) {
                 $decoded = json_decode($vendorArr['projects'], true);
                 $vendorArr['projects'] = is_array($decoded) ? $decoded : [];
             }
-    
+
+            // Attach logo URL if exists
+            if (!empty($vendorArr['logo'])) {
+                // Return a storage URL or null if empty
+                $vendorArr['logo_url'] = Storage::disk('public')->exists($vendorArr['logo'])
+                    ? Storage::url($vendorArr['logo'])
+                    : null;
+            } else {
+                $vendorArr['logo_url'] = null;
+            }
+
             return $vendorArr;
         });
-    
+
         return response()->json([
             'status' => true,
             'data' => $transformed
         ]);
     }
-    
 
     /**
      * POST /api/vendors
@@ -147,6 +103,7 @@ class VendorController extends Controller
             'email'       => 'nullable|email|max:255',
             'state'       => 'nullable|string|max:255',
             'country'     => 'nullable|string|max:255',
+            'logo'        => 'nullable|file|image|max:4096', // max 4MB, adjust as needed
         ]);
         Log::info('Vendor validated for creation', ['admin_id' => $admin->id, 'data' => $request->all()]);
 
@@ -159,9 +116,16 @@ class VendorController extends Controller
             'email',
             'state',
             'country'
+            // 'logo' will be handled separately
         ]);
 
-       
+        // Handle logo upload
+        if ($request->hasFile('logo') && $request->file('logo')->isValid()) {
+            // Store the file in the "public/vendors" directory
+            $path = $request->file('logo')->store('vendors', 'public');
+            $data['logo'] = $path;
+        }
+
         if (isset($data['projects']) && is_array($data['projects'])) {
             $data['projects'] = json_encode($data['projects']);
         }
@@ -170,10 +134,18 @@ class VendorController extends Controller
 
         Log::info('Vendor created', ['vendor_id' => $vendor->id, 'admin_id' => $admin->id]);
 
+        // Attach logo url to response if exists
+        $vendorArr = $vendor->toArray();
+        if (!empty($vendorArr['logo'])) {
+            $vendorArr['logo_url'] = Storage::url($vendorArr['logo']);
+        } else {
+            $vendorArr['logo_url'] = null;
+        }
+
         return response()->json([
             'status' => true,
             'message' => 'Vendor created successfully',
-            'data' => $vendor
+            'data' => $vendorArr
         ], 201);
     }
 
@@ -204,10 +176,25 @@ class VendorController extends Controller
             ], 404);
         }
 
+        // Decode projects field for single show
+        $vendorArr = $vendor->toArray();
+        if (isset($vendorArr['projects']) && is_string($vendorArr['projects'])) {
+            $decoded = json_decode($vendorArr['projects'], true);
+            $vendorArr['projects'] = is_array($decoded) ? $decoded : [];
+        }
+        // Attach logo URL if exists
+        if (!empty($vendorArr['logo'])) {
+            $vendorArr['logo_url'] = Storage::disk('public')->exists($vendorArr['logo'])
+                ? Storage::url($vendorArr['logo'])
+                : null;
+        } else {
+            $vendorArr['logo_url'] = null;
+        }
+
         Log::info('Vendor found', ['vendor_id' => $id]);
         return response()->json([
             'status' => true,
-            'data' => $vendor
+            'data' => $vendorArr
         ], 200);
     }
 
@@ -247,10 +234,11 @@ class VendorController extends Controller
             'email'       => 'nullable|email|max:255',
             'state'       => 'nullable|string|max:255',
             'country'     => 'nullable|string|max:255',
+            'logo'        => 'nullable|file|image|max:4096',
         ]);
         Log::info('Vendor validated for update', ['vendor_id' => $vendor->id, 'admin_id' => $admin->id, 'data' => $request->all()]);
 
-        $vendor->update($request->only([
+        $data = $request->only([
             'name',
             'projects',
             'status',
@@ -259,19 +247,42 @@ class VendorController extends Controller
             'email',
             'state',
             'country'
-        ]));
+            // 'logo' handled separately
+        ]);
 
-        
+        // Handle logo upload
+        if ($request->hasFile('logo') && $request->file('logo')->isValid()) {
+            // Remove old logo if present
+            if ($vendor->logo) {
+                Storage::disk('public')->delete($vendor->logo);
+            }
+            $path = $request->file('logo')->store('vendors', 'public');
+            $data['logo'] = $path;
+        }
+
         if (isset($data['projects']) && is_array($data['projects'])) {
             $data['projects'] = json_encode($data['projects']);
         }
 
+        $vendor->update($data);
+
         Log::info('Vendor updated', ['vendor_id' => $vendor->id, 'admin_id' => $admin->id]);
+
+        $vendorArr = $vendor->toArray();
+        if (!empty($vendorArr['logo'])) {
+            $vendorArr['logo_url'] = Storage::url($vendorArr['logo']);
+        } else {
+            $vendorArr['logo_url'] = null;
+        }
+        if (isset($vendorArr['projects']) && is_string($vendorArr['projects'])) {
+            $decoded = json_decode($vendorArr['projects'], true);
+            $vendorArr['projects'] = is_array($decoded) ? $decoded : [];
+        }
 
         return response()->json([
             'status' => true,
             'message' => 'Vendor updated successfully',
-            'data' => $vendor
+            'data' => $vendorArr
         ], 200);
     }
 
@@ -300,6 +311,11 @@ class VendorController extends Controller
                 'status' => false,
                 'message' => 'Vendor not found'
             ], 404);
+        }
+
+        // Delete logo from storage
+        if ($vendor->logo) {
+            Storage::disk('public')->delete($vendor->logo);
         }
 
         $vendor->delete();
