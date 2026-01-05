@@ -64,7 +64,7 @@ class HomeManageController extends Controller
             'subtitle' => 'nullable|string|max:255',
             'image' => 'required|image|max:10240',
             'order' => 'nullable|integer',
-            'isActive' => 'nullable|boolean'
+            'isActive' => 'nullable|string' // <--- changed to string
         ]);
 
         $imagePath = null;
@@ -80,8 +80,8 @@ class HomeManageController extends Controller
             'image' => $imagePath,
             'order' => $request->order ?? 0,
             'isActive' => $request->has('isActive')
-                ? $request->boolean('isActive')
-                : true,
+                ? (string)$request->isActive
+                : 'true',
         ]);
 
         Log::info('Carousel item added.', [
@@ -124,7 +124,7 @@ class HomeManageController extends Controller
             'subtitle' => 'nullable|string|max:255',
             'image' => 'nullable|image|max:10240',
             'order' => 'nullable|integer',
-            'isActive' => 'nullable|boolean'
+            'isActive' => 'nullable|string' // <--- changed to string
         ]);
 
         // Image replace
@@ -148,9 +148,9 @@ class HomeManageController extends Controller
 
         $carousel->update($updateData);
 
-        // Handle isActive update
+        // Handle isActive update - now as string
         if ($request->has('isActive')) {
-            $carousel->isActive = $request->boolean('isActive');
+            $carousel->isActive = (string)$request->isActive;
             $carousel->save();
         }
 
@@ -238,11 +238,11 @@ class HomeManageController extends Controller
             'subtitle' => 'nullable|string|max:255',
             'gradient' => 'nullable|string|max:255',
             'order' => 'nullable|integer',
-            'isActive' => 'nullable|boolean'
+            'isActive' => 'nullable|string' // <--- changed to string
         ]);
 
-        // Convert isActive to boolean and fallback to true if not provided
-        $isActive = $request->has('isActive') ? (bool)$request->isActive : true;
+        // isActive as string, fallback to 'true' if not provided
+        $isActive = $request->has('isActive') ? (string)$request->isActive : 'true';
 
         $card = HomeCardData::create([
             'icon' => $request->icon,
@@ -288,10 +288,10 @@ class HomeManageController extends Controller
             'subtitle' => 'nullable|string|max:255',
             'gradient' => 'nullable|string|max:255',
             'order' => 'nullable|integer',
-            'isActive' => 'nullable|boolean'
+            'isActive' => 'nullable|string' // <--- changed to string
         ]);
 
-        // Prepare data for update, coerce isActive to boolean if present
+        // Prepare data for update, isActive as string if present
         $updateData = $request->only([
             'icon',
             'title',
@@ -300,7 +300,7 @@ class HomeManageController extends Controller
             'order'
         ]);
         if ($request->has('isActive')) {
-            $updateData['isActive'] = (bool)$request->isActive;
+            $updateData['isActive'] = (string)$request->isActive;
         }
 
         $card->update($updateData);
