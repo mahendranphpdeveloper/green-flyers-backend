@@ -74,15 +74,14 @@ class HomeManageController extends Controller
                 ->store('hero_page', 'public');
         }
 
-        // Convert isActive to boolean and fallback to true if not provided
-        $isActive = $request->has('isActive') ? (bool)$request->isActive : true;
-
         $carousel = HomeCarouselData::create([
             'title' => $request->title,
             'subtitle' => $request->subtitle,
             'image' => $imagePath,
             'order' => $request->order ?? 0,
-            'isActive' => $isActive
+            'isActive' => $request->has('isActive')
+                ? $request->boolean('isActive')
+                : true,
         ]);
 
         Log::info('Carousel item added.', [
@@ -140,17 +139,20 @@ class HomeManageController extends Controller
                 ->store('hero_page', 'public');
         }
 
-        // Prepare data for update, coerce isActive to boolean if present
+        // Prepare data for update (without isActive for now)
         $updateData = $request->only([
             'title',
             'subtitle',
             'order'
         ]);
-        if ($request->has('isActive')) {
-            $updateData['isActive'] = (bool)$request->isActive;
-        }
 
         $carousel->update($updateData);
+
+        // Handle isActive update
+        if ($request->has('isActive')) {
+            $carousel->isActive = $request->boolean('isActive');
+            $carousel->save();
+        }
 
         Log::info('Carousel item updated.', [
             'admin_id' => $request->user()->id ?? null,
