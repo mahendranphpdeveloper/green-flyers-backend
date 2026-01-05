@@ -233,25 +233,22 @@ class HomeManageController extends Controller
         }
 
         $request->validate([
-            'icon' => 'nullable|image|max:10240', // Allow only image file for icon, max 10MB
+            'icon' => 'nullable|string|max:10240', // Icon sent as text, not a file. Limit length if needed.
             'title' => 'required|string|max:255',
             'subtitle' => 'nullable|string|max:255',
             'gradient' => 'nullable|string|max:255',
             'order' => 'nullable|integer',
-            'isActive' => 'nullable|string' // <--- changed to string
+            'isActive' => 'nullable|string'
         ]);
 
-        // Handle icon upload if present
-        $iconPath = null;
-        if ($request->hasFile('icon')) {
-            $iconPath = $request->file('icon')->store('card_icons', 'public');
-        }
+        // Icon is provided as a text (e.g., icon class or base64 string)
+        $iconValue = $request->icon ?? null;
 
         // isActive as string, fallback to 'true' if not provided
         $isActive = $request->has('isActive') ? (string)$request->isActive : 'true';
 
         $card = HomeCardData::create([
-            'icon' => $iconPath,
+            'icon' => $iconValue,
             'title' => $request->title,
             'subtitle' => $request->subtitle,
             'gradient' => $request->gradient,
@@ -288,23 +285,13 @@ class HomeManageController extends Controller
         }
 
         $request->validate([
-            'icon' => 'nullable|image|max:10240', // Allow only image file for icon, max 10MB
+            'icon' => 'nullable|string|max:10240', // Icon sent as text, not a file.
             'title' => 'nullable|string|max:255',
             'subtitle' => 'nullable|string|max:255',
             'gradient' => 'nullable|string|max:255',
             'order' => 'nullable|integer',
-            'isActive' => 'nullable|string' // <--- changed to string
+            'isActive' => 'nullable|string'
         ]);
-
-        // Handle icon replacement if present
-        if ($request->hasFile('icon')) {
-            // Delete old icon if exists
-            if ($card->icon && Storage::disk('public')->exists($card->icon)) {
-                Storage::disk('public')->delete($card->icon);
-            }
-
-            $card->icon = $request->file('icon')->store('card_icons', 'public');
-        }
 
         // Prepare data for update, isActive as string if present
         $updateData = $request->only([
@@ -313,16 +300,15 @@ class HomeManageController extends Controller
             'gradient',
             'order'
         ]);
+
         if ($request->has('isActive')) {
             $updateData['isActive'] = (string)$request->isActive;
         }
+        if ($request->has('icon')) {
+            $updateData['icon'] = $request->icon;
+        }
 
         $card->update($updateData);
-
-        // Save the potentially changed icon
-        if ($request->hasFile('icon')) {
-            $card->save();
-        }
 
         Log::info('Home card updated', [
             'card_id' => $card->id
@@ -352,10 +338,7 @@ class HomeManageController extends Controller
             ], 404);
         }
 
-        // Delete icon from storage
-        if ($card->icon && Storage::disk('public')->exists($card->icon)) {
-            Storage::disk('public')->delete($card->icon);
-        }
+        // No file deletion needed, icon is not stored in storage
 
         $card->delete();
 
