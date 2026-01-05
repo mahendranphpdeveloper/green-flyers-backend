@@ -124,7 +124,7 @@ Route::put('/admin/email-templates/deletion-notification', [\App\Http\Controller
 
 
 //admin side manage homepage content
-Route::prefix('/admin/manage-home')->group(function () {
+Route::prefix('/admin/home-manage')->group(function () {
     //carousel
     Route::get('/carousel', [\App\Http\Controllers\HomeManageController::class, 'getHomeCarousel']);
     Route::post('/carousel', [\App\Http\Controllers\HomeManageController::class, 'addHomeCarousel']);
