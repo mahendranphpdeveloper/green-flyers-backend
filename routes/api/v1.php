@@ -149,8 +149,8 @@ Route::prefix('admin/manage-home')->group(function () {
    Route::delete('/faq/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeFAQ']);
 
    //visual section 
-   Route::get('/visual-section', [\App\Http\Controllers\HomeManageController::class, 'getHomeVisualSection']);
-   Route::put('/visual-section/', [\App\Http\Controllers\HomeManageController::class, 'updateHomeVisualSection']);
+   Route::get('/faq/visual-section', [\App\Http\Controllers\HomeManageController::class, 'getHomeVisualSection']);
+   Route::put('/faq/visual-section/', [\App\Http\Controllers\HomeManageController::class, 'updateHomeVisualSection']);
   
    
 });
