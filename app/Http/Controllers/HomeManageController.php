@@ -4,8 +4,12 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use App\Models\AdminData;
 use App\Models\HomeCarouselData;
+use App\Models\HomeCardData;
+
+
 
 class HomeManageController extends Controller
 {
@@ -14,6 +18,10 @@ class HomeManageController extends Controller
         $admin = $request->user();
 
         if (!$admin || !AdminData::where('id', $admin->id)->exists()) {
+            Log::warning('Unauthorized admin access attempt.', [
+                'admin_id' => $admin ? $admin->id : null,
+                'ip' => $request->ip()
+            ]);
             return response()->json([
                 'status' => false,
                 'message' => 'Unauthorized admin access'
@@ -33,6 +41,10 @@ class HomeManageController extends Controller
         }
 
         $carousel = HomeCarouselData::orderBy('order')->get();
+        Log::info('Home carousel fetched.', [
+            'admin_id' => $request->user()->id ?? null,
+            'count' => $carousel->count()
+        ]);
 
         return response()->json([
             'status' => true,
@@ -52,7 +64,7 @@ class HomeManageController extends Controller
         $request->validate([
             'title' => 'required|string|max:255',
             'subtitle' => 'nullable|string|max:255',
-            'image' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'image' => 'required|image|max:2048',
             'order' => 'nullable|integer',
             'isActive' => 'nullable|string'
         ]);
@@ -70,6 +82,12 @@ class HomeManageController extends Controller
             'image' => $imagePath,
             'order' => $request->order ?? 0,
             'isActive' => $request->isActive ?? '1'
+        ]);
+
+        Log::info('Carousel item added.', [
+            'admin_id' => $request->user()->id ?? null,
+            'carousel_id' => $carousel->id,
+            'title' => $request->title
         ]);
 
         return response()->json([
@@ -91,6 +109,10 @@ class HomeManageController extends Controller
         $carousel = HomeCarouselData::find($id);
 
         if (!$carousel) {
+            Log::warning('Attempt to update non-existent carousel item.', [
+                'admin_id' => $request->user()->id ?? null,
+                'carousel_id' => $id
+            ]);
             return response()->json([
                 'status' => false,
                 'message' => 'Carousel item not found'
@@ -124,6 +146,11 @@ class HomeManageController extends Controller
             'isActive'
         ]));
 
+        Log::info('Carousel item updated.', [
+            'admin_id' => $request->user()->id ?? null,
+            'carousel_id' => $carousel->id
+        ]);
+
         return response()->json([
             'status' => true,
             'message' => 'Carousel item updated successfully',
@@ -143,6 +170,10 @@ class HomeManageController extends Controller
         $carousel = HomeCarouselData::find($id);
 
         if (!$carousel) {
+            Log::warning('Attempt to delete non-existent carousel item.', [
+                'admin_id' => $request->user()->id ?? null,
+                'carousel_id' => $id
+            ]);
             return response()->json([
                 'status' => false,
                 'message' => 'Carousel item not found'
@@ -156,9 +187,149 @@ class HomeManageController extends Controller
 
         $carousel->delete();
 
+        Log::info('Carousel item deleted.', [
+            'admin_id' => $request->user()->id ?? null,
+            'carousel_id' => $id
+        ]);
+
         return response()->json([
             'status' => true,
             'message' => 'Carousel item deleted successfully'
         ]);
     }
+    //get home-manage cards
+
+    public function getHomeCards(Request $request)
+{
+    if ($response = $this->checkAdmin($request)) {
+        return $response;
+    }
+
+    $cards = HomeCardData::orderBy('order')->get();
+
+    Log::info('Home cards fetched', [
+        'count' => $cards->count()
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'data' => $cards
+    ]);
+}
+
+//save home-manage cards
+public function addHomeCards(Request $request)
+{
+    if ($response = $this->checkAdmin($request)) {
+        return $response;
+    }
+
+    $request->validate([
+        'icon' => 'nullable|string|max:255',
+        'title' => 'required|string|max:255',
+        'subtitle' => 'nullable|string|max:255',
+        'gradient' => 'nullable|string|max:255',
+        'order' => 'nullable|integer',
+        'isActive' => 'nullable|string'
+    ]);
+
+    $card = HomeCardData::create([
+        'icon' => $request->icon,
+        'title' => $request->title,
+        'subtitle' => $request->subtitle,
+        'gradient' => $request->gradient,
+        'order' => $request->order ?? 0,
+        'isActive' => $request->isActive ?? '1'
+    ]);
+
+    Log::info('Home card created', [
+        'card_id' => $card->id
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Card added successfully',
+        'data' => $card
+    ], 201);
+}
+ 
+//update home-manage cards
+public function updateHomeCards(Request $request, $id)
+{
+    if ($response = $this->checkAdmin($request)) {
+        return $response;
+    }
+
+    $card = HomeCardData::find($id);
+
+    if (!$card) {
+        Log::warning('Card update failed - not found', ['card_id' => $id]);
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Card not found'
+        ], 404);
+    }
+
+    $request->validate([
+        'icon' => 'nullable|string|max:255',
+        'title' => 'nullable|string|max:255',
+        'subtitle' => 'nullable|string|max:255',
+        'gradient' => 'nullable|string|max:255',
+        'order' => 'nullable|integer',
+        'isActive' => 'nullable|string'
+    ]);
+
+    $card->update($request->only([
+        'icon',
+        'title',
+        'subtitle',
+        'gradient',
+        'order',
+        'isActive'
+    ]));
+
+    Log::info('Home card updated', [
+        'card_id' => $card->id
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Card updated successfully',
+        'data' => $card
+    ]);
+}
+
+//delete home-manage cards
+public function deleteHomeCards(Request $request, $id)
+{
+    if ($response = $this->checkAdmin($request)) {
+        return $response;
+    }
+
+    $card = HomeCardData::find($id);
+
+    if (!$card) {
+        Log::warning('Card delete failed - not found', ['card_id' => $id]);
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Card not found'
+        ], 404);
+    }
+
+    $card->delete();
+
+    Log::info('Home card deleted', [
+        'card_id' => $id
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Card deleted successfully'
+    ]);
+}
+
+
+
 }
