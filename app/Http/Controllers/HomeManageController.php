@@ -122,7 +122,7 @@ class HomeManageController extends Controller
         $request->validate([
             'title' => 'nullable|string|max:255',
             'subtitle' => 'nullable|string|max:255',
-            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'image' => 'required|image|max:10240',
             'order' => 'nullable|integer',
             'isActive' => 'nullable|string'
         ]);
