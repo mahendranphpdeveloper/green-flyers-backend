@@ -9,6 +9,7 @@ use App\Models\AdminData;
 use App\Models\HomeCarouselData;
 use App\Models\HomeCardData;
 use App\Models\HomeFaqData;
+use App\Models\FaqVisualSection;
 
 class HomeManageController extends Controller
 {
@@ -467,5 +468,76 @@ class HomeManageController extends Controller
         'message' => 'FAQ deleted successfully'
     ]);
 }
+
+ /**
+     * GET /api/admin/faq/visual-section
+     */
+    public function getHomeVisualSection(Request $request)
+    {
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
+
+        $section = FaqVisualSection::first();
+
+        Log::info('FAQ visual section fetched');
+
+        return response()->json([
+            'status' => true,
+            'data' => $section
+        ]);
+    }
+
+    /**
+     * PUT /api/admin/faq/visual-section
+     */
+    public function updateHomeVisualSection(Request $request)
+    {
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
+
+        $request->validate([
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'floatingCards' => 'required|array',
+            'quickStats' => 'required|array'
+        ]);
+
+        $section = FaqVisualSection::first();
+
+        // Handle image upload
+        if ($request->hasFile('image')) {
+
+            // Delete old image if exists
+            if ($section && $section->image && Storage::disk('public')->exists($section->image)) {
+                Storage::disk('public')->delete($section->image);
+            }
+
+            $imagePath = $request->file('image')
+                ->store('faq_visual', 'public');
+        } else {
+            $imagePath = $section->image ?? null;
+        }
+
+        $data = FaqVisualSection::updateOrCreate(
+            ['id' => $section->id ?? 1],
+            [
+                'image' => $imagePath,
+                'floating_cards' => $request->floatingCards,
+                'quick_stats' => $request->quickStats
+            ]
+        );
+
+        Log::info('FAQ visual section updated', [
+            'section_id' => $data->id
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'FAQ visual section updated successfully',
+            'data' => $data
+        ]);
+    }
+
 
 }
