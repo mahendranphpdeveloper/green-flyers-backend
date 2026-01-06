@@ -82,8 +82,8 @@ Route::prefix('singleItinerary')->group(function () {
     Route::delete('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'destroy']);
 });
 
-Route::get('/admin/certificate/download/{path}', [\App\Http\Controllers\AdminCertificateController::class, 'download']);
-    
+Route::get('/admin/certificate/download/{path}', [\App\Http\Controllers\AdminCertificateController::class, 'download'])->where('path', '.*');
+
 
     /*
 |--------------------------------------------------------------------------
