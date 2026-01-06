@@ -364,7 +364,11 @@ class HomeManageController extends Controller
 
         // Ensure isActive is returned as a string in the response
         $faqs->transform(function ($faq) {
-            $faq->isActive = (string) $faq->isActive;
+            if (isset($faq->isActive)) {
+                $faq->isActive = (string)$faq->isActive;
+            } else {
+                $faq->isActive = 'true'; // fallback if not set
+            }
             return $faq;
         });
 
@@ -400,21 +404,24 @@ class HomeManageController extends Controller
             'question' => 'nullable|string|max:255',
             'answer' => 'nullable|string|max:255',
             'order' => 'nullable|integer',
-            'isActive' => 'nullable|boolean'
+            'isActive' => 'nullable|string'
         ]);
 
-        if ($request->has('isActive')) {
-            $faq->isActive = (string) $request->isActive;
-        }
-
-        $faq->update($request->only([
+        $updateData = $request->only([
             'question',
             'answer',
             'order'
-        ]));
+        ]);
 
-        // Ensure isActive is string in response
-        $faq->isActive = (string) $faq->isActive;
+        // If isActive present, update and make sure it is string
+        if ($request->has('isActive')) {
+            $updateData['isActive'] = (string)$request->isActive;
+        }
+
+        $faq->update($updateData);
+
+        // Ensure isActive is string for response
+        $faq->isActive = isset($faq->isActive) ? (string)$faq->isActive : 'true';
 
         Log::info('FAQ updated', [
             'faq_id' => $faq->id
