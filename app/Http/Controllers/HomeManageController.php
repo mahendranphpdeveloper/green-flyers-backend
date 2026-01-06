@@ -400,7 +400,7 @@ class HomeManageController extends Controller
             'question' => 'nullable|string|max:255',
             'answer' => 'nullable|string|max:255',
             'order' => 'nullable|integer',
-            'isActive' => 'nullable|string|max:255'
+            'isActive' => 'nullable|boolean'
         ]);
 
         if ($request->has('isActive')) {
