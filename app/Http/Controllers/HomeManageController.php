@@ -64,8 +64,8 @@ class HomeManageController extends Controller
         }
 
         $request->validate([
-            'title' => 'required|string|max:255',
-            'subtitle' => 'nullable|string|max:255',
+            'title' => 'required|string',
+            'subtitle' => 'nullable|string',
             'image' => 'required|image|max:10240',
             'order' => 'nullable|integer',
             'isActive' => 'nullable|string' // <--- changed to string
@@ -124,8 +124,8 @@ class HomeManageController extends Controller
         }
 
         $request->validate([
-            'title' => 'nullable|string|max:255',
-            'subtitle' => 'nullable|string|max:255',
+            'title' => 'nullable|string',
+            'subtitle' => 'nullable|string',
             'image' => 'nullable|image|max:10240',
             'order' => 'nullable|integer',
             'isActive' => 'nullable|string' // <--- changed to string
@@ -238,9 +238,9 @@ class HomeManageController extends Controller
 
         $request->validate([
             'icon' => 'nullable|string|max:10240', // Icon sent as text, not a file. Limit length if needed.
-            'title' => 'required|string|max:255',
-            'subtitle' => 'nullable|string|max:255',
-            'gradient' => 'nullable|string|max:255',
+            'title' => 'required|string',
+            'subtitle' => 'nullable|string',
+            'gradient' => 'nullable|string',
             'order' => 'nullable|integer',
             'isActive' => 'nullable|string'
         ]);
@@ -290,9 +290,9 @@ class HomeManageController extends Controller
 
         $request->validate([
             'icon' => 'nullable|string|max:10240', // Icon sent as text, not a file.
-            'title' => 'nullable|string|max:255',
-            'subtitle' => 'nullable|string|max:255',
-            'gradient' => 'nullable|string|max:255',
+            'title' => 'nullable|string',
+            'subtitle' => 'nullable|string',
+            'gradient' => 'nullable|string',
             'order' => 'nullable|integer',
             'isActive' => 'nullable|string'
         ]);
@@ -398,8 +398,8 @@ class HomeManageController extends Controller
         }
 
         $request->validate([
-            'question' => 'nullable|string|max:255',
-            'answer' => 'nullable|string|max:255',
+            'question' => 'nullable|string',
+            'answer' => 'nullable|string',
             'order' => 'nullable|integer',
             'isActive' => 'nullable|boolean'
         ]);
@@ -418,7 +418,7 @@ class HomeManageController extends Controller
             $updateData['order'] = $request->order;
         }
 
-        // ✅ Boolean in → VARCHAR stored
+        //  Boolean in → VARCHAR stored
         if ($request->has('isActive')) {
             $updateData['isActive'] = $request->boolean('isActive')
                 ? 'true'
@@ -427,7 +427,7 @@ class HomeManageController extends Controller
 
         $faq->update($updateData);
 
-        // ✅ Convert back to boolean for response
+        // Convert back to boolean for response
         $faq->isActive = $faq->isActive === 'true';
 
         Log::info('FAQ updated', [
@@ -592,8 +592,8 @@ class HomeManageController extends Controller
         }
 
         $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string|max:255',
+            'title' => 'required|string',
+            'description' => 'required|string',
         ]);
 
         $cta = CallToAction::updateOrCreate(
@@ -642,8 +642,8 @@ class HomeManageController extends Controller
         }
 
         $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string|max:255',
+            'title' => 'required|string',
+            'description' => 'required|string',
         ]);
 
         $cta = CallToAction::updateOrCreate(
