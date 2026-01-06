@@ -10,6 +10,7 @@ use App\Models\HomeCarouselData;
 use App\Models\HomeCardData;
 use App\Models\HomeFaqData;
 use App\Models\FaqVisualSection;
+use App\Models\CallToAction;
 
 class HomeManageController extends Controller
 {
@@ -356,25 +357,25 @@ class HomeManageController extends Controller
 
     //get faq 
     public function getHomeFAQ(Request $request)
-{
-    if ($response = $this->checkAdmin($request)) {
-        return $response;
+    {
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
+
+        $faqs = HomeFaqData::orderBy('order')->get()->map(function ($faq) {
+            $faq->isActive = $faq->isActive === 'true';
+            return $faq;
+        });
+
+        Log::info('FAQ list fetched', [
+            'count' => $faqs->count()
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'data' => $faqs
+        ]);
     }
-
-    $faqs = HomeFaqData::orderBy('order')->get()->map(function ($faq) {
-        $faq->isActive = $faq->isActive === 'true';
-        return $faq;
-    });
-
-    Log::info('FAQ list fetched', [
-        'count' => $faqs->count()
-    ]);
-
-    return response()->json([
-        'status' => true,
-        'data' => $faqs
-    ]);
-}
 
 
     //update faq
@@ -383,93 +384,93 @@ class HomeManageController extends Controller
         if ($response = $this->checkAdmin($request)) {
             return $response;
         }
-    
+
         $faq = HomeFaqData::find($id);
-    
+
         if (!$faq) {
             Log::warning('FAQ update failed - not found', ['faq_id' => $id]);
-    
+
             return response()->json([
                 'status' => false,
                 'message' => 'FAQ not found'
             ], 404);
         }
-    
+
         $request->validate([
             'question' => 'nullable|string|max:255',
             'answer' => 'nullable|string|max:255',
             'order' => 'nullable|integer',
             'isActive' => 'nullable|boolean'
         ]);
-    
+
         $updateData = [];
-    
+
         if ($request->has('question')) {
             $updateData['question'] = $request->question;
         }
-    
+
         if ($request->has('answer')) {
             $updateData['answer'] = $request->answer;
         }
-    
+
         if ($request->has('order')) {
             $updateData['order'] = $request->order;
         }
-    
+
         // ✅ Boolean in → VARCHAR stored
         if ($request->has('isActive')) {
             $updateData['isActive'] = $request->boolean('isActive')
                 ? 'true'
                 : 'false';
         }
-    
+
         $faq->update($updateData);
-    
+
         // ✅ Convert back to boolean for response
         $faq->isActive = $faq->isActive === 'true';
-    
+
         Log::info('FAQ updated', [
             'faq_id' => $faq->id
         ]);
-    
+
         return response()->json([
             'status' => true,
             'message' => 'FAQ updated successfully',
             'data' => $faq
         ]);
     }
-    
+
     //delete faq
     public function deleteHomeFAQ(Request $request, $id)
-{
-    if ($response = $this->checkAdmin($request)) {
-        return $response;
-    }
+    {
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
 
-    $faq = HomeFaqData::find($id);
+        $faq = HomeFaqData::find($id);
 
-    if (!$faq) {
-        Log::warning('FAQ delete failed - not found', ['faq_id' => $id]);
+        if (!$faq) {
+            Log::warning('FAQ delete failed - not found', ['faq_id' => $id]);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'FAQ not found'
+            ], 404);
+        }
+
+        $faq->delete();
+
+        Log::info('FAQ deleted', [
+            'faq_id' => $id
+        ]);
 
         return response()->json([
-            'status' => false,
-            'message' => 'FAQ not found'
-        ], 404);
+            'status' => true,
+            'message' => 'FAQ deleted successfully'
+        ]);
     }
 
-    $faq->delete();
-
-    Log::info('FAQ deleted', [
-        'faq_id' => $id
-    ]);
-
-    return response()->json([
-        'status' => true,
-        'message' => 'FAQ deleted successfully'
-    ]);
-}
-
- /**
+    /**
      * GET /api/admin/faq/visual-section
      */
     public function getHomeVisualSection(Request $request)
@@ -510,41 +511,41 @@ class HomeManageController extends Controller
         if ($response = $this->checkAdmin($request)) {
             return $response;
         }
-    
+
         //  Convert JSON strings → arrays (ONLY for multipart/form-data)
         if (is_string($request->floatingCards)) {
             $request->merge([
                 'floatingCards' => json_decode($request->floatingCards, true)
             ]);
         }
-    
+
         if (is_string($request->quickStats)) {
             $request->merge([
                 'quickStats' => json_decode($request->quickStats, true)
             ]);
         }
-    
+
         //  Now validation will PASS
         $request->validate([
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'floatingCards' => 'required|array',
             'quickStats' => 'required|array'
         ]);
-    
+
         $section = FaqVisualSection::first();
-    
+
         // Image handling
         if ($request->hasFile('image')) {
-    
+
             if ($section && $section->image && Storage::disk('public')->exists($section->image)) {
                 Storage::disk('public')->delete($section->image);
             }
-    
+
             $imagePath = $request->file('image')->store('faq_visual', 'public');
         } else {
             $imagePath = $section->image ?? null;
         }
-    
+
         $data = FaqVisualSection::updateOrCreate(
             ['id' => $section->id ?? 1],
             [
@@ -553,14 +554,111 @@ class HomeManageController extends Controller
                 'quick_stats' => $request->quickStats
             ]
         );
-    
+
         return response()->json([
             'status' => true,
             'message' => 'FAQ visual section updated successfully',
             'data' => $data
         ]);
     }
-    
 
+    /**
+     * GET CTA 1 (id = 1)
+     */
+    public function getHomeCallToAction1(Request $request)
+    {
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
 
+        $cta = CallToAction::find(1);
+
+        Log::info('CTA 1 fetched');
+
+        return response()->json([
+            'status' => true,
+            'data' => $cta
+        ]);
+    }
+
+    /**
+     * PUT CTA 1 (id = 1)
+     */
+    public function updateHomeCallToAction1(Request $request)
+    {
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
+
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string|max:255',
+        ]);
+
+        $cta = CallToAction::updateOrCreate(
+            ['id' => 1],
+            [
+                'title' => $request->title,
+                'description' => $request->description
+            ]
+        );
+
+        Log::info('CTA 1 updated', ['id' => 1]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Call To Action 1 updated successfully',
+            'data' => $cta
+        ]);
+    }
+
+    /**
+     * GET CTA 2 (id = 2)
+     */
+    public function getHomeCallToAction2(Request $request)
+    {
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
+
+        $cta = CallToAction::find(2);
+
+        Log::info('CTA 2 fetched');
+
+        return response()->json([
+            'status' => true,
+            'data' => $cta
+        ]);
+    }
+
+    /**
+     * PUT CTA 2 (id = 2)
+     */
+    public function updateHomeCallToAction2(Request $request)
+    {
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
+
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string|max:255',
+        ]);
+
+        $cta = CallToAction::updateOrCreate(
+            ['id' => 2],
+            [
+                'title' => $request->title,
+                'description' => $request->description
+            ]
+        );
+
+        Log::info('CTA 2 updated', ['id' => 2]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Call To Action 2 updated successfully',
+            'data' => $cta
+        ]);
+    }
 }
