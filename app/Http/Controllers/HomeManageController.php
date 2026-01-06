@@ -480,18 +480,32 @@ class HomeManageController extends Controller
 
         $section = FaqVisualSection::first();
 
+        if ($section) {
+            $data = $section->toArray();
+
+            // Convert JSON fields back to arrays for response if needed
+            if (isset($data['floating_cards']) && is_string($data['floating_cards'])) {
+                $data['floating_cards'] = json_decode($data['floating_cards'], true);
+            }
+            if (isset($data['quick_stats']) && is_string($data['quick_stats'])) {
+                $data['quick_stats'] = json_decode($data['quick_stats'], true);
+            }
+        } else {
+            $data = null;
+        }
+
         Log::info('FAQ visual section fetched');
 
         return response()->json([
             'status' => true,
-            'data' => $section
+            'data' => $data
         ]);
     }
 
     /**
      * PUT /api/admin/faq/visual-section
      */
-    public function updateHomeVisualSection(Request $request)
+    public function updateHomeVisualSection(Request $request, $id)
     {
         if ($response = $this->checkAdmin($request)) {
             return $response;
@@ -503,33 +517,46 @@ class HomeManageController extends Controller
             'quickStats' => 'required|array'
         ]);
 
-        $section = FaqVisualSection::first();
+        // Now fetch section by id (not just first)
+        $section = FaqVisualSection::find($id);
+
+        if (!$section) {
+            Log::warning('FAQ visual section update failed - not found', ['id' => $id]);
+            return response()->json([
+                'status' => false,
+                'message' => 'FAQ visual section not found'
+            ], 404);
+        }
 
         // Handle image upload
         if ($request->hasFile('image')) {
-
             // Delete old image if exists
-            if ($section && $section->image && Storage::disk('public')->exists($section->image)) {
+            if ($section->image && Storage::disk('public')->exists($section->image)) {
                 Storage::disk('public')->delete($section->image);
             }
 
-            $imagePath = $request->file('image')
-                ->store('faq_visual', 'public');
+            $imagePath = $request->file('image')->store('faq_visual', 'public');
         } else {
             $imagePath = $section->image ?? null;
         }
 
-        $data = FaqVisualSection::updateOrCreate(
-            ['id' => $section->id ?? 1],
-            [
-                'image' => $imagePath,
-                'floating_cards' => $request->floatingCards,
-                'quick_stats' => $request->quickStats
-            ]
-        );
+        // Store JSON fields as encoded JSON, but decode for output
+        $section->image = $imagePath;
+        $section->floating_cards = json_encode($request->floatingCards);
+        $section->quick_stats = json_encode($request->quickStats);
+        $section->save();
+
+        // Prepare response data as array and decode fields
+        $data = $section->toArray();
+        if (isset($data['floating_cards']) && is_string($data['floating_cards'])) {
+            $data['floating_cards'] = json_decode($data['floating_cards'], true);
+        }
+        if (isset($data['quick_stats']) && is_string($data['quick_stats'])) {
+            $data['quick_stats'] = json_decode($data['quick_stats'], true);
+        }
 
         Log::info('FAQ visual section updated', [
-            'section_id' => $data->id
+            'section_id' => $section->id
         ]);
 
         return response()->json([

@@ -150,7 +150,7 @@ Route::prefix('/admin/home-manage')->group(function () {
 
    //visual section 
    Route::get('/faq/visual-section', [\App\Http\Controllers\HomeManageController::class, 'getHomeVisualSection']);
-   Route::put('/faq/visual-section/', [\App\Http\Controllers\HomeManageController::class, 'updateHomeVisualSection']);
+   Route::put('/faq/visual-section/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeVisualSection']);
   
    
 });
