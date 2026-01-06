@@ -362,6 +362,12 @@ class HomeManageController extends Controller
 
         $faqs = HomeFaqData::orderBy('order')->get();
 
+        // Ensure isActive is returned as a string in the response
+        $faqs->transform(function ($faq) {
+            $faq->isActive = (string) $faq->isActive;
+            return $faq;
+        });
+
         Log::info('FAQ list fetched', [
             'count' => $faqs->count()
         ]);
@@ -394,11 +400,11 @@ class HomeManageController extends Controller
             'question' => 'nullable|string|max:255',
             'answer' => 'nullable|string|max:255',
             'order' => 'nullable|integer',
-            'isActive' => 'nullable|boolean'
+            'isActive' => 'nullable|string|max:255'
         ]);
 
         if ($request->has('isActive')) {
-            $faq->isActive = $request->isActive;
+            $faq->isActive = (string) $request->isActive;
         }
 
         $faq->update($request->only([
@@ -406,6 +412,9 @@ class HomeManageController extends Controller
             'answer',
             'order'
         ]));
+
+        // Ensure isActive is string in response
+        $faq->isActive = (string) $faq->isActive;
 
         Log::info('FAQ updated', [
             'faq_id' => $faq->id
