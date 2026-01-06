@@ -140,7 +140,7 @@ Route::prefix('/admin/home-manage')->group(function () {
    //call to action
 //    Route::get('/call-to-action1', [\App\Http\Controllers\HomeManageController::class, 'getHomeCallToAction1']);
    Route::put('/call-to-action1', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCallToAction1']);
-   Route::get('/call-to-action2', [\App\Http\Controllers\HomeManageController::class, 'getHomeCallToAction2']);
+//    Route::get('/call-to-action2', [\App\Http\Controllers\HomeManageController::class, 'getHomeCallToAction2']);
    Route::put('/call-to-action2', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCallToAction2']);
 
    //FAQ
@@ -176,6 +176,7 @@ Route::prefix('/admin/home-manage')->group(function () {
     Route::get('/carousel', [\App\Http\Controllers\HomeManageController::class, 'getHomeCarousel']);
     Route::get('/cards', [\App\Http\Controllers\HomeManageController::class, 'getHomeCards']);
     Route::get('/call-to-action1', [\App\Http\Controllers\HomeManageController::class, 'getHomeCallToAction1']);
+    Route::get('/call-to-action2', [\App\Http\Controllers\HomeManageController::class, 'getHomeCallToAction2']);
     Route::get('/faq', [\App\Http\Controllers\HomeManageController::class, 'getHomeFAQ']);
     Route::get('/faq/visual-section', [\App\Http\Controllers\HomeManageController::class, 'getHomeVisualSection']);
     Route::get('/bgimage', [\App\Http\Controllers\HomeManageController::class, 'getLoginBackgroundImage']);
