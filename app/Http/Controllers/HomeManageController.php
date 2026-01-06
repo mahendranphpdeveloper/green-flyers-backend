@@ -11,6 +11,7 @@ use App\Models\HomeCardData;
 use App\Models\HomeFaqData;
 use App\Models\FaqVisualSection;
 use App\Models\CallToAction;
+use App\Models\BackgroundImage;
 
 class HomeManageController extends Controller
 {
@@ -661,4 +662,63 @@ class HomeManageController extends Controller
             'data' => $cta
         ]);
     }
+
+    /**
+ * GET /api/admin/bgimage
+ */
+public function getLoginBackgroundImage(Request $request)
+{
+    if ($response = $this->checkAdmin($request)) {
+        return $response;
+    }
+
+    $bgImage = BackgroundImage::find(1);
+
+    Log::info('Login background image fetched');
+
+    return response()->json([
+        'status' => true,
+        'data' => $bgImage
+    ]);
+}
+
+/**
+ * PUT /api/admin/bgimage
+ */
+public function updateLoginBackgroundImage(Request $request)
+{
+    if ($response = $this->checkAdmin($request)) {
+        return $response;
+    }
+
+    $request->validate([
+        'background_image' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120'
+    ]);
+
+    $record = BackgroundImage::find(1);
+
+    // Delete old image if exists
+    if ($record && $record->background_image && Storage::disk('public')->exists($record->background_image)) {
+        Storage::disk('public')->delete($record->background_image);
+    }
+
+    // Store new image
+    $path = $request->file('background_image')
+        ->store('login_background', 'public');
+
+    $bgImage = BackgroundImage::updateOrCreate(
+        ['id' => 1],
+        ['background_image' => $path]
+    );
+
+    Log::info('Login background image updated', [
+        'path' => $path
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Background image updated successfully',
+        'data' => $bgImage
+    ]);
+}
 }
