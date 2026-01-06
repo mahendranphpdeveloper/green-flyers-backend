@@ -362,16 +362,6 @@ class HomeManageController extends Controller
 
         $faqs = HomeFaqData::orderBy('order')->get();
 
-        // Ensure isActive is returned as a string in the response
-        $faqs->transform(function ($faq) {
-            if (isset($faq->isActive)) {
-                $faq->isActive = (string)$faq->isActive;
-            } else {
-                $faq->isActive = 'true'; // fallback if not set
-            }
-            return $faq;
-        });
-
         Log::info('FAQ list fetched', [
             'count' => $faqs->count()
         ]);
@@ -404,23 +394,31 @@ class HomeManageController extends Controller
             'question' => 'nullable|string|max:255',
             'answer' => 'nullable|string|max:255',
             'order' => 'nullable|integer',
-            'isActive' => 'nullable|string'
+            'isActive' => 'nullable' // accept any type for isActive; validation just checks presence
         ]);
 
-        $updateData = $request->only([
-            'question',
-            'answer',
-            'order'
-        ]);
+        $updateData = [];
 
-        // If isActive present, update and make sure it is string
+        // Update question if provided in the request
+        if ($request->has('question')) {
+            $updateData['question'] = $request->question;
+        }
+        // Update answer if provided in the request
+        if ($request->has('answer')) {
+            $updateData['answer'] = $request->answer;
+        }
+        // Update order if provided in the request
+        if ($request->has('order')) {
+            $updateData['order'] = $request->order;
+        }
+        // Update isActive if provided, with any type converted to string
         if ($request->has('isActive')) {
             $updateData['isActive'] = (string)$request->isActive;
         }
 
         $faq->update($updateData);
 
-        // Ensure isActive is string for response
+        // Ensure isActive is string for response (default 'true' if not set)
         $faq->isActive = isset($faq->isActive) ? (string)$faq->isActive : 'true';
 
         Log::info('FAQ updated', [
