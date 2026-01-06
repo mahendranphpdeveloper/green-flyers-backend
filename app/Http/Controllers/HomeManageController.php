@@ -355,22 +355,26 @@ class HomeManageController extends Controller
 
     //get faq 
     public function getHomeFAQ(Request $request)
-    {
-        if ($response = $this->checkAdmin($request)) {
-            return $response;
-        }
-
-        $faqs = HomeFaqData::orderBy('order')->get();
-
-        Log::info('FAQ list fetched', [
-            'count' => $faqs->count()
-        ]);
-
-        return response()->json([
-            'status' => true,
-            'data' => $faqs
-        ]);
+{
+    if ($response = $this->checkAdmin($request)) {
+        return $response;
     }
+
+    $faqs = HomeFaqData::orderBy('order')->get()->map(function ($faq) {
+        $faq->isActive = $faq->isActive === 'true';
+        return $faq;
+    });
+
+    Log::info('FAQ list fetched', [
+        'count' => $faqs->count()
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'data' => $faqs
+    ]);
+}
+
 
     //update faq
     public function updateHomeFAQ(Request $request, $id)
@@ -378,87 +382,90 @@ class HomeManageController extends Controller
         if ($response = $this->checkAdmin($request)) {
             return $response;
         }
-
+    
         $faq = HomeFaqData::find($id);
-
+    
         if (!$faq) {
             Log::warning('FAQ update failed - not found', ['faq_id' => $id]);
-
+    
             return response()->json([
                 'status' => false,
                 'message' => 'FAQ not found'
             ], 404);
         }
-
+    
         $request->validate([
             'question' => 'nullable|string|max:255',
             'answer' => 'nullable|string|max:255',
             'order' => 'nullable|integer',
-            'isActive' => 'nullable' // accept any type for isActive; validation just checks presence
+            'isActive' => 'nullable|boolean'
         ]);
-
+    
         $updateData = [];
-
-        // Update question if provided in the request
+    
         if ($request->has('question')) {
             $updateData['question'] = $request->question;
         }
-        // Update answer if provided in the request
+    
         if ($request->has('answer')) {
             $updateData['answer'] = $request->answer;
         }
-        // Update order if provided in the request
+    
         if ($request->has('order')) {
             $updateData['order'] = $request->order;
         }
-        // Update isActive if provided, with any type converted to string
+    
+        // ✅ Boolean in → VARCHAR stored
         if ($request->has('isActive')) {
-            $updateData['isActive'] = (string)$request->isActive;
+            $updateData['isActive'] = $request->boolean('isActive')
+                ? 'true'
+                : 'false';
         }
-
+    
         $faq->update($updateData);
-
-        // Ensure isActive is string for response (default 'true' if not set)
-        $faq->isActive = isset($faq->isActive) ? (string)$faq->isActive : 'true';
-
+    
+        // ✅ Convert back to boolean for response
+        $faq->isActive = $faq->isActive === 'true';
+    
         Log::info('FAQ updated', [
             'faq_id' => $faq->id
         ]);
-
+    
         return response()->json([
             'status' => true,
             'message' => 'FAQ updated successfully',
             'data' => $faq
         ]);
     }
-
+    
     //delete faq
     public function deleteHomeFAQ(Request $request, $id)
-    {
-        if ($response = $this->checkAdmin($request)) {
-            return $response;
-        }
+{
+    if ($response = $this->checkAdmin($request)) {
+        return $response;
+    }
 
-        $faq = HomeFaqData::find($id);
+    $faq = HomeFaqData::find($id);
 
-        if (!$faq) {
-            Log::warning('FAQ delete failed - not found', ['faq_id' => $id]);
-
-            return response()->json([
-                'status' => false,
-                'message' => 'FAQ not found'
-            ], 404);
-        }
-
-        $faq->delete();
-
-        Log::info('FAQ deleted', [
-            'faq_id' => $id
-        ]);
+    if (!$faq) {
+        Log::warning('FAQ delete failed - not found', ['faq_id' => $id]);
 
         return response()->json([
-            'status' => true,
-            'message' => 'FAQ deleted successfully'
-        ]);
+            'status' => false,
+            'message' => 'FAQ not found'
+        ], 404);
     }
+
+    $faq->delete();
+
+    Log::info('FAQ deleted', [
+        'faq_id' => $id
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'FAQ deleted successfully'
+    ]);
+}
+
 }
