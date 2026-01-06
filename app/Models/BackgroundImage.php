@@ -9,7 +9,7 @@ class BackgroundImage extends Model
 {
     use HasFactory;
 
-    protected $table = 'background_image';
+    protected $table = 'background_images';
 
     protected $primaryKey = 'id';
 
