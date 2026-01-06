@@ -36,15 +36,10 @@ class HomeManageController extends Controller
     /**
      * GET /api/admin/carousel
      */
-    public function getHomeCarousel(Request $request)
+    public function getHomeCarousel()
     {
-        if ($response = $this->checkAdmin($request)) {
-            return $response;
-        }
-
         $carousel = HomeCarouselData::orderBy('order')->get();
         Log::info('Home carousel fetched.', [
-            'admin_id' => $request->user()->id ?? null,
             'count' => $carousel->count()
         ]);
 
@@ -211,12 +206,8 @@ class HomeManageController extends Controller
     }
     //get home-manage cards
 
-    public function getHomeCards(Request $request)
+    public function getHomeCards()
     {
-        if ($response = $this->checkAdmin($request)) {
-            return $response;
-        }
-
         $cards = HomeCardData::orderBy('order')->get();
 
         Log::info('Home cards fetched', [
@@ -357,12 +348,8 @@ class HomeManageController extends Controller
     }
 
     //get faq 
-    public function getHomeFAQ(Request $request)
+    public function getHomeFAQ()
     {
-        if ($response = $this->checkAdmin($request)) {
-            return $response;
-        }
-
         $faqs = HomeFaqData::orderBy('order')->get()->map(function ($faq) {
             $faq->isActive = $faq->isActive === 'true';
             return $faq;
@@ -474,12 +461,8 @@ class HomeManageController extends Controller
     /**
      * GET /api/admin/faq/visual-section
      */
-    public function getHomeVisualSection(Request $request)
+    public function getHomeVisualSection()
     {
-        if ($response = $this->checkAdmin($request)) {
-            return $response;
-        }
-
         $section = FaqVisualSection::first();
 
         if ($section) {
@@ -566,12 +549,8 @@ class HomeManageController extends Controller
     /**
      * GET CTA 1 (id = 1)
      */
-    public function getHomeCallToAction1(Request $request)
+    public function getHomeCallToAction1()
     {
-        if ($response = $this->checkAdmin($request)) {
-            return $response;
-        }
-
         $cta = CallToAction::find(1);
 
         Log::info('CTA 1 fetched');
@@ -616,12 +595,8 @@ class HomeManageController extends Controller
     /**
      * GET CTA 2 (id = 2)
      */
-    public function getHomeCallToAction2(Request $request)
+    public function getHomeCallToAction2()
     {
-        if ($response = $this->checkAdmin($request)) {
-            return $response;
-        }
-
         $cta = CallToAction::find(2);
 
         Log::info('CTA 2 fetched');
@@ -666,12 +641,8 @@ class HomeManageController extends Controller
     /**
  * GET /api/admin/bgimage
  */
-public function getLoginBackgroundImage(Request $request)
+public function getLoginBackgroundImage()
 {
-    if ($response = $this->checkAdmin($request)) {
-        return $response;
-    }
-
     $bgImage = BackgroundImage::find(1);
 
     Log::info('Login background image fetched');

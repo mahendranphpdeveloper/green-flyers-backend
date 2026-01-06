@@ -126,34 +126,34 @@ Route::put('/admin/email-templates/deletion-notification', [\App\Http\Controller
 //admin side manage homepage content
 Route::prefix('/admin/home-manage')->group(function () {
     //carousel
-    Route::get('/carousel', [\App\Http\Controllers\HomeManageController::class, 'getHomeCarousel']);
+    // Route::get('/carousel', [\App\Http\Controllers\HomeManageController::class, 'getHomeCarousel']);
     Route::post('/carousel', [\App\Http\Controllers\HomeManageController::class, 'addHomeCarousel']);
     Route::put('/carousel/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCarousel']);
     Route::delete('/carousel/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeCarousel']);
 
     //cards
-    Route::get('/cards', [\App\Http\Controllers\HomeManageController::class, 'getHomeCards']);
+    // Route::get('/cards', [\App\Http\Controllers\HomeManageController::class, 'getHomeCards']);
     Route::post('/cards', [\App\Http\Controllers\HomeManageController::class, 'addHomeCards']);
     Route::put('/cards/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCards']);
     Route::delete('/cards/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeCards']);
 
    //call to action
-   Route::get('/call-to-action1', [\App\Http\Controllers\HomeManageController::class, 'getHomeCallToAction1']);
+//    Route::get('/call-to-action1', [\App\Http\Controllers\HomeManageController::class, 'getHomeCallToAction1']);
    Route::put('/call-to-action1', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCallToAction1']);
    Route::get('/call-to-action2', [\App\Http\Controllers\HomeManageController::class, 'getHomeCallToAction2']);
    Route::put('/call-to-action2', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCallToAction2']);
 
    //FAQ
-   Route::get('/faq', [\App\Http\Controllers\HomeManageController::class, 'getHomeFAQ']);
+//    Route::get('/faq', [\App\Http\Controllers\HomeManageController::class, 'getHomeFAQ']);
    Route::put('/faq/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeFAQ']);
    Route::delete('/faq/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeFAQ']);
 
    //visual section 
-   Route::get('/faq/visual-section', [\App\Http\Controllers\HomeManageController::class, 'getHomeVisualSection']);
+//    Route::get('/faq/visual-section', [\App\Http\Controllers\HomeManageController::class, 'getHomeVisualSection']);
    Route::put('/faq/visual-section/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeVisualSection']);
 
    //admin login background image
-   Route::get('/bgimage', [\App\Http\Controllers\HomeManageController::class, 'getLoginBackgroundImage']);
+//    Route::get('/bgimage', [\App\Http\Controllers\HomeManageController::class, 'getLoginBackgroundImage']);
    Route::put('/bgimage', [\App\Http\Controllers\HomeManageController::class, 'updateLoginBackgroundImage']);
   
    
@@ -162,18 +162,26 @@ Route::prefix('/admin/home-manage')->group(function () {
       
 });
 
+
  /*
 |--------------------------------------------------------------------------
 | ADMIN LOGIN MODULE
 |--------------------------------------------------------------------------
 */
 Route::post('/admin/login', [\App\Http\Controllers\AdminController::class, 'adminLogin']);
-
-
-
-
 //email controller
 Route::post('/email', [\App\Http\Controllers\EmailController::class, 'send']);
+
+Route::prefix('/admin/home-manage')->group(function () {
+    Route::get('/carousel', [\App\Http\Controllers\HomeManageController::class, 'getHomeCarousel']);
+    Route::get('/cards', [\App\Http\Controllers\HomeManageController::class, 'getHomeCards']);
+    Route::get('/call-to-action1', [\App\Http\Controllers\HomeManageController::class, 'getHomeCallToAction1']);
+    Route::get('/faq', [\App\Http\Controllers\HomeManageController::class, 'getHomeFAQ']);
+    Route::get('/faq/visual-section', [\App\Http\Controllers\HomeManageController::class, 'getHomeVisualSection']);
+    Route::get('/bgimage', [\App\Http\Controllers\HomeManageController::class, 'getLoginBackgroundImage']);
+
+    
+});
 
 
 
