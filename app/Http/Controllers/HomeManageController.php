@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\AdminData;
 use App\Models\HomeCarouselData;
 use App\Models\HomeCardData;
+use App\Models\HomeFaqData;
 
 class HomeManageController extends Controller
 {
@@ -352,4 +353,98 @@ class HomeManageController extends Controller
         ]);
     }
 
+    //get faq 
+    public function getHomeFAQ(Request $request)
+    {
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
+
+        $faqs = HomeFaqData::orderBy('order')->get();
+
+        Log::info('FAQ list fetched', [
+            'count' => $faqs->count()
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'data' => $faqs
+        ]);
+    }
+
+    //update faq
+    public function updateHomeFAQ(Request $request, $id)
+    {
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
+
+        $faq = HomeFaqData::find($id);
+
+        if (!$faq) {
+            Log::warning('FAQ update failed - not found', ['faq_id' => $id]);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'FAQ not found'
+            ], 404);
+        }
+
+        $request->validate([
+            'question' => 'nullable|string|max:255',
+            'answer' => 'nullable|string|max:255',
+            'order' => 'nullable|integer',
+            'isActive' => 'nullable|boolean'
+        ]);
+
+        if ($request->has('isActive')) {
+            $faq->isActive = $request->isActive;
+        }
+
+        $faq->update($request->only([
+            'question',
+            'answer',
+            'order'
+        ]));
+
+        Log::info('FAQ updated', [
+            'faq_id' => $faq->id
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'FAQ updated successfully',
+            'data' => $faq
+        ]);
+    }
+
+    //delete faq
+    public function deleteHomeFAQ(Request $request, $id)
+    {
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
+
+        $faq = HomeFaqData::find($id);
+
+        if (!$faq) {
+            Log::warning('FAQ delete failed - not found', ['faq_id' => $id]);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'FAQ not found'
+            ], 404);
+        }
+
+        $faq->delete();
+
+        Log::info('FAQ deleted', [
+            'faq_id' => $id
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'FAQ deleted successfully'
+        ]);
+    }
 }
