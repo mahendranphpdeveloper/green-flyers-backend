@@ -14,25 +14,31 @@ class AdminCertificateController extends Controller
     public function download(Request $request, $path)
     {
         $admin = $request->user();
-    
+
         if (!$admin || !AdminData::where('id', $admin->id)->exists()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
-    
+
         // $path already includes "certificates/..."
         if (!Storage::disk('public')->exists($path)) {
             return response()->json(['message' => 'File not found'], 404);
         }
-    
+
         // Security check (prevent path traversal)
         $realPath = Storage::disk('public')->path($path);
         $certDir  = Storage::disk('public')->path('certificates');
-    
+
         if (strpos(realpath($realPath), realpath($certDir)) !== 0) {
             return response()->json(['message' => 'Invalid file path'], 400);
         }
-    
-        return response()->download($realPath);
+
+        // Force download with a user-friendly filename (if available)
+        $filename = basename($realPath);
+
+        return response()->download($realPath, $filename, [
+            'Content-Type' => mime_content_type($realPath),
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"'
+        ]);
     }
     
 
