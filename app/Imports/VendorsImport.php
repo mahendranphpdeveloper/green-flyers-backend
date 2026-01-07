@@ -19,13 +19,18 @@ class VendorsImport implements ToCollection, WithHeadingRow
         foreach ($rows as $row) {
             try {
                 // Map fields from Excel to DB columns
+                $status = $row['status'] ?? 'active';
+                // Force status to lowercase
+                $status = strtolower($status);
+
                 $data = [
                     'name'        => $row['name'] ?? null,
                     'email'       => $row['email'] ?? null,
                     'description' => $row['description'] ?? null,
                     'state'       => $row['state'] ?? null,
-                    'country'     => $row['country'] ?? null,
-                    'status'      => $row['status'] ?? 'active',
+                    // 'country' column should be set to 'India' by default since it's not present in the frontend excel/csv
+                    'country'     => 'India',
+                    'status'      => $status,
                     'projectUrl'  => $row['project_url'] ?? null, // Can be a string or comma-separated
                     'projects'    => $row['projects'] ?? null,
                 ];
