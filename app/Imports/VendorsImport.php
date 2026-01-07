@@ -32,7 +32,8 @@ class VendorsImport implements ToCollection, WithHeadingRow
 
             $validator = Validator::make($data, [
                 'name'  => 'required|string|max:255',
-                'email' => 'required|email|unique:vendors,email',
+                'email' => 'required|email|unique:vendorsdata,email',
+
                 'state' => 'required|string|max:100',
             ]);
 
