@@ -160,6 +160,9 @@ Route::prefix('/admin/home-manage')->group(function () {
    
 });
 
+// for bulk upload
+Route::post('/admin/vendors/bulk', [\App\Http\Controllers\VendorBulkController::class, 'bulkUpload']);
+
       
 });
 
