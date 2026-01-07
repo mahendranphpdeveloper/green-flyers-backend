@@ -22,7 +22,7 @@ class VendorsImport implements ToCollection, WithHeadingRow
                 'email'       => trim($row['email'] ?? ''),
                 'description' => $row['description'] ?? null,
                 'state'       => trim($row['state'] ?? ''),
-                'project_url' => $row['project_url'] ?? null,
+                'projectUrl' => $row['projectUrl'] ?? null,
                 'status'      => strtolower($row['status'] ?? 'active'),
                 'projects'    => !empty($row['projects'])
                     ? array_map('trim', explode(',', $row['projects']))
