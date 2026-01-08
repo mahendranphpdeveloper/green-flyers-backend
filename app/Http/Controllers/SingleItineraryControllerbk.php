@@ -11,7 +11,7 @@ use App\Models\AdminData;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
-class SingleItineraryController extends Controller
+class SingleItineraryControllerbk extends Controller
 {
 
     // public function index(Request $request)
@@ -258,6 +258,7 @@ public function index(Request $request)
 
 
 
+
 // public function update(Request $request, $id)
 // {
 //     $authUser = $request->user();
@@ -300,15 +301,12 @@ public function index(Request $request)
 //         return response()->json(['message' => 'Itinerary not found'], 404);
 //     }
 
-//     $autoApplied = [];
-
 //     DB::transaction(function () use (
 //         $validatedData,
 //         $singleItinerary,
 //         $itinerary,
 //         $approvalStatus,
-//         $authUser,
-//         &$autoApplied // pass by reference to populate array
+//         $authUser
 //     ) {
 
 //         $singleItinerary->approvelStatus = $validatedData['approvelStatus'];
@@ -383,7 +381,7 @@ public function index(Request $request)
 //         $user->treeCredit  += $extraTrees;
 //         $user->save();
 
-//         /** AUTO-ALLOCATE USER CREDIT TO NEXT ITINERARIES (DATE WISE) */
+//         /** 🔁 AUTO-ALLOCATE USER CREDIT TO NEXT ITINERARIES (DATE WISE) */
 //         $eligibleItineraries = ItineraryData::where('userId', $user->userId)
 //             ->whereIn('status', ['pending', 'partial'])
 //             ->orderBy('date', 'asc')
@@ -416,13 +414,6 @@ public function index(Request $request)
 //                 $nextItinerary->offsetPercentage = $percent;
 //                 $nextItinerary->save();
 
-//                 $autoApplied[] = [
-//                     'itineraryId' => $nextItinerary->ItineraryId,
-//                     'offsetUsed'  => $useOffset,
-//                     'treesUsed'   => $useTrees,
-//                     'date'        => $nextItinerary->date
-//                 ];
-
 //                 $user->offsetCredit -= $useOffset;
 //                 $user->treeCredit  -= $useTrees;
 //             }
@@ -432,10 +423,8 @@ public function index(Request $request)
 //     });
 
 //     return response()->json([
-//         'status' => true,
-//         'message' => 'Updated successfully',
-//         'autoApplied' => $autoApplied,
-//         'info' => 'Unused offset credits were automatically applied to earlier itineraries'
+//         'status'  => true,
+//         'message' => 'Single itinerary updated & credits auto-adjusted',
 //     ]);
 // }
 
@@ -459,12 +448,12 @@ public function update(Request $request, $id)
 
     $approvalStatus = $request->input('approvelStatus');
 
-    /** ---------------- VALIDATION ---------------- */
     if ($approvalStatus === 'Completed') {
         $validatedData = $request->validate([
             'ItineraryId'    => 'required|integer|exists:itinerarydata,ItineraryId',
             'approvelStatus' => 'required|in:Completed',
             'emissionOffset' => 'required|integer|min:0',
+            'treesPlanted'   => 'required|integer|min:0',
             'count'          => 'required|integer|min:0',
         ]);
     } else {
@@ -488,12 +477,12 @@ public function update(Request $request, $id)
         $singleItinerary,
         $itinerary,
         $approvalStatus,
-        &$autoApplied
+        $authUser,
+        &$autoApplied // pass by reference to populate array
     ) {
 
-        /** ---------------- BASIC UPDATE ---------------- */
         $singleItinerary->approvelStatus = $validatedData['approvelStatus'];
-        $singleItinerary->count = $validatedData['count'];
+        $singleItinerary->count          = $validatedData['count'];
 
         if (isset($validatedData['note'])) {
             $singleItinerary->note = $validatedData['note'];
@@ -504,39 +493,42 @@ public function update(Request $request, $id)
             return;
         }
 
-        /** ---------------- OLD VALUES ---------------- */
+        /** OLD VALUES */
         $oldOffset = $singleItinerary->emissionOffset ?? 0;
+        $oldTrees  = $singleItinerary->treesPlanted ?? 0;
 
-        /** ---------------- REQUEST ---------------- */
+        /** REQUEST VALUES */
         $requestedOffset = (int) $validatedData['emissionOffset'];
+        $requestedTrees  = (int) $validatedData['treesPlanted'];
 
-        /** ---------------- LIMITS ---------------- */
+        /** ITINERARY LIMITS */
         $emissionLimit = $itinerary->emission;
+        $treeLimit     = $itinerary->totalTrees;
+
+        /** CURRENT TOTALS */
         $currentOffset = $itinerary->offsetAmount ?? 0;
+        $currentTrees  = $itinerary->numberOfTrees ?? 0;
 
-        /** ---------------- REMAINING ---------------- */
-        $remainingEmission = max(
-            $emissionLimit - ($currentOffset - $oldOffset),
-            0
-        );
+        /** REMAINING CAPACITY */
+        $remainingEmission = max($emissionLimit - ($currentOffset - $oldOffset), 0);
+        $remainingTrees    = max($treeLimit - ($currentTrees - $oldTrees), 0);
 
-        /** ---------------- APPLY OFFSET ---------------- */
+        /** APPLY DIRECT OFFSET */
         $appliedOffset = min($requestedOffset, $remainingEmission);
-
-        /** 🌱 TREES DERIVED ONLY FROM OFFSET */
-        $appliedTrees = intdiv($appliedOffset, 50);
+        $appliedTrees  = min($requestedTrees, $remainingTrees);
 
         $extraOffset = $requestedOffset - $appliedOffset;
+        $extraTrees  = $requestedTrees - $appliedTrees;
 
-        /** ---------------- SAVE SINGLE ITINERARY ---------------- */
+        /** SAVE SINGLE ITINERARY */
         $singleItinerary->update([
             'emissionOffset' => $appliedOffset,
             'treesPlanted'   => $appliedTrees
         ]);
 
-        /** ---------------- UPDATE MASTER ITINERARY ---------------- */
+        /** UPDATE ITINERARY TOTALS */
         $newOffset = ($currentOffset - $oldOffset) + $appliedOffset;
-        $newTrees  = intdiv($newOffset, 50);
+        $newTrees  = ($currentTrees - $oldTrees) + $appliedTrees;
 
         $offsetPercentage = $emissionLimit > 0
             ? min(round(($newOffset / $emissionLimit) * 100, 2), 100)
@@ -555,15 +547,13 @@ public function update(Request $request, $id)
             'status'           => $status
         ]);
 
-        /** ---------------- USER OFFSET CREDIT ONLY ---------------- */
-        $user = User::where('userId', $itinerary->userId)
-            ->lockForUpdate()
-            ->first();
-
+        /** STORE CREDIT IN USER */
+        $user = User::where('userId', $itinerary->userId)->lockForUpdate()->first();
         $user->offsetCredit += $extraOffset;
+        $user->treeCredit  += $extraTrees;
         $user->save();
 
-        /** ---------------- AUTO APPLY OFFSET TO OTHER ITINERARIES ---------------- */
+        /** AUTO-ALLOCATE USER CREDIT TO NEXT ITINERARIES (DATE WISE) */
         $eligibleItineraries = ItineraryData::where('userId', $user->userId)
             ->whereIn('status', ['pending', 'partial'])
             ->orderBy('date', 'asc')
@@ -572,20 +562,17 @@ public function update(Request $request, $id)
 
         foreach ($eligibleItineraries as $nextItinerary) {
 
-            if ($user->offsetCredit <= 0) {
+            if ($user->offsetCredit <= 0 && $user->treeCredit <= 0) {
                 break;
             }
 
-            $remainingEmission = max(
-                $nextItinerary->emission - $nextItinerary->offsetAmount,
-                0
-            );
+            $remainingEmission = max($nextItinerary->emission - $nextItinerary->offsetAmount, 0);
+            $remainingTrees    = max($nextItinerary->totalTrees - $nextItinerary->numberOfTrees, 0);
 
             $useOffset = min($remainingEmission, $user->offsetCredit);
+            $useTrees  = min($remainingTrees, $user->treeCredit);
 
-            if ($useOffset > 0) {
-
-                $useTrees = intdiv($useOffset, 50);
+            if ($useOffset > 0 || $useTrees > 0) {
 
                 $nextItinerary->offsetAmount  += $useOffset;
                 $nextItinerary->numberOfTrees += $useTrees;
@@ -602,11 +589,12 @@ public function update(Request $request, $id)
                 $autoApplied[] = [
                     'itineraryId' => $nextItinerary->ItineraryId,
                     'offsetUsed'  => $useOffset,
-                    'treesAdded'  => $useTrees,
+                    'treesUsed'   => $useTrees,
                     'date'        => $nextItinerary->date
                 ];
 
                 $user->offsetCredit -= $useOffset;
+                $user->treeCredit  -= $useTrees;
             }
         }
 
@@ -617,14 +605,52 @@ public function update(Request $request, $id)
         'status' => true,
         'message' => 'Updated successfully',
         'autoApplied' => $autoApplied,
-        'info' => 'Trees are auto-calculated as 1 tree per 50 offset'
+        'info' => 'Unused offset credits were automatically applied to earlier itineraries'
     ]);
 }
 
 
-
     
 
+
+
+    // public function destroy(Request $request, $id)
+    // {
+    //     $user = $request->user();
+    //     Log::info('destroy() called in SingleItineraryController', [
+    //         'user' => $user,
+    //         'singleItineraryId' => $id
+    //     ]);
+    //     if (!$user) {
+    //         Log::warning('Unauthorized access attempt in destroy()');
+    //         return response()->json(['message' => 'Unauthorized.'], 401);
+    //     }
+
+    //     $singleItinerary = SingleItineraryData::find($id);
+
+    //     if (!$singleItinerary) {
+    //         Log::warning('SingleItinerary not found in destroy()', ['id' => $id]);
+    //         return response()->json(['message' => 'SingleItinerary not found.'], 404);
+    //     }
+
+    //     if ($singleItinerary->userId !== $user->userId) {
+    //         Log::warning('Unauthorized delete attempt on SingleItinerary', [
+    //             'userId' => $user->userId,
+    //             'ownerUserId' => $singleItinerary->userId
+    //         ]);
+    //         return response()->json(['message' => 'Unauthorized: You do not have access to this resource.'], 403);
+    //     }
+
+    //     if ($singleItinerary->certificateFile && Storage::disk('public')->exists($singleItinerary->certificateFile)) {
+    //         Storage::disk('public')->delete($singleItinerary->certificateFile);
+    //         Log::info('Certificate file deleted in destroy()', ['certificateFile' => $singleItinerary->certificateFile]);
+    //     }
+
+    //     $singleItinerary->delete();
+    //     Log::info('SingleItinerary deleted', ['singleItineraryId' => $id]);
+
+    //     return response()->json(['message' => 'SingleItinerary deleted successfully.']);
+    // }
 
     public function destroy(Request $request, $id)
 {
