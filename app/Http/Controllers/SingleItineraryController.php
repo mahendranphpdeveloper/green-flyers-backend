@@ -822,22 +822,13 @@ public function update(Request $request, $id)
 
     $approvalStatus = $request->input('approvelStatus');
 
-    /** ---------------- VALIDATION ---------------- */
-    if ($approvalStatus === 'Completed') {
-        $validatedData = $request->validate([
-            'ItineraryId'    => 'required|integer|exists:itinerarydata,ItineraryId',
-            'approvelStatus' => 'required|in:Completed',
-            'emissionOffset' => 'required|integer|min:0',
-            'count'          => 'required|integer|min:0',
-        ]);
-    } else {
-        $validatedData = $request->validate([
-            'ItineraryId'    => 'required|integer|exists:itinerarydata,ItineraryId',
-            'approvelStatus' => 'required|in:Rejected',
-            'note'           => 'required|string',
-            'count'          => 'required|integer|min:0',
-        ]);
-    }
+    $validatedData = $request->validate([
+        'ItineraryId'    => 'required|integer|exists:itinerarydata,ItineraryId',
+        'approvelStatus' => 'required|in:Completed,Rejected',
+        'emissionOffset' => 'required_if:approvelStatus,Completed|integer|min:0',
+        'count'          => 'required|integer|min:0',
+        'note'           => 'required_if:approvelStatus,Rejected|string',
+    ]);
 
     $itinerary = ItineraryData::where('ItineraryId', $validatedData['ItineraryId'])->first();
     if (!$itinerary) {
@@ -846,117 +837,68 @@ public function update(Request $request, $id)
 
     $autoApplied = [];
 
-    DB::transaction(function () use (
-        $validatedData,
-        $singleItinerary,
-        $itinerary,
-        $approvalStatus,
-        &$autoApplied
-    ) {
+    DB::transaction(function () use ($validatedData, $singleItinerary, $itinerary, &$autoApplied) {
 
-        /** ---------------- ALWAYS SAVE SINGLE ITINERARY ---------------- */
+        // Always update the single itinerary
         $singleItinerary->approvelStatus = $validatedData['approvelStatus'];
         $singleItinerary->count = $validatedData['count'];
-
         if (isset($validatedData['note'])) {
             $singleItinerary->note = $validatedData['note'];
         }
 
-        if ($approvalStatus !== 'Completed') {
-            $singleItinerary->save();
-            return;
-        }
-
-        /** SAVE OFFSET INFO EVEN IF ITINERARY IS COMPLETED */
-        $requestedOffset = (int) $validatedData['emissionOffset'];
+        $requestedOffset = (int) ($validatedData['emissionOffset'] ?? 0);
 
         $singleItinerary->update([
             'emissionOffset' => $requestedOffset,
-            'treesPlanted'   => intdiv($requestedOffset, 50)
+            'treesPlanted'   => intdiv($requestedOffset, 50),
         ]);
 
-        /** 🚫 STOP HERE IF ITINERARY IS ALREADY COMPLETED */
-        if ($itinerary->status === 'completed') {
-            return;
-        }
+        /** ---------------- RECALCULATE MASTER ITINERARY ---------------- */
+        $allSingleOffsets = SingleItineraryData::where('ItineraryId', $itinerary->ItineraryId)->get();
+        $totalOffset = $allSingleOffsets->sum('emissionOffset');
+        $totalTrees  = intdiv($totalOffset, 50);
 
-        /** ---------------- BELOW LOGIC ONLY FOR NON-COMPLETED ---------------- */
+        $offsetPercentage = $itinerary->emission > 0
+            ? min(round(($totalOffset / $itinerary->emission) * 100, 2), 100)
+            : 0;
 
-        $oldOffset = $singleItinerary->getOriginal('emissionOffset') ?? 0;
-        $currentOffset = $itinerary->offsetAmount ?? 0;
-        $emissionLimit = $itinerary->emission;
-
-        $remainingEmission = max(
-            $emissionLimit - ($currentOffset - $oldOffset),
-            0
-        );
-
-        $appliedOffset = min($requestedOffset, $remainingEmission);
-        $extraOffset   = $requestedOffset - $appliedOffset;
-
-        /** UPDATE SINGLE ITINERARY WITH APPLIED OFFSET */
-        $singleItinerary->update([
-            'emissionOffset' => $appliedOffset,
-            'treesPlanted'   => intdiv($appliedOffset, 50)
-        ]);
-
-        /** UPDATE MASTER ITINERARY */
-        $newOffset = ($currentOffset - $oldOffset) + $appliedOffset;
-        $newTrees  = intdiv($newOffset, 50);
-
-        $offsetPercentage = min(
-            round(($newOffset / $emissionLimit) * 100, 2),
-            100
-        );
-
-        $status = $offsetPercentage == 100 ? 'completed' : 'partial';
+        $status = match (true) {
+            $offsetPercentage == 0  => 'pending',
+            $offsetPercentage < 100 => 'partial',
+            default                 => 'completed',
+        };
 
         $itinerary->update([
-            'offsetAmount'     => $newOffset,
-            'numberOfTrees'    => $newTrees,
+            'offsetAmount'     => $totalOffset,
+            'numberOfTrees'    => $totalTrees,
             'offsetPercentage' => $offsetPercentage,
-            'status'           => $status
+            'status'           => $status,
         ]);
 
-        /** USER CREDIT */
-        $user = User::where('userId', $itinerary->userId)
-            ->lockForUpdate()
-            ->first();
-
+        /** ---------------- USER OFFSET CREDIT ---------------- */
+        $extraOffset = max(0, $requestedOffset - ($itinerary->emission - ($totalOffset - $requestedOffset)));
+        $user = User::where('userId', $itinerary->userId)->lockForUpdate()->first();
         $user->offsetCredit += $extraOffset;
         $user->save();
 
-        /** AUTO APPLY CREDIT */
+        /** ---------------- AUTO APPLY OFFSET TO OTHER ITINERARIES ---------------- */
         $eligibleItineraries = ItineraryData::where('userId', $user->userId)
             ->whereIn('status', ['pending', 'partial'])
-            ->orderBy('date')
+            ->orderBy('date', 'asc')
             ->lockForUpdate()
             ->get();
 
         foreach ($eligibleItineraries as $nextItinerary) {
-
             if ($user->offsetCredit <= 0) break;
 
-            $remainingEmission = max(
-                $nextItinerary->emission - $nextItinerary->offsetAmount,
-                0
-            );
-
+            $remainingEmission = max($nextItinerary->emission - $nextItinerary->offsetAmount, 0);
             $useOffset = min($remainingEmission, $user->offsetCredit);
 
             if ($useOffset > 0) {
-
                 $nextItinerary->offsetAmount += $useOffset;
-                $nextItinerary->numberOfTrees = intdiv(
-                    $nextItinerary->offsetAmount,
-                    50
-                );
+                $nextItinerary->numberOfTrees = intdiv($nextItinerary->offsetAmount, 50);
 
-                $percent = min(
-                    round(($nextItinerary->offsetAmount / $nextItinerary->emission) * 100, 2),
-                    100
-                );
-
+                $percent = min(round(($nextItinerary->offsetAmount / $nextItinerary->emission) * 100, 2), 100);
                 $nextItinerary->status = $percent == 100 ? 'completed' : 'partial';
                 $nextItinerary->offsetPercentage = $percent;
                 $nextItinerary->save();
@@ -965,6 +907,7 @@ public function update(Request $request, $id)
                     'itineraryId' => $nextItinerary->ItineraryId,
                     'offsetUsed'  => $useOffset,
                     'treesTotal'  => $nextItinerary->numberOfTrees,
+                    'date'        => $nextItinerary->date,
                 ];
 
                 $user->offsetCredit -= $useOffset;
@@ -976,11 +919,12 @@ public function update(Request $request, $id)
 
     return response()->json([
         'status' => true,
-        'message' => 'Updated successfully',
+        'message' => 'Single itinerary updated and master itinerary recalculated',
         'autoApplied' => $autoApplied,
-        'info' => 'Single itinerary saved even when itinerary is completed'
     ]);
 }
+
+
 
 
 
