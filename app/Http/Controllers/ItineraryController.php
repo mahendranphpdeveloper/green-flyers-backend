@@ -373,124 +373,252 @@ class ItineraryController extends Controller
     //     ], 201);
     // }
 
+    // 4. public function store(Request $request)
+    // {
+    //     Log::info($request->all());
+
+    //     $authUser = $request->user();
+    //     if (!$authUser) {
+    //         return response()->json(['message' => 'Unauthorized'], 401);
+    //     }
+
+    //     /** ---------------- VALIDATION ---------------- */
+    //     $validated = $request->validate([
+    //         'userId'       => 'required|integer',
+    //         'date'         => 'required|date',
+
+    //         'airline'      => 'required|string|max:255',
+    //         'origin'       => 'required|string|max:255',
+    //         'destination'  => 'required|string|max:255',
+    //         'class'        => 'required|string|max:255',
+    //         'passengers'   => 'required|integer',
+    //         'tripType'     => 'required|string|max:255',
+    //         'distance'     => 'required|string|max:255',
+
+    //         'flightcode'      => 'nullable|string|max:255',
+    //         'originCity'      => 'nullable|string|max:255',
+    //         'destinationCity' => 'nullable|string|max:255',
+    //         'emission'        => 'nullable|numeric',
+
+    //         'country' => [
+    //             'nullable',
+    //             'string',
+    //             'max:255',
+    //             function ($attribute, $value, $fail) {
+    //                 if (
+    //                     $value &&
+    //                     !Country::where('country_name', $value)
+    //                         ->orWhere('country_id', $value)
+    //                         ->exists()
+    //                 ) {
+    //                     $fail('The selected country is invalid.');
+    //                 }
+    //             }
+    //         ],
+    //     ]);
+
+    //     /** ---------------- USER OWNERSHIP ---------------- */
+    //     if ($authUser->userId != $validated['userId']) {
+    //         return response()->json([
+    //             'message' => 'Unauthorized: userId mismatch'
+    //         ], 403);
+    //     }
+
+    //     /** ---------------- NORMALIZE COUNTRY ---------------- */
+    //     if (!empty($validated['country'])) {
+    //         $country = Country::where('country_name', $validated['country'])
+    //             ->orWhere('country_id', $validated['country'])
+    //             ->first();
+    //         $validated['country'] = $country ? $country->country_id : $validated['country'];
+    //     }
+
+    //     DB::transaction(function () use (&$itinerary, $validated, $authUser) {
+
+    //         /** ---------------- CREATE ITINERARY ---------------- */
+    //         $itinerary = ItineraryData::create(array_merge($validated, [
+    //             'offsetAmount'     => 0,
+    //             'numberOfTrees'    => 0,
+    //             'offsetPercentage' => 0,
+    //             'status'           => 'pending'
+    //         ]));
+
+    //         /** ---------------- USER CREDIT LOCK ---------------- */
+    //         $user = User::where('userId', $authUser->userId)
+    //             ->lockForUpdate()
+    //             ->first();
+
+    //         /** ---------------- APPLY OFFSET CREDIT ONLY ---------------- */
+    //         $remainingEmission = max(
+    //             ($itinerary->emission ?? 0) - $itinerary->offsetAmount,
+    //             0
+    //         );
+
+    //         $useOffset = min($user->offsetCredit ?? 0, $remainingEmission);
+
+    //         if ($useOffset > 0) {
+
+    //             /** APPLY OFFSET */
+    //             $itinerary->offsetAmount += $useOffset;
+
+    //             /** 🌱 TREE RULE (SINGLE SOURCE OF TRUTH) */
+    //             $itinerary->numberOfTrees = intdiv($itinerary->offsetAmount, 50);
+
+    //             /** STATUS UPDATE */
+    //             if (($itinerary->emission ?? 0) > 0) {
+    //                 $itinerary->offsetPercentage = min(
+    //                     round(($itinerary->offsetAmount / $itinerary->emission) * 100, 2),
+    //                     100
+    //                 );
+
+    //                 $itinerary->status = match (true) {
+    //                     $itinerary->offsetPercentage == 0  => 'pending',
+    //                     $itinerary->offsetPercentage < 100 => 'partial',
+    //                     default                            => 'completed',
+    //                 };
+    //             }
+
+    //             $itinerary->save();
+
+    //             /** REDUCE USER OFFSET CREDIT */
+    //             $user->offsetCredit -= $useOffset;
+    //             $user->save();
+    //         }
+    //     });
+
+    //     /** ---------------- RESPONSE ---------------- */
+    //     return response()->json([
+    //         'message' => 'Itinerary created successfully. Offset credits applied using 1 tree per 50 rule.',
+    //         'data'    => ItineraryData::where('userId', $authUser->userId)->get()
+    //     ], 201);
+    // }
+
     public function store(Request $request)
-    {
-        Log::info($request->all());
+{
+    Log::info($request->all());
 
-        $authUser = $request->user();
-        if (!$authUser) {
-            return response()->json(['message' => 'Unauthorized'], 401);
-        }
+    $authUser = $request->user();
+    if (!$authUser) {
+        return response()->json(['message' => 'Unauthorized'], 401);
+    }
 
-        /** ---------------- VALIDATION ---------------- */
-        $validated = $request->validate([
-            'userId'       => 'required|integer',
-            'date'         => 'required|date',
+    /** ---------------- VALIDATION ---------------- */
+    $validated = $request->validate([
+        'userId'       => 'required|integer',
+        'date'         => 'required|date',
 
-            'airline'      => 'required|string|max:255',
-            'origin'       => 'required|string|max:255',
-            'destination'  => 'required|string|max:255',
-            'class'        => 'required|string|max:255',
-            'passengers'   => 'required|integer',
-            'tripType'     => 'required|string|max:255',
-            'distance'     => 'required|string|max:255',
+        'airline'      => 'required|string|max:255',
+        'origin'       => 'required|string|max:255',
+        'destination'  => 'required|string|max:255',
+        'class'        => 'required|string|max:255',
+        'passengers'   => 'required|integer|min:1',
+        'tripType'     => 'required|string|max:255',
+        'distance'     => 'required|string|max:255',
 
-            'flightcode'      => 'nullable|string|max:255',
-            'originCity'      => 'nullable|string|max:255',
-            'destinationCity' => 'nullable|string|max:255',
-            'emission'        => 'nullable|numeric',
+        'flightcode'      => 'nullable|string|max:255',
+        'originCity'      => 'nullable|string|max:255',
+        'destinationCity' => 'nullable|string|max:255',
+        'emission'        => 'nullable|numeric|min:0',
 
-            'country' => [
-                'nullable',
-                'string',
-                'max:255',
-                function ($attribute, $value, $fail) {
-                    if (
-                        $value &&
-                        !Country::where('country_name', $value)
-                            ->orWhere('country_id', $value)
-                            ->exists()
-                    ) {
-                        $fail('The selected country is invalid.');
-                    }
+        /** FRONTEND VALUE */
+        'totalTrees'      => 'nullable|integer|min:0',
+
+        'country' => [
+            'nullable','string','max:255',
+            function ($attribute, $value, $fail) {
+                if (
+                    $value &&
+                    !Country::where('country_name', $value)
+                        ->orWhere('country_id', $value)
+                        ->exists()
+                ) {
+                    $fail('The selected country is invalid.');
                 }
-            ],
+            }
+        ],
+    ]);
+
+    /** ---------------- USER OWNERSHIP ---------------- */
+    if ($authUser->userId !== (int)$validated['userId']) {
+        return response()->json([
+            'message' => 'Unauthorized: userId mismatch'
+        ], 403);
+    }
+
+    /** ---------------- NORMALIZE COUNTRY ---------------- */
+    if (!empty($validated['country'])) {
+        $country = Country::where('country_name', $validated['country'])
+            ->orWhere('country_id', $validated['country'])
+            ->first();
+
+        $validated['country'] = $country?->country_id;
+    }
+
+    DB::transaction(function () use (&$itinerary, $validated, $authUser) {
+
+        /** ---------------- CREATE ITINERARY ---------------- */
+        $itinerary = ItineraryData::create([
+            ...$validated,
+            'offsetAmount'     => 0,
+            'numberOfTrees'    => 0,
+            'offsetPercentage' => 0,
+            'status'           => 'pending'
         ]);
 
-        /** ---------------- USER OWNERSHIP ---------------- */
-        if ($authUser->userId != $validated['userId']) {
-            return response()->json([
-                'message' => 'Unauthorized: userId mismatch'
-            ], 403);
-        }
+        /** ---------------- LOCK USER ---------------- */
+        $user = User::where('userId', $authUser->userId)
+            ->lockForUpdate()
+            ->first();
 
-        /** ---------------- NORMALIZE COUNTRY ---------------- */
-        if (!empty($validated['country'])) {
-            $country = Country::where('country_name', $validated['country'])
-                ->orWhere('country_id', $validated['country'])
-                ->first();
-            $validated['country'] = $country ? $country->country_id : $validated['country'];
-        }
+        /** ---------------- APPLY OFFSET CREDIT ---------------- */
+        $remainingEmission = max(
+            ($itinerary->emission ?? 0) - $itinerary->offsetAmount,
+            0
+        );
 
-        DB::transaction(function () use (&$itinerary, $validated, $authUser) {
+        $useOffset = min($user->offsetCredit ?? 0, $remainingEmission);
 
-            /** ---------------- CREATE ITINERARY ---------------- */
-            $itinerary = ItineraryData::create(array_merge($validated, [
-                'offsetAmount'     => 0,
-                'numberOfTrees'    => 0,
-                'offsetPercentage' => 0,
-                'status'           => 'pending'
-            ]));
+        if ($useOffset > 0) {
 
-            /** ---------------- USER CREDIT LOCK ---------------- */
-            $user = User::where('userId', $authUser->userId)
-                ->lockForUpdate()
-                ->first();
+            /** APPLY OFFSET */
+            $itinerary->offsetAmount += $useOffset;
 
-            /** ---------------- APPLY OFFSET CREDIT ONLY ---------------- */
-            $remainingEmission = max(
-                ($itinerary->emission ?? 0) - $itinerary->offsetAmount,
-                0
+            /** 🌱 SINGLE SOURCE OF TRUTH */
+            $itinerary->numberOfTrees = intdiv(
+                $itinerary->offsetAmount,
+                50
             );
 
-            $useOffset = min($user->offsetCredit ?? 0, $remainingEmission);
+            /** STATUS & PERCENTAGE */
+            if (($itinerary->emission ?? 0) > 0) {
 
-            if ($useOffset > 0) {
+                $itinerary->offsetPercentage = min(
+                    round(($itinerary->offsetAmount / $itinerary->emission) * 100, 2),
+                    100
+                );
 
-                /** APPLY OFFSET */
-                $itinerary->offsetAmount += $useOffset;
-
-                /** 🌱 TREE RULE (SINGLE SOURCE OF TRUTH) */
-                $itinerary->numberOfTrees = intdiv($itinerary->offsetAmount, 50);
-
-                /** STATUS UPDATE */
-                if (($itinerary->emission ?? 0) > 0) {
-                    $itinerary->offsetPercentage = min(
-                        round(($itinerary->offsetAmount / $itinerary->emission) * 100, 2),
-                        100
-                    );
-
-                    $itinerary->status = match (true) {
-                        $itinerary->offsetPercentage == 0  => 'pending',
-                        $itinerary->offsetPercentage < 100 => 'partial',
-                        default                            => 'completed',
-                    };
-                }
-
-                $itinerary->save();
-
-                /** REDUCE USER OFFSET CREDIT */
-                $user->offsetCredit -= $useOffset;
-                $user->save();
+                $itinerary->status = match (true) {
+                    $itinerary->offsetPercentage == 0  => 'pending',
+                    $itinerary->offsetPercentage < 100 => 'partial',
+                    default                            => 'completed',
+                };
             }
-        });
 
-        /** ---------------- RESPONSE ---------------- */
-        return response()->json([
-            'message' => 'Itinerary created successfully. Offset credits applied using 1 tree per 50 rule.',
-            'data'    => ItineraryData::where('userId', $authUser->userId)->get()
-        ], 201);
-    }
+            $itinerary->save();
+
+            /** DEDUCT USER CREDIT */
+            $user->offsetCredit -= $useOffset;
+            $user->save();
+        }
+    });
+
+    /** ---------------- RESPONSE ---------------- */
+    return response()->json([
+        'status'  => true,
+        'message' => 'Itinerary created successfully. Trees derived using 1 tree per 50 offset.',
+        'data'    => ItineraryData::where('userId', $authUser->userId)->get()
+    ], 201);
+}
+
 
 
 
