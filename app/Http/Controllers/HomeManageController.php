@@ -639,57 +639,130 @@ class HomeManageController extends Controller
     }
 
     /**
- * GET /api/admin/bgimage
- */
-public function getLoginBackgroundImage()
-{
-    $bgImage = BackgroundImage::find(1);
+     * GET /api/admin/bgimage
+     */
+    public function getLoginBackgroundImage()
+    {
+        $bgImage = BackgroundImage::find(1);
 
-    Log::info('Login background image fetched');
+        Log::info('Login background image fetched');
 
-    return response()->json([
-        'status' => true,
-        'data' => $bgImage
-    ]);
-}
-
-/**
- * PUT /api/admin/bgimage
- */
-public function updateLoginBackgroundImage(Request $request)
-{
-    if ($response = $this->checkAdmin($request)) {
-        return $response;
+        return response()->json([
+            'status' => true,
+            'data' => $bgImage
+        ]);
     }
 
-    $request->validate([
-        'background_image' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120'
-    ]);
+    /**
+     * PUT /api/admin/bgimage
+     */
+    public function updateLoginBackgroundImage(Request $request)
+    {
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
 
-    $record = BackgroundImage::find(1);
+        $request->validate([
+            'background_image' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120'
+        ]);
 
-    // Delete old image if exists
-    if ($record && $record->background_image && Storage::disk('public')->exists($record->background_image)) {
-        Storage::disk('public')->delete($record->background_image);
+        $record = BackgroundImage::find(1);
+
+        // Delete old image if exists
+        if ($record && $record->background_image && Storage::disk('public')->exists($record->background_image)) {
+            Storage::disk('public')->delete($record->background_image);
+        }
+
+        // Store new image
+        $path = $request->file('background_image')
+            ->store('login_background', 'public');
+
+        $bgImage = BackgroundImage::updateOrCreate(
+            ['id' => 1],
+            ['background_image' => $path]
+        );
+
+        Log::info('Login background image updated', [
+            'path' => $path
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Background image updated successfully',
+            'data' => $bgImage
+        ]);
     }
 
-    // Store new image
-    $path = $request->file('background_image')
-        ->store('login_background', 'public');
+    public function updateTreeOffsetValue(Request $request)
+    {
+        if ($response = $this->checkAdmin($request)) {
+            Log::warning('Admin check failed for updateTreeOffsetValue');
+            return $response;
+        }
 
-    $bgImage = BackgroundImage::updateOrCreate(
-        ['id' => 1],
-        ['background_image' => $path]
-    );
+        // VALIDATION
+        $validated = $request->validate([
+            'treeOffsetsValue' => 'required|integer|min:1'
+        ]);
 
-    Log::info('Login background image updated', [
-        'path' => $path
-    ]);
+        // FETCH RECORD
+        $backgroundImage = BackgroundImage::first();
 
-    return response()->json([
-        'status' => true,
-        'message' => 'Background image updated successfully',
-        'data' => $bgImage
-    ]);
-}
+        if (!$backgroundImage) {
+            Log::warning('Background image record not found in updateTreeOffsetValue');
+            return response()->json([
+                'status' => false,
+                'message' => 'Background image record not found'
+            ], 404);
+        }
+
+        // UPDATE VALUE
+        $oldValue = $backgroundImage->treeOffsetsValue;
+        $backgroundImage->treeOffsetsValue = $validated['treeOffsetsValue'];
+        $backgroundImage->save();
+
+        // LOGGING
+        Log::info('Tree offset value updated', [
+            'admin_id' => optional($request->user())->id,
+            'old_treeOffsetsValue' => $oldValue,
+            'new_treeOffsetsValue' => $backgroundImage->treeOffsetsValue
+        ]);
+
+        // RESPONSE
+        return response()->json([
+            'status' => true,
+            'message' => 'Tree offset value updated successfully',
+            'data' => [
+                'treeOffsetsValue' => $backgroundImage->treeOffsetsValue
+            ]
+        ]);
+    }
+
+    public function getTreeOffsetValue(Request $request)
+    {
+        if ($response = $this->checkAdmin($request)) {
+            Log::warning('Admin check failed for getTreeOffsetValue');
+            return $response;
+        }
+
+        $backgroundImage = BackgroundImage::select('treeOffsetsValue')->first();
+
+        if (!$backgroundImage) {
+            Log::warning('Background image record not found in getTreeOffsetValue');
+            return response()->json([
+                'status' => false,
+                'message' => 'Background image record not found'
+            ], 404);
+        }
+
+        Log::info('Tree offset value fetched', [
+            'admin_id' => optional($request->user())->id,
+            'treeOffsetsValue' => $backgroundImage->treeOffsetsValue
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'treeOffsetsValue' => (int) $backgroundImage->treeOffsetsValue
+        ]);
+    }
 }

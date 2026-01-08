@@ -439,6 +439,188 @@ public function index(Request $request)
 //     ]);
 // }
 
+// public function update(Request $request, $id)
+// {
+//     $authUser = $request->user();
+//     if (!$authUser) {
+//         return response()->json(['message' => 'Unauthorized'], 401);
+//     }
+
+//     $isAdmin = AdminData::where('id', $authUser->id)->exists();
+
+//     $singleItinerary = SingleItineraryData::find($id);
+//     if (!$singleItinerary) {
+//         return response()->json(['message' => 'SingleItinerary not found'], 404);
+//     }
+
+//     if (!$isAdmin && $singleItinerary->userId !== $authUser->userId) {
+//         return response()->json(['message' => 'Unauthorized access'], 403);
+//     }
+
+//     $approvalStatus = $request->input('approvelStatus');
+
+//     /** ---------------- VALIDATION ---------------- */
+//     if ($approvalStatus === 'Completed') {
+//         $validatedData = $request->validate([
+//             'ItineraryId'    => 'required|integer|exists:itinerarydata,ItineraryId',
+//             'approvelStatus' => 'required|in:Completed',
+//             'emissionOffset' => 'required|integer|min:0',
+//             'count'          => 'required|integer|min:0',
+//         ]);
+//     } else {
+//         $validatedData = $request->validate([
+//             'ItineraryId'    => 'required|integer|exists:itinerarydata,ItineraryId',
+//             'approvelStatus' => 'required|in:Rejected',
+//             'note'           => 'required|string',
+//             'count'          => 'required|integer|min:0',
+//         ]);
+//     }
+
+//     $itinerary = ItineraryData::where('ItineraryId', $validatedData['ItineraryId'])->first();
+//     if (!$itinerary) {
+//         return response()->json(['message' => 'Itinerary not found'], 404);
+//     }
+
+//     $autoApplied = [];
+
+//     DB::transaction(function () use (
+//         $validatedData,
+//         $singleItinerary,
+//         $itinerary,
+//         $approvalStatus,
+//         &$autoApplied
+//     ) {
+
+//         /** ---------------- BASIC UPDATE ---------------- */
+//         $singleItinerary->approvelStatus = $validatedData['approvelStatus'];
+//         $singleItinerary->count = $validatedData['count'];
+
+//         if (isset($validatedData['note'])) {
+//             $singleItinerary->note = $validatedData['note'];
+//         }
+
+//         if ($approvalStatus !== 'Completed') {
+//             $singleItinerary->save();
+//             return;
+//         }
+
+//         /** ---------------- OLD VALUES ---------------- */
+//         $oldOffset = $singleItinerary->emissionOffset ?? 0;
+
+//         /** ---------------- REQUEST ---------------- */
+//         $requestedOffset = (int) $validatedData['emissionOffset'];
+
+//         /** ---------------- LIMITS ---------------- */
+//         $emissionLimit = $itinerary->emission;
+//         $currentOffset = $itinerary->offsetAmount ?? 0;
+
+//         /** ---------------- REMAINING ---------------- */
+//         $remainingEmission = max(
+//             $emissionLimit - ($currentOffset - $oldOffset),
+//             0
+//         );
+
+//         /** ---------------- APPLY OFFSET ---------------- */
+//         $appliedOffset = min($requestedOffset, $remainingEmission);
+
+//         /** 🌱 TREES DERIVED ONLY FROM OFFSET */
+//         $appliedTrees = intdiv($appliedOffset, 50);
+
+//         $extraOffset = $requestedOffset - $appliedOffset;
+
+//         /** ---------------- SAVE SINGLE ITINERARY ---------------- */
+//         $singleItinerary->update([
+//             'emissionOffset' => $appliedOffset,
+//             'treesPlanted'   => $appliedTrees
+//         ]);
+
+//         /** ---------------- UPDATE MASTER ITINERARY ---------------- */
+//         $newOffset = ($currentOffset - $oldOffset) + $appliedOffset;
+//         $newTrees  = intdiv($newOffset, 50);
+
+//         $offsetPercentage = $emissionLimit > 0
+//             ? min(round(($newOffset / $emissionLimit) * 100, 2), 100)
+//             : 0;
+
+//         $status = match (true) {
+//             $offsetPercentage == 0  => 'pending',
+//             $offsetPercentage < 100 => 'partial',
+//             default                 => 'completed',
+//         };
+
+//         $itinerary->update([
+//             'offsetAmount'     => $newOffset,
+//             'numberOfTrees'    => $newTrees,
+//             'offsetPercentage' => $offsetPercentage,
+//             'status'           => $status
+//         ]);
+
+//         /** ---------------- USER OFFSET CREDIT ONLY ---------------- */
+//         $user = User::where('userId', $itinerary->userId)
+//             ->lockForUpdate()
+//             ->first();
+
+//         $user->offsetCredit += $extraOffset;
+//         $user->save();
+
+//         /** ---------------- AUTO APPLY OFFSET TO OTHER ITINERARIES ---------------- */
+//         $eligibleItineraries = ItineraryData::where('userId', $user->userId)
+//             ->whereIn('status', ['pending', 'partial'])
+//             ->orderBy('date', 'asc')
+//             ->lockForUpdate()
+//             ->get();
+
+//         foreach ($eligibleItineraries as $nextItinerary) {
+
+//             if ($user->offsetCredit <= 0) {
+//                 break;
+//             }
+
+//             $remainingEmission = max(
+//                 $nextItinerary->emission - $nextItinerary->offsetAmount,
+//                 0
+//             );
+
+//             $useOffset = min($remainingEmission, $user->offsetCredit);
+
+//             if ($useOffset > 0) {
+
+//                 $useTrees = intdiv($useOffset, 50);
+
+//                 $nextItinerary->offsetAmount  += $useOffset;
+//                 $nextItinerary->numberOfTrees += $useTrees;
+
+//                 $percent = min(
+//                     round(($nextItinerary->offsetAmount / $nextItinerary->emission) * 100, 2),
+//                     100
+//                 );
+
+//                 $nextItinerary->status = $percent == 100 ? 'completed' : 'partial';
+//                 $nextItinerary->offsetPercentage = $percent;
+//                 $nextItinerary->save();
+
+//                 $autoApplied[] = [
+//                     'itineraryId' => $nextItinerary->ItineraryId,
+//                     'offsetUsed'  => $useOffset,
+//                     'treesAdded'  => $useTrees,
+//                     'date'        => $nextItinerary->date
+//                 ];
+
+//                 $user->offsetCredit -= $useOffset;
+//             }
+//         }
+
+//         $user->save();
+//     });
+
+//     return response()->json([
+//         'status' => true,
+//         'message' => 'Updated successfully',
+//         'autoApplied' => $autoApplied,
+//         'info' => 'Trees are auto-calculated as 1 tree per 50 offset'
+//     ]);
+// }
+
 public function update(Request $request, $id)
 {
     $authUser = $request->user();
@@ -522,16 +704,12 @@ public function update(Request $request, $id)
 
         /** ---------------- APPLY OFFSET ---------------- */
         $appliedOffset = min($requestedOffset, $remainingEmission);
-
-        /** 🌱 TREES DERIVED ONLY FROM OFFSET */
-        $appliedTrees = intdiv($appliedOffset, 50);
-
-        $extraOffset = $requestedOffset - $appliedOffset;
+        $extraOffset   = $requestedOffset - $appliedOffset;
 
         /** ---------------- SAVE SINGLE ITINERARY ---------------- */
         $singleItinerary->update([
             'emissionOffset' => $appliedOffset,
-            'treesPlanted'   => $appliedTrees
+            'treesPlanted'   => intdiv($appliedOffset, 50) // informational only
         ]);
 
         /** ---------------- UPDATE MASTER ITINERARY ---------------- */
@@ -555,7 +733,7 @@ public function update(Request $request, $id)
             'status'           => $status
         ]);
 
-        /** ---------------- USER OFFSET CREDIT ONLY ---------------- */
+        /** ---------------- USER OFFSET CREDIT ---------------- */
         $user = User::where('userId', $itinerary->userId)
             ->lockForUpdate()
             ->first();
@@ -563,7 +741,7 @@ public function update(Request $request, $id)
         $user->offsetCredit += $extraOffset;
         $user->save();
 
-        /** ---------------- AUTO APPLY OFFSET TO OTHER ITINERARIES ---------------- */
+        /** ---------------- AUTO APPLY OFFSET (FIXED) ---------------- */
         $eligibleItineraries = ItineraryData::where('userId', $user->userId)
             ->whereIn('status', ['pending', 'partial'])
             ->orderBy('date', 'asc')
@@ -585,10 +763,13 @@ public function update(Request $request, $id)
 
             if ($useOffset > 0) {
 
-                $useTrees = intdiv($useOffset, 50);
+                $nextItinerary->offsetAmount += $useOffset;
 
-                $nextItinerary->offsetAmount  += $useOffset;
-                $nextItinerary->numberOfTrees += $useTrees;
+                /** 🌱 TREE = TOTAL OFFSET / 50 */
+                $nextItinerary->numberOfTrees = intdiv(
+                    $nextItinerary->offsetAmount,
+                    50
+                );
 
                 $percent = min(
                     round(($nextItinerary->offsetAmount / $nextItinerary->emission) * 100, 2),
@@ -602,7 +783,7 @@ public function update(Request $request, $id)
                 $autoApplied[] = [
                     'itineraryId' => $nextItinerary->ItineraryId,
                     'offsetUsed'  => $useOffset,
-                    'treesAdded'  => $useTrees,
+                    'treesTotal'  => $nextItinerary->numberOfTrees,
                     'date'        => $nextItinerary->date
                 ];
 
@@ -617,9 +798,10 @@ public function update(Request $request, $id)
         'status' => true,
         'message' => 'Updated successfully',
         'autoApplied' => $autoApplied,
-        'info' => 'Trees are auto-calculated as 1 tree per 50 offset'
+        'info' => 'Trees are derived from total offset (1 tree per 50)'
     ]);
 }
+
 
 
 
