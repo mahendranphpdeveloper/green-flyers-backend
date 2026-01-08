@@ -55,6 +55,7 @@ class AdminNotificationController extends Controller
             'user_id' => 'required|integer',
             'title' => 'required|string|max:255',
             'message' => 'required|string|max:255',
+            'status' => 'required|string|max:255',
         ]);
 
         $notification = UserNotification::create([
@@ -62,7 +63,7 @@ class AdminNotificationController extends Controller
             'user_id' => $request->user_id,
             'title' => $request->title,
             'message' => $request->message,
-            'status' => 'unread',
+            'status' => $request->status, // status sent by frontend
             'update_date' => now(),
         ]);
 
