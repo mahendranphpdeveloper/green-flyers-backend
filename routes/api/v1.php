@@ -203,7 +203,12 @@ Route::prefix('admin/notification-reminder')->group(function () {
 
    
     Route::get('/{userId}', [\App\Http\Controllers\AdminNotificationController::class, 'getUserNotifications']);
-});
+    });
+    
+    //user view the notification 
+
+    Route::post('/user/notifications/{id}', [\App\Http\Controllers\AdminNotificationController::class, 'markAsRead']
+    );
 
 
 
