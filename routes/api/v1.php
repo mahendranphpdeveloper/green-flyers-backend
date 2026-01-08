@@ -89,6 +89,8 @@ Route::get('/treeoffsetvalue', [\App\Http\Controllers\HomeManageController::clas
 Route::put('/treeoffsetvalue', [\App\Http\Controllers\HomeManageController::class, 'updateTreeOffsetValue']);
 
 
+
+
     /*
 |--------------------------------------------------------------------------
 | OFFSET MODULE
@@ -193,6 +195,16 @@ Route::prefix('/admin/home-manage')->group(function () {
 
     
 });
+
+//admin notification remainder send to user 
+Route::prefix('admin/notification-reminder')->group(function () {
+   
+    Route::post('/store', [\App\Http\Controllers\AdminNotificationController::class, 'store']);
+
+   
+    Route::get('/{userId}', [\App\Http\Controllers\AdminNotificationController::class, 'getUserNotifications']);
+});
+
 
 
 
