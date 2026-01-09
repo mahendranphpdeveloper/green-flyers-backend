@@ -162,45 +162,45 @@ class AdminDashboardController extends Controller
         if ($response = $this->checkAdmin($request)) {
             return $response;
         }
-
-        // Year from frontend (default current year)
+    
+        // Year from frontend
         $year = $request->get('year', now()->year);
-
-        // Fetch only projectTypes column for the given year
+    
+        // Fetch projectTypes column
         $itineraries = SingleItineraryData::whereYear('created_at', $year)
             ->whereNotNull('projectTypes')
             ->pluck('projectTypes');
-
+    
         $projectCounts = [];
         $totalProjectCount = 0;
-
-        foreach ($itineraries as $projectTypesJson) {
-            $projectTypesArray = json_decode($projectTypesJson, true);
-
-            if (!is_array($projectTypesArray)) {
-                continue;
-            }
-
+    
+        foreach ($itineraries as $projectTypesString) {
+    
+            // Convert comma-separated string to array
+            $projectTypesArray = array_map(
+                'trim',
+                explode(',', $projectTypesString)
+            );
+    
             foreach ($projectTypesArray as $projectType) {
-                $projectType = trim($projectType);
-
+    
                 if ($projectType === '') {
                     continue;
                 }
-
+    
                 if (!isset($projectCounts[$projectType])) {
                     $projectCounts[$projectType] = 0;
                 }
-
+    
                 $projectCounts[$projectType]++;
-                $totalProjectCount++; // overall total
+                $totalProjectCount++;
             }
         }
-
+    
         // Sort by highest count
         arsort($projectCounts);
-
-        // Convert to frontend-required structure
+    
+        // Frontend-required format
         $data = [];
         foreach ($projectCounts as $projectType => $count) {
             $data[] = [
@@ -208,7 +208,7 @@ class AdminDashboardController extends Controller
                 'count' => $count
             ];
         }
-
+    
         return response()->json([
             'year' => (int) $year,
             'data' => $data,
