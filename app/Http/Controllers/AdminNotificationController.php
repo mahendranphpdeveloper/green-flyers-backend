@@ -177,19 +177,16 @@ public function store(Request $request)
 
 
 // update the is_read status in notification table 
-    public function markAsRead(Request $request, $id)
+public function markAsRead(Request $request, $id)
 {
-    $user = $request->user();
-
     Log::info('Marking notification as read', [
         'notification_id' => $id,
-        'user_id' => $user->id
     ]);
 
-    $notification = UserNotification::where('id', $id)
-        ->where('user_id', $user->id) // security check
-        ->first();
+    // Fetch the notification by ID
+    $notification = UserNotification::find($id);
 
+    // Check if notification exists
     if (!$notification) {
         return response()->json([
             'success' => false,
@@ -197,7 +194,7 @@ public function store(Request $request)
         ], 404);
     }
 
-    // If already read, no need to update again
+    // If already read, do nothing
     if ($notification->is_read === 'true') {
         return response()->json([
             'success' => true,
@@ -205,13 +202,14 @@ public function store(Request $request)
         ]);
     }
 
+    // Update notification
     $notification->update([
         'is_read' => 'true',
         'read_at' => now(),
     ]);
 
     Log::info('Notification marked as read successfully', [
-        'notification_id' => $id
+        'notification_id' => $notification->id,
     ]);
 
     return response()->json([
