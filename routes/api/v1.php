@@ -224,7 +224,7 @@ Route::prefix('admin/notification-reminder')->group(function () {
     
     //user view the notification 
 
-    Route::put('/user/notifications/{id}', [\App\Http\Controllers\AdminNotificationController::class, 'markAsRead']);
+    Route::put('/users/notifications/{id}', [\App\Http\Controllers\AdminNotificationController::class, 'markAsRead']);
 
 
 

@@ -322,7 +322,7 @@ public function getEmissionOffsetChart(Request $request, $id)
             SUM(emission) as total_emission,
             SUM(offsetAmount) as total_offset
         ')
-        ->where('user_id', $userId)
+        ->where('userId', $userId)
         ->whereYear('created_at', $year)
         ->groupBy('month')
         ->get();
