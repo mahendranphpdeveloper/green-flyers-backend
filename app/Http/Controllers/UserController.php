@@ -298,7 +298,7 @@ public function destroy(Request $request, string $id)
 }
 
 // get the emission offset chart values
-public function getEmissionsOffsetsChart(Request $request)
+public function getEmissionOffsetChart(Request $request, $id)
 {
     $authUser = $request->user();
 
@@ -309,7 +309,7 @@ public function getEmissionsOffsetsChart(Request $request)
         ], 401);
     }
 
-    $userId = $request->get('userId');
+    $userId = $id;
     $year = now()->year;
 
     // ------------------ Monthly defaults ------------------
@@ -333,7 +333,12 @@ public function getEmissionsOffsetsChart(Request $request)
     }
 
     // ------------------ Add offsetCredit (user level) ------------------
-    $userOffsetCredit = User::where('userId', $userId)->value('offsetCredit') ?? 0;
+    // Try both 'id' and 'userId' field for backward compatibility
+    $user = User::where(function ($q) use ($userId) {
+        $q->where('id', $userId)->orWhere('userId', $userId);
+    })->first();
+
+    $userOffsetCredit = $user ? ($user->offsetCredit ?? 0) : 0;
 
     // Add offsetCredit to every month (or you can add once – UX decision)
     foreach ($offsetsData as $month => $value) {
@@ -343,12 +348,10 @@ public function getEmissionsOffsetsChart(Request $request)
     return response()->json([
         'year' => $year,
         'user_id' => (int) $userId,
-
         'months' => [
             'Jan','Feb','Mar','Apr','May','Jun',
             'Jul','Aug','Sep','Oct','Nov','Dec'
         ],
-
         'emissions' => array_values($emissionsData),
         'offsets'   => array_values($offsetsData),
     ]);
