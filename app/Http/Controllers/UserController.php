@@ -320,7 +320,8 @@ public function getEmissionOffsetChart(Request $request, $id)
     $itineraries = ItineraryData::selectRaw('
             MONTH(created_at) as month,
             SUM(emission) as total_emission,
-            SUM(offsetAmount) as total_offset
+            SUM(offsetAmount) as total_offset,
+            SUM(offsetCredit) as total_offsetCredit
         ')
         ->where('userId', $userId)
         ->whereYear('created_at', $year)
@@ -329,20 +330,25 @@ public function getEmissionOffsetChart(Request $request, $id)
 
     foreach ($itineraries as $row) {
         $emissionsData[$row->month] = (float) $row->total_emission;
-        $offsetsData[$row->month]   = (float) $row->total_offset;
+        // offsetCredit should be added for the corresponding month, so use SUM(offsetCredit) if stored in the itinerary
+        $offsetCredit = isset($row->total_offsetCredit) ? (float)$row->total_offsetCredit : 0;
+        $offsetsData[$row->month]   = (float) $row->total_offset + $offsetCredit;
     }
 
-    // ------------------ Add offsetCredit (user level) ------------------
+    // For backward compatibility, if offsetCredit not stored per itinerary, fallback to user-level offsetCredit for only the month with user registration
+    // (Optional depending on your schema. If you always store offsetCredit per itinerary, you may remove below.)
+
     // Try both 'id' and 'userId' field for backward compatibility
     $user = User::where(function ($q) use ($userId) {
         $q->where('userId', $userId)->orWhere('userId', $userId);
     })->first();
 
-    $userOffsetCredit = $user ? ($user->offsetCredit ?? 0) : 0;
-
-    // Add offsetCredit to every month (or you can add once – UX decision)
-    foreach ($offsetsData as $month => $value) {
-        $offsetsData[$month] = $value + $userOffsetCredit;
+    if ($user && isset($user->offsetCredit) && $user->offsetCredit > 0 && isset($user->created_at)) {
+        // Determine the registration month
+        $regMonth = date('n', strtotime($user->created_at));
+        if (isset($offsetsData[$regMonth])) {
+            $offsetsData[$regMonth] += (float)$user->offsetCredit;
+        }
     }
 
     return response()->json([
@@ -356,4 +362,5 @@ public function getEmissionOffsetChart(Request $request, $id)
         'offsets'   => array_values($offsetsData),
     ]);
 }
+
 }
