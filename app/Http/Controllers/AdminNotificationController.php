@@ -60,23 +60,14 @@ class AdminNotificationController extends Controller
 
     public function getUserNotifications($userId)
 {
-    Log::info('Fetching UNREAD notifications for user', ['userId' => $userId]);
+    Log::info('Fetching ALL notifications for user', ['userId' => $userId]);
 
-    // Fetch unread notifications
-    $notifications = UserNotification::where('user_id', $userId)
-        ->where('is_read', 'false')
+    $notifications = UserNotification::with('singleitinerary')
+        ->where('user_id', $userId)
         ->orderBy('created_at', 'desc')
         ->get();
 
-    // Fetch itineraries using user_id
-    $itineraries = SingleItineraryData::where('user_id', $userId)->get();
-
-    Log::debug('Fetched data counts', [
-        'notifications' => $notifications->count(),
-        'itineraries'   => $itineraries->count()
-    ]);
-
-    $notificationsTransformed = $notifications->map(function ($notification) use ($itineraries) {
+    $notificationsTransformed = $notifications->map(function ($notification) {
 
         return [
             'id'          => $notification->id,
@@ -90,18 +81,15 @@ class AdminNotificationController extends Controller
             'created_at'  => $notification->created_at,
             'updated_at'  => $notification->updated_at,
 
-            // Attach itinerary data via user_id
-            'singleitinerarydata' => $itineraries,
+            //  Particular itinerary only
+            'singleitinerary' => $notification->singleitinerary,
 
-            // Optional: send only itinerary IDs
-            'ItineraryIds' => $itineraries->pluck('ItineraryId'),
+            //  Direct itinerary ID
+            'ItineraryId' => $notification->singleitinerary
+                ? $notification->singleitinerary->ItineraryId
+                : null,
         ];
     });
-
-    Log::info('Returning unread notifications for user', [
-        'userId' => $userId,
-        'notification_count' => $notificationsTransformed->count()
-    ]);
 
     return response()->json([
         'success' => true,
@@ -109,68 +97,76 @@ class AdminNotificationController extends Controller
     ]);
 }
 
+
     
 
     // POST: /api/admin/notification-reminder/store
-    // public function store(Request $request)
-    // {
-    //     Log::info('Attempt to store admin notification reminder', ['data' => $request->all()]);
+//     public function store(Request $request)
+// {
+//     Log::info('Attempt to store admin notification reminder', [
+//         'data' => $request->all()
+//     ]);
 
-    //     // Validate according to DB structure. Note: status (varchar 50) and update_date is nullable.
-    //     $request->validate([
-    //         'singleitinerary_id' => 'required|integer',
-    //         'user_id' => 'required|integer',
-    //         'title' => 'required|string|max:255',
-    //         'message' => 'required|string|max:255',
-    //         'status' => 'required|string|max:50',
-    //         'update_date' => 'nullable|string|max:255',
-    //     ]);
+//     // Validate based on updated table structure
+//     $request->validate([
+//         'user_id'     => 'required|integer',
+//         'title'       => 'required|string|max:255',
+//         'message'     => 'required|string|max:255',
+//         'status'      => 'required|string|max:50',
+//         'update_date' => 'nullable|string|max:255',
+//     ]);
 
-    //     $notification = UserNotification::create([
-    //         'singleitinerary_id' => $request->singleitinerary_id,
-    //         'user_id' => $request->user_id,
-    //         'title' => $request->title,
-    //         'message' => $request->message,
-    //         'status' => $request->status,
-    //         // update_date is a string; if provided, use it, else null or default to now() string
-    //         'update_date' => $request->update_date ?? now()->toDateTimeString(),
-    //     ]);
+//     // Create notification (NO singleitinerary_id)
+//     $notification = UserNotification::create([
+//         'user_id'     => $request->user_id,
+//         'title'       => $request->title,
+//         'message'     => $request->message,
+//         'status'      => $request->status,
+//         'is_read'     => 'false',
+//         'update_date' => $request->update_date ?? now()->toDateTimeString(),
+//     ]);
 
-    //     Log::info('Admin notification reminder created', ['notification_id' => $notification->id]);
+//     Log::info('Admin notification reminder created successfully', [
+//         'notification_id' => $notification->id
+//     ]);
 
-    //     return response()->json([
-    //         'success' => true,
-    //         'notification' => $notification
-    //     ]);
-    // }
+//     return response()->json([
+//         'success'      => true,
+//         'notification' => $notification
+//     ]);
+// }
 
-    public function store(Request $request)
+public function store(Request $request)
 {
     Log::info('Attempt to store admin notification reminder', [
         'data' => $request->all()
     ]);
 
-    // Validate based on updated table structure
+    // Validate including singleitinerary_id
     $request->validate([
-        'user_id'     => 'required|integer',
-        'title'       => 'required|string|max:255',
-        'message'     => 'required|string|max:255',
-        'status'      => 'required|string|max:50',
-        'update_date' => 'nullable|string|max:255',
+        'user_id'             => 'required|integer',
+        'singleitinerary_id'  => 'required|integer',
+        'title'               => 'required|string|max:255',
+        'message'             => 'required|string|max:255',
+        'status'              => 'required|string|max:50',
+        'update_date'         => 'nullable|string|max:255',
     ]);
 
-    // Create notification (NO singleitinerary_id)
+    //  Create notification WITH itinerary reference
     $notification = UserNotification::create([
-        'user_id'     => $request->user_id,
-        'title'       => $request->title,
-        'message'     => $request->message,
-        'status'      => $request->status,
-        'is_read'     => 'false',
-        'update_date' => $request->update_date ?? now()->toDateTimeString(),
+        'user_id'            => $request->user_id,
+        'singleitinerary_id' => $request->singleitinerary_id,
+        'title'              => $request->title,
+        'message'            => $request->message,
+        'status'             => $request->status,
+        'is_read'            => 'false',
+        'update_date'        => $request->update_date ?? now()->toDateTimeString(),
     ]);
 
     Log::info('Admin notification reminder created successfully', [
-        'notification_id' => $notification->id
+        'notification_id' => $notification->id,
+        'user_id' => $request->user_id,
+        'singleitinerary_id' => $request->singleitinerary_id
     ]);
 
     return response()->json([
@@ -178,6 +174,7 @@ class AdminNotificationController extends Controller
         'notification' => $notification
     ]);
 }
+
 
 // update the is_read status in notification table 
     public function markAsRead(Request $request, $id)
