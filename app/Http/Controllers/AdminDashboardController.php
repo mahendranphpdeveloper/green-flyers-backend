@@ -67,7 +67,7 @@ class AdminDashboardController extends Controller
                 2
             );
         } else {
-            $growthPercentage = $currentYearTotal > 0 ? 100 : 0;
+            $growthPercentage = 0;
         }
 
         return response()->json([
