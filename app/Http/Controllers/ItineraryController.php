@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Models\AdminData;
 use App\Models\User;
+use App\Models\NotificationsReminder;
 use Illuminate\Support\Facades\DB;
 
 
@@ -164,7 +165,134 @@ class ItineraryController extends Controller
     //     ], 201);
     // }
 
-    public function store(Request $request)
+//     public function store(Request $request)
+// {
+//     Log::info($request->all());
+
+//     $authUser = $request->user();
+//     if (!$authUser) {
+//         return response()->json(['message' => 'Unauthorized'], 401);
+//     }
+
+//     /** ---------------- VALIDATION ---------------- */
+//     $validated = $request->validate([
+//         'userId'       => 'required|integer',
+//         'date'         => 'required|date',
+
+//         'airline'      => 'required|string|max:255',
+//         'origin'       => 'required|string|max:255',
+//         'destination'  => 'required|string|max:255',
+//         'class'        => 'required|string|max:255',
+//         'passengers'   => 'required|integer|min:1',
+//         'tripType'     => 'required|string|max:255',
+//         'distance'     => 'required|string|max:255',
+
+//         'flightcode'      => 'nullable|string|max:255',
+//         'originCity'      => 'nullable|string|max:255',
+//         'destinationCity' => 'nullable|string|max:255',
+//         'emission'        => 'nullable|numeric|min:0',
+
+//         /** FRONTEND VALUE */
+//         'totalTrees'      => 'nullable|integer|min:0',
+
+//         'country' => [
+//             'nullable','string','max:255',
+//             function ($attribute, $value, $fail) {
+//                 if (
+//                     $value &&
+//                     !Country::where('country_name', $value)
+//                         ->orWhere('country_id', $value)
+//                         ->exists()
+//                 ) {
+//                     $fail('The selected country is invalid.');
+//                 }
+//             }
+//         ],
+//     ]);
+
+//     /** ---------------- USER OWNERSHIP ---------------- */
+//     if ($authUser->userId !== (int)$validated['userId']) {
+//         return response()->json([
+//             'message' => 'Unauthorized: userId mismatch'
+//         ], 403);
+//     }
+
+//     /** ---------------- NORMALIZE COUNTRY ---------------- */
+//     if (!empty($validated['country'])) {
+//         $country = Country::where('country_name', $validated['country'])
+//             ->orWhere('country_id', $validated['country'])
+//             ->first();
+
+//         $validated['country'] = $country?->country_id;
+//     }
+
+//     DB::transaction(function () use (&$itinerary, $validated, $authUser) {
+
+//         /** ---------------- CREATE ITINERARY ---------------- */
+//         $itinerary = ItineraryData::create([
+//             ...$validated,
+//             'offsetAmount'     => 0,
+//             'numberOfTrees'    => 0,
+//             'offsetPercentage' => 0,
+//             'status'           => 'pending'
+//         ]);
+
+//         /** ---------------- LOCK USER ---------------- */
+//         $user = User::where('userId', $authUser->userId)
+//             ->lockForUpdate()
+//             ->first();
+
+//         /** ---------------- APPLY OFFSET CREDIT ---------------- */
+//         $remainingEmission = max(
+//             ($itinerary->emission ?? 0) - $itinerary->offsetAmount,
+//             0
+//         );
+
+//         $useOffset = min($user->offsetCredit ?? 0, $remainingEmission);
+
+//         if ($useOffset > 0) {
+
+//             /** APPLY OFFSET */
+//             $itinerary->offsetAmount += $useOffset;
+
+//             /** 🌱 SINGLE SOURCE OF TRUTH */
+//             $itinerary->numberOfTrees = intdiv(
+//                 $itinerary->offsetAmount,
+//                 50
+//             );
+
+//             /** STATUS & PERCENTAGE */
+//             if (($itinerary->emission ?? 0) > 0) {
+
+//                 $itinerary->offsetPercentage = min(
+//                     round(($itinerary->offsetAmount / $itinerary->emission) * 100, 2),
+//                     100
+//                 );
+
+//                 $itinerary->status = match (true) {
+//                     $itinerary->offsetPercentage == 0  => 'pending',
+//                     $itinerary->offsetPercentage < 100 => 'partial',
+//                     default                            => 'completed',
+//                 };
+//             }
+
+//             $itinerary->save();
+
+//             /** DEDUCT USER CREDIT */
+//             $user->offsetCredit -= $useOffset;
+//             $user->save();
+//         }
+//     });
+
+//     /** ---------------- RESPONSE ---------------- */
+//     return response()->json([
+//         'status'  => true,
+//         'message' => 'Itinerary created successfully. Trees derived using 1 tree per 50 offset.',
+//         'data'    => ItineraryData::where('userId', $authUser->userId)->get()
+//     ], 201);
+// }
+
+public function store(Request $request)
 {
     Log::info($request->all());
 
@@ -214,6 +342,24 @@ class ItineraryController extends Controller
         return response()->json([
             'message' => 'Unauthorized: userId mismatch'
         ], 403);
+    }
+
+    /** ---------------- CHECK PENDING ITINERARIES LIMIT ---------------- */
+    $reminderSettings = NotificationsReminder::first();
+
+    if ($reminderSettings) {
+        $pendingCount = ItineraryData::where('userId', $authUser->userId)
+            ->where('status', 'pending')
+            ->count();
+
+        if ($pendingCount >= $reminderSettings->limite_itineraries) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Please complete any of your previous pending offsets before adding a new itinerary.',
+                'pendingCount' => $pendingCount,
+                'limit'        => $reminderSettings->limite_itineraries
+            ], 400);
+        }
     }
 
     /** ---------------- NORMALIZE COUNTRY ---------------- */
@@ -290,6 +436,7 @@ class ItineraryController extends Controller
         'data'    => ItineraryData::where('userId', $authUser->userId)->get()
     ], 201);
 }
+
 
 
 
