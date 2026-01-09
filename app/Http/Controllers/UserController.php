@@ -335,7 +335,7 @@ public function getEmissionOffsetChart(Request $request, $id)
     // ------------------ Add offsetCredit (user level) ------------------
     // Try both 'id' and 'userId' field for backward compatibility
     $user = User::where(function ($q) use ($userId) {
-        $q->where('id', $userId)->orWhere('userId', $userId);
+        $q->where('userId', $userId)->orWhere('userId', $userId);
     })->first();
 
     $userOffsetCredit = $user ? ($user->offsetCredit ?? 0) : 0;
