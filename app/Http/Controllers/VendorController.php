@@ -379,4 +379,62 @@ class VendorController extends Controller
             'message' => 'Vendor deleted successfully'
         ], 200);
     }
+
+    //fetch the projects types only 
+    public function getProjectTypes(Request $request)
+    {
+        $authUser = $request->user(); // Sanctum resolves automatically
+
+        Log::info('Auth check for vendors index', [
+            'authUser' => $authUser,
+            'model' => $authUser ? get_class($authUser) : null
+        ]);
+
+        if (!$authUser) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized access'
+            ], 401);
+        }
+
+        $isAdmin = $authUser instanceof \App\Models\AdminData;
+        $isUser  = $authUser instanceof \App\Models\User;
+
+        Log::info('Role resolved', [
+            'isAdmin' => $isAdmin,
+            'isUser' => $isUser
+        ]);
+
+        if (!$isAdmin && !$isUser) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized access'
+            ], 403);
+        }
+
+        // Fetch all vendors
+        $vendors = VendorsData::all();
+
+        // Collect ACTIVE projects from all vendors into a single array
+        $activeProjects = [];
+
+        foreach ($vendors as $vendor) {
+            if (isset($vendor->projects) && is_string($vendor->projects)) {
+                $decodedProjects = json_decode($vendor->projects, true);
+                if (is_array($decodedProjects)) {
+                    foreach ($decodedProjects as $project) {
+                        if (isset($project['status']) && strtolower($project['status']) === 'active') {
+                            $activeProjects[] = $project;
+                        }
+                    }
+                }
+            }
+        }
+
+        return response()->json([
+            'status' => true,
+            'data' => $activeProjects
+        ]);
+    }
+
 }

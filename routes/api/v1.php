@@ -117,6 +117,7 @@ Route::prefix('vendors')->group(function () {
     Route::get('/{id}', [\App\Http\Controllers\VendorController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\VendorController::class, 'update']);
     Route::delete('/{id}', [\App\Http\Controllers\VendorController::class, 'destroy']);
+    Route::get('/projects-type', [\App\Http\Controllers\VendorController::class, 'getProjectTypes']);
 });
 
 //admin to check the old password & update the password
@@ -169,6 +170,19 @@ Route::prefix('/admin/home-manage')->group(function () {
 
 // for bulk upload
 Route::post('/admin/vendors/bulk', [\App\Http\Controllers\VendorBulkController::class, 'bulkUpload']);
+
+// use App\Http\Controllers\Admin\DashboardController;
+
+// Route::prefix('admin')
+//     ->group(function () {
+
+//         Route::get('/dashboard', [DashboardController::class, 'index']);
+
+//         // Chart data routes
+//         Route::get('/dashboard/charts', [DashboardController::class, 'charts']);
+
+//     });
+
 
       
 });
