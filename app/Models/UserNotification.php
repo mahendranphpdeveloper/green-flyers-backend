@@ -21,10 +21,6 @@ class UserNotification extends Model
 
     // Relations
 
-    public function singleitinerary()
-    {
-        return $this->belongsTo(SingleItineraryData::class, 'singleitinerary_id', 'id');
-    }
 
     public function user()
     {

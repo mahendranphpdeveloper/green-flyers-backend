@@ -85,7 +85,6 @@ Route::prefix('singleItinerary')->group(function () {
 Route::get('/admin/certificate/download/{path}', [\App\Http\Controllers\AdminCertificateController::class, 'download'])->where('path', '.*');
 
 // tree offset value
-Route::get('/treeoffsetvalue', [\App\Http\Controllers\HomeManageController::class, 'getTreeOffsetValue']);
 Route::put('/treeoffsetvalue', [\App\Http\Controllers\HomeManageController::class, 'updateTreeOffsetValue']);
 
 
@@ -195,6 +194,9 @@ Route::prefix('/admin/home-manage')->group(function () {
 
     
 });
+
+// tree offset value
+Route::get('/treeoffsetvalue', [\App\Http\Controllers\HomeManageController::class, 'getTreeOffsetValue']);
 
 //admin notification remainder send to user 
 Route::prefix('admin/notification-reminder')->group(function () {

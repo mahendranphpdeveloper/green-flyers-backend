@@ -738,13 +738,36 @@ class HomeManageController extends Controller
         ]);
     }
 
+    // public function getTreeOffsetValue(Request $request)
+    // {
+    //     if ($response = $this->checkAdmin($request)) {
+    //         Log::warning('Admin check failed for getTreeOffsetValue');
+    //         return $response;
+    //     }
+
+    //     $backgroundImage = BackgroundImage::select('treeOffsetsValue')->first();
+
+    //     if (!$backgroundImage) {
+    //         Log::warning('Background image record not found in getTreeOffsetValue');
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Background image record not found'
+    //         ], 404);
+    //     }
+
+    //     Log::info('Tree offset value fetched', [
+    //         'admin_id' => optional($request->user())->id,
+    //         'treeOffsetsValue' => $backgroundImage->treeOffsetsValue
+    //     ]);
+
+    //     return response()->json([
+    //         'status' => true,
+    //         'treeOffsetsValue' => (int) $backgroundImage->treeOffsetsValue
+    //     ]);
+    // }
+
     public function getTreeOffsetValue(Request $request)
     {
-        if ($response = $this->checkAdmin($request)) {
-            Log::warning('Admin check failed for getTreeOffsetValue');
-            return $response;
-        }
-
         $backgroundImage = BackgroundImage::select('treeOffsetsValue')->first();
 
         if (!$backgroundImage) {
@@ -756,7 +779,6 @@ class HomeManageController extends Controller
         }
 
         Log::info('Tree offset value fetched', [
-            'admin_id' => optional($request->user())->id,
             'treeOffsetsValue' => $backgroundImage->treeOffsetsValue
         ]);
 
