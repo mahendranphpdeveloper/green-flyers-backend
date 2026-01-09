@@ -12,7 +12,7 @@ class UserData extends Model
     use HasApiTokens;
     use HasFactory;
 
-    protected $table = 'UserData';
+    protected $table = 'userdata';
 
     protected $primaryKey = 'userId';
 
