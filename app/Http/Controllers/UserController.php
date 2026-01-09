@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 use App\Models\AdminData;
+use App\Models\ItineraryData;
 
 class UserController extends Controller
 {
@@ -296,8 +297,60 @@ public function destroy(Request $request, string $id)
     ]);
 }
 
+// get the emission offset chart values
+public function getEmissionsOffsetsChart(Request $request)
+{
+    $authUser = $request->user();
 
+    if (!$authUser) {
+        return response()->json([
+            'status' => false,
+            'message' => 'User not authenticated.'
+        ], 401);
+    }
 
+    $userId = $request->get('userId');
+    $year = now()->year;
 
+    // ------------------ Monthly defaults ------------------
+    $emissionsData = array_fill(1, 12, 0);
+    $offsetsData   = array_fill(1, 12, 0);
 
+    // ------------------ Itinerary monthly sums ------------------
+    $itineraries = ItineraryData::selectRaw('
+            MONTH(created_at) as month,
+            SUM(emission) as total_emission,
+            SUM(offsetAmount) as total_offset
+        ')
+        ->where('user_id', $userId)
+        ->whereYear('created_at', $year)
+        ->groupBy('month')
+        ->get();
+
+    foreach ($itineraries as $row) {
+        $emissionsData[$row->month] = (float) $row->total_emission;
+        $offsetsData[$row->month]   = (float) $row->total_offset;
+    }
+
+    // ------------------ Add offsetCredit (user level) ------------------
+    $userOffsetCredit = User::where('userId', $userId)->value('offsetCredit') ?? 0;
+
+    // Add offsetCredit to every month (or you can add once – UX decision)
+    foreach ($offsetsData as $month => $value) {
+        $offsetsData[$month] = $value + $userOffsetCredit;
+    }
+
+    return response()->json([
+        'year' => $year,
+        'user_id' => (int) $userId,
+
+        'months' => [
+            'Jan','Feb','Mar','Apr','May','Jun',
+            'Jul','Aug','Sep','Oct','Nov','Dec'
+        ],
+
+        'emissions' => array_values($emissionsData),
+        'offsets'   => array_values($offsetsData),
+    ]);
+}
 }

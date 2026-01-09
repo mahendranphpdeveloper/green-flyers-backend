@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\ItineraryData;
 use App\Models\AdminData;
-use App\Models\UserData;
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
@@ -46,7 +46,7 @@ class AdminDashboardController extends Controller
         // ---------- Current Year Monthly Data ----------
         $currentYearData = array_fill(1, 12, 0);
 
-        $currentUsers = UserData::selectRaw('MONTH(created_at) as month, COUNT(*) as total')
+        $currentUsers = User::selectRaw('MONTH(created_at) as month, COUNT(*) as total')
             ->whereYear('created_at', $year)
             ->groupBy('month')
             ->pluck('total', 'month');
@@ -58,7 +58,7 @@ class AdminDashboardController extends Controller
         $currentYearTotal = array_sum($currentYearData);
 
         // ---------- Previous Year Total ----------
-        $previousYearTotal = UserData::whereYear('created_at', $previousYear)->count();
+        $previousYearTotal = User::whereYear('created_at', $previousYear)->count();
 
         // ---------- Growth / Decrease Percentage ----------
         if ($previousYearTotal > 0) {

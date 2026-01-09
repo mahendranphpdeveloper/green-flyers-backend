@@ -46,6 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('users')->group(function () {
         Route::get('/', [\App\Http\Controllers\UserController::class, 'index']);
+        Route::get('/emission-offset-chart/{id}', [\App\Http\Controllers\UserController::class, 'getEmissionOffsetChart']);
         Route::post('/', [\App\Http\Controllers\UserController::class, 'store']);
         Route::get('/{id}', [\App\Http\Controllers\UserController::class, 'show']);
         Route::put('/{id}', [\App\Http\Controllers\UserController::class, 'update']);
