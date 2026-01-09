@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\ItineraryData;
+use App\Models\SingleItineraryData;
 use App\Models\AdminData;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
@@ -31,7 +32,7 @@ class AdminDashboardController extends Controller
 
         return null;
     }
-  // Total users chart
+    // Total users chart
     public function getMonthlyUsersChart(Request $request)
     {
         // Authenticate admin before proceeding
@@ -93,7 +94,7 @@ class AdminDashboardController extends Controller
             'data' => array_values($currentYearData)
         ]);
     }
-  // User distribution chart 
+    // User distribution chart 
     public function getUserDistributionCharts(Request $request)
     {
         // Authenticate admin before proceeding
@@ -133,12 +134,12 @@ class AdminDashboardController extends Controller
             ->where('status', 'partial')
             ->count();
 
-            
+
 
         // No Offset → pending 
         $noOffsetCount = ItineraryData::whereYear('created_at', $year)
-        ->where('status', 'pending')
-        ->count();
+            ->where('status', 'pending')
+            ->count();
 
         // Percentage calculations
         $fullyOffsetPercentage    = round(($completedCount / $totalItineraries) * 100, 2);
@@ -152,6 +153,67 @@ class AdminDashboardController extends Controller
                 ["name" => "Partial Offset", "value" => $partialOffsetPercentage],
                 ["name" => "No Offset",      "value" => $noOffsetPercentage],
             ],
+        ]);
+    }
+    // chart for project types
+    public function getProjectTypesChart(Request $request)
+    {
+        // Admin check
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
+
+        // Year from frontend (default current year)
+        $year = $request->get('year', now()->year);
+
+        // Fetch only projects column for the given year
+        $itineraries = SingleItineraryData::whereYear('created_at', $year)
+            ->whereNotNull('projects')
+            ->pluck('projects');
+
+        $projectCounts = [];
+        $totalProjectCount = 0;
+
+        foreach ($itineraries as $projectsJson) {
+
+            $projects = json_decode($projectsJson, true);
+
+            if (!is_array($projects)) {
+                continue;
+            }
+
+            foreach ($projects as $project) {
+                $project = trim($project);
+
+                if ($project === '') {
+                    continue;
+                }
+
+                if (!isset($projectCounts[$project])) {
+                    $projectCounts[$project] = 0;
+                }
+
+                $projectCounts[$project]++;
+                $totalProjectCount++; // overall total
+            }
+        }
+
+        // Sort by highest count
+        arsort($projectCounts);
+
+        // Convert to frontend-required structure
+        $data = [];
+        foreach ($projectCounts as $projectType => $count) {
+            $data[] = [
+                'project_type' => $projectType,
+                'count' => $count
+            ];
+        }
+
+        return response()->json([
+            'year' => (int) $year,
+            'data' => $data,
+            'total_project' => $totalProjectCount
         ]);
     }
 }
