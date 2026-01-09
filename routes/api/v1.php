@@ -206,8 +206,8 @@ Route::prefix('admin/notification-reminder')->group(function () {
    
     Route::get('/{userId}', [\App\Http\Controllers\AdminNotificationController::class, 'getUserNotifications']);
     // get and update admin side notification remainders
-    Route::get('/', [\App\Http\Controllers\AdminNotificationController::class, 'getNotificationRemainders']);
-    Route::put('/', [\App\Http\Controllers\AdminNotificationController::class, 'updateNotificationRemainders']);
+    Route::get('/getvalues', [\App\Http\Controllers\AdminNotificationController::class, 'getNotificationRemainders']);
+    Route::put('/putvalues', [\App\Http\Controllers\AdminNotificationController::class, 'updateNotificationRemainders']);
     });
     
     //user view the notification 
