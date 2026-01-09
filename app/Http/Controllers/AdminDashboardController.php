@@ -166,34 +166,33 @@ class AdminDashboardController extends Controller
         // Year from frontend (default current year)
         $year = $request->get('year', now()->year);
 
-        // Fetch only projects column for the given year
+        // Fetch only projectTypes column for the given year
         $itineraries = SingleItineraryData::whereYear('created_at', $year)
-            ->whereNotNull('projects')
-            ->pluck('projects');
+            ->whereNotNull('projectTypes')
+            ->pluck('projectTypes');
 
         $projectCounts = [];
         $totalProjectCount = 0;
 
-        foreach ($itineraries as $projectsJson) {
+        foreach ($itineraries as $projectTypesJson) {
+            $projectTypesArray = json_decode($projectTypesJson, true);
 
-            $projects = json_decode($projectsJson, true);
-
-            if (!is_array($projects)) {
+            if (!is_array($projectTypesArray)) {
                 continue;
             }
 
-            foreach ($projects as $project) {
-                $project = trim($project);
+            foreach ($projectTypesArray as $projectType) {
+                $projectType = trim($projectType);
 
-                if ($project === '') {
+                if ($projectType === '') {
                     continue;
                 }
 
-                if (!isset($projectCounts[$project])) {
-                    $projectCounts[$project] = 0;
+                if (!isset($projectCounts[$projectType])) {
+                    $projectCounts[$projectType] = 0;
                 }
 
-                $projectCounts[$project]++;
+                $projectCounts[$projectType]++;
                 $totalProjectCount++; // overall total
             }
         }
