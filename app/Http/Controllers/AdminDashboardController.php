@@ -128,13 +128,17 @@ class AdminDashboardController extends Controller
             ->where('status', 'completed')
             ->count();
 
-        // Partial Offset → pending
+        // Partial Offset → partial 
         $partialOffsetCount = ItineraryData::whereYear('created_at', $year)
-            ->where('status', 'pending')
+            ->where('status', 'partial')
             ->count();
 
-        // No Offset → pending (same status, different frontend meaning)
-        $noOffsetCount = $partialOffsetCount;
+            
+
+        // No Offset → pending 
+        $noOffsetCount = ItineraryData::whereYear('created_at', $year)
+        ->where('status', 'pending')
+        ->count();
 
         // Percentage calculations
         $fullyOffsetPercentage    = round(($completedCount / $totalItineraries) * 100, 2);
