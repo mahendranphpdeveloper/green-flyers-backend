@@ -382,59 +382,47 @@ class VendorController extends Controller
 
     //fetch the projects types only 
     public function getProjectTypes(Request $request)
-    {
-        $authUser = $request->user(); // Sanctum resolves automatically
+{
+    $authUser = $request->user();
 
-        Log::info('Auth check for vendors index', [
-            'authUser' => $authUser,
-            'model' => $authUser ? get_class($authUser) : null
-        ]);
-
-        if (!$authUser) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Unauthorized access'
-            ], 401);
-        }
-
-        $isAdmin = $authUser instanceof \App\Models\AdminData;
-        $isUser  = $authUser instanceof \App\Models\User;
-
-        Log::info('Role resolved', [
-            'isAdmin' => $isAdmin,
-            'isUser' => $isUser
-        ]);
-
-        if (!$isAdmin && !$isUser) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Unauthorized access'
-            ], 403);
-        }
-
-        // Fetch all vendors
-        $vendors = VendorsData::all();
-
-        // Collect ACTIVE projects from all vendors into a single array
-        $activeProjects = [];
-
-        foreach ($vendors as $vendor) {
-            if (isset($vendor->projects) && is_string($vendor->projects)) {
-                $decodedProjects = json_decode($vendor->projects, true);
-                if (is_array($decodedProjects)) {
-                    foreach ($decodedProjects as $project) {
-                        if (isset($project['status']) && strtolower($project['status']) === 'active') {
-                            $activeProjects[] = $project;
-                        }
-                    }
-                }
-            }
-        }
-
+    if (!$authUser) {
         return response()->json([
-            'status' => true,
-            'data' => $activeProjects
-        ]);
+            'status' => false,
+            'message' => 'Unauthorized access'
+        ], 401);
     }
+
+    // Fetch only ACTIVE vendors
+    $vendors = VendorsData::where('status', 'active')->get();
+
+    $projectTypes = [];
+
+    foreach ($vendors as $vendor) {
+
+        $projects = $vendor->projects;
+
+        // Decode if stored as string
+        if (is_string($projects)) {
+            $projects = json_decode($projects, true);
+        }
+
+        if (!is_array($projects)) {
+            continue;
+        }
+
+        foreach ($projects as $projectName) {
+            $projectTypes[] = $projectName;
+        }
+    }
+
+    // Optional: remove duplicates
+    $projectTypes = array_values(array_unique($projectTypes));
+
+    return response()->json([
+        'status' => true,
+        'data' => $projectTypes
+    ]);
+}
+
 
 }
