@@ -113,11 +113,12 @@ Route::put('/treeoffsetvalue', [\App\Http\Controllers\HomeManageController::clas
 
 Route::prefix('vendors')->group(function () {
     Route::get('/', [\App\Http\Controllers\VendorController::class, 'index']);
+    Route::get('/projects-type', [\App\Http\Controllers\VendorController::class, 'getProjectTypes']);
     Route::post('/', [\App\Http\Controllers\VendorController::class, 'store']);
     Route::get('/{id}', [\App\Http\Controllers\VendorController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\VendorController::class, 'update']);
     Route::delete('/{id}', [\App\Http\Controllers\VendorController::class, 'destroy']);
-    Route::get('/projects-type', [\App\Http\Controllers\VendorController::class, 'getProjectTypes']);
+    
 });
 
 //admin to check the old password & update the password
@@ -173,13 +174,9 @@ Route::post('/admin/vendors/bulk', [\App\Http\Controllers\VendorBulkController::
 
 // use App\Http\Controllers\Admin\DashboardController;
 
-// Route::prefix('admin')
-//     ->group(function () {
-
-//         Route::get('/dashboard', [DashboardController::class, 'index']);
-
-//         // Chart data routes
-//         Route::get('/dashboard/charts', [DashboardController::class, 'charts']);
+// Route::prefix('admin/dashboard')->group(function () {
+//      // Chart data routes
+//         Route::get('/dashboard/user-distribution-chart', [App\Http\Controllers\AdminDashboardController::class, 'charts']);
 
 //     });
 
