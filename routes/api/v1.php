@@ -172,13 +172,12 @@ Route::prefix('/admin/home-manage')->group(function () {
 // for bulk upload
 Route::post('/admin/vendors/bulk', [\App\Http\Controllers\VendorBulkController::class, 'bulkUpload']);
 
-// use App\Http\Controllers\Admin\DashboardController;
 
-// Route::prefix('admin/dashboard')->group(function () {
-//      // Chart data routes
-//         Route::get('/dashboard/user-distribution-chart', [App\Http\Controllers\AdminDashboardController::class, 'charts']);
+Route::prefix('admin/dashboard')->group(function () {
+     // Chart data routes
+        Route::get('/user-distribution-chart', [App\Http\Controllers\AdminDashboardController::class, 'getUserDistributionCharts']);
 
-//     });
+    });
 
 
       
