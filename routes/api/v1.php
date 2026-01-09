@@ -96,13 +96,13 @@ Route::put('/treeoffsetvalue', [\App\Http\Controllers\HomeManageController::clas
 |--------------------------------------------------------------------------
 */
 
-    Route::prefix('offsets')->group(function () {
-        Route::get('/', [\App\Http\Controllers\OffsetController::class, 'index']);
-        Route::post('/', [\App\Http\Controllers\OffsetController::class, 'store']);
-        Route::get('/{id}', [\App\Http\Controllers\OffsetController::class, 'show']);
-        Route::put('/{id}', [\App\Http\Controllers\OffsetController::class, 'update']);
-        Route::delete('/{id}', [\App\Http\Controllers\OffsetController::class, 'destroy']);
-    });
+    // Route::prefix('offsets')->group(function () {
+    //     Route::get('/', [\App\Http\Controllers\OffsetController::class, 'index']);
+    //     Route::post('/', [\App\Http\Controllers\OffsetController::class, 'store']);
+    //     Route::get('/{id}', [\App\Http\Controllers\OffsetController::class, 'show']);
+    //     Route::put('/{id}', [\App\Http\Controllers\OffsetController::class, 'update']);
+    //     Route::delete('/{id}', [\App\Http\Controllers\OffsetController::class, 'destroy']);
+    // });
 
     
  /*
@@ -205,12 +205,14 @@ Route::prefix('admin/notification-reminder')->group(function () {
 
    
     Route::get('/{userId}', [\App\Http\Controllers\AdminNotificationController::class, 'getUserNotifications']);
+    // get and update admin side notification remainders
+    Route::get('/', [\App\Http\Controllers\AdminNotificationController::class, 'getNotificationRemainders']);
+    Route::put('/', [\App\Http\Controllers\AdminNotificationController::class, 'updateNotificationRemainders']);
     });
     
     //user view the notification 
 
-    Route::post('/user/notifications/{id}', [\App\Http\Controllers\AdminNotificationController::class, 'markAsRead']
-    );
+    Route::put('/user/notifications/{id}', [\App\Http\Controllers\AdminNotificationController::class, 'markAsRead']);
 
 
 

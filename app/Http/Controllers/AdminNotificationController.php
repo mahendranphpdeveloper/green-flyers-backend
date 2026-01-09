@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\UserNotification;
 use Illuminate\Support\Facades\Log;
-use App\Models\SingleItineraryData;
+use App\Models\NotificationsReminder;
 
 class AdminNotificationController extends Controller
 {
@@ -219,4 +219,54 @@ public function store(Request $request)
         'message' => 'Notification marked as read'
     ]);
 }
+
+/**
+     * GET /api/admin/notifications-reminder
+     * Fetch all notification reminders
+     */
+    public function getNotificationRemainders()
+    {
+        $reminders = NotificationsReminder::all();
+
+        return response()->json([
+            'success' => true,
+            'data' => $reminders
+        ]);
+    }
+
+    public function updateNotificationRemainders(Request $request)
+{
+    // Validate input (no ID needed, always updates id=1)
+    $request->validate([
+        'limite_itineraries'     => 'required|integer',
+        'notification_deadline'  => 'required|integer',
+        'offset_reminder_days'   => 'required|integer',
+        'offset_reminder_status' => 'required|string|max:255',
+    ]);
+
+    // Always fetch row with id = 1
+    $reminder = NotificationsReminder::find(1);
+
+    if (!$reminder) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Notification reminder not found'
+        ], 404);
+    }
+
+    // Update the record
+    $reminder->update([
+        'limite_itineraries'     => $request->limite_itineraries,
+        'notification_deadline'  => $request->notification_deadline,
+        'offset_reminder_days'   => $request->offset_reminder_days,
+        'offset_reminder_status' => $request->offset_reminder_status,
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Notification reminder updated successfully',
+        'data' => $reminder
+    ]);
+}
+
 }
