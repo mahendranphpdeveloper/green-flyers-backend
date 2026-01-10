@@ -589,9 +589,9 @@ class AdminDashboardController extends Controller
 
         if ($singleItineraries->isEmpty()) {
             return response()->json([
-                'status'  => false,
+                'status'  => true,
                 'message' => 'No pending verification records found'
-            ], 404);
+            ]);
         }
 
         $singleItineraries->transform(function ($single) {
