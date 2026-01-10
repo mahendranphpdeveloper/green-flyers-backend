@@ -17,21 +17,19 @@ class NotificationService
      */
     public static function sendItineraryReminders()
     {
-        // Get active reminder settings
+        Log::info('NotificationService: Starting sendItineraryReminders method.');
+
+        // Fetch reminder settings (no status check)
         $reminderSettings = NotificationsReminder::first();
 
-        Log::info('NotificationService: Fetched reminder settings', [
-            'reminderSettings' => $reminderSettings
-        ]);
-
-        if (!$reminderSettings || $reminderSettings->offset_reminder_status !== 'active') {
-            Log::info('NotificationService: Reminders are inactive or not found. Exiting.');
-            return; // Do nothing if reminders are inactive
+        if (!$reminderSettings) {
+            Log::info('NotificationService: No reminder settings found. Exiting.');
+            return;
         }
 
-        $deadlineDays = $reminderSettings->notification_deadline; // e.g., 30
-        $offsetDays = $reminderSettings->offset_reminder_days;    // e.g., 5
-        $today = Carbon::today();
+        $deadlineDays = (int) $reminderSettings->notification_deadline;
+        $offsetDays   = (int) $reminderSettings->offset_reminder_days;
+        $today        = Carbon::today();
 
         Log::info('NotificationService: Deadline and offset days calculated', [
             'deadlineDays' => $deadlineDays,
@@ -39,7 +37,7 @@ class NotificationService
             'today' => $today->toDateString()
         ]);
 
-        // Get itineraries created/updated in last deadlineDays
+        // Fetch itineraries created or updated within the last $deadlineDays
         $itineraries = ItineraryData::where('created_at', '>=', $today->copy()->subDays($deadlineDays))
             ->orWhere('updated_at', '>=', $today->copy()->subDays($deadlineDays))
             ->get();
@@ -48,88 +46,93 @@ class NotificationService
             'count' => $itineraries->count()
         ]);
 
-        // Get HTML email template (id = 1)
+        // Fetch HTML email template (id = 1)
         $template = EmailTemplate::find(1);
         if (!$template) {
-            Log::warning('NotificationService: No email template (ID 1) found, aborting.');
+            Log::warning('NotificationService: No email template (ID 1) found. Aborting.');
             return;
         }
 
         foreach ($itineraries as $itinerary) {
+            // ✅ Use correct primary key
+            $itineraryId = $itinerary->ItineraryId;
+
+            // Calculate days since created (integer)
             $daysSinceCreated = Carbon::parse($itinerary->created_at)->diffInDays($today);
             $remainingDays = $deadlineDays - $daysSinceCreated;
 
             Log::info('NotificationService: Processing itinerary', [
-                'itinerary_id' => $itinerary->id,
+                'itinerary_id' => $itineraryId,
                 'daysSinceCreated' => $daysSinceCreated,
                 'remainingDays' => $remainingDays
             ]);
 
-            // Only send if remaining days <= offset
+            // Only send reminder if remainingDays <= offsetDays
             if ($remainingDays <= $offsetDays) {
-                $user = $itinerary->user; // Assumes relation user() exists in ItineraryData
+                $user = $itinerary->user;
 
-                Log::info('NotificationService: User associated with itinerary', [
-                    'userId' => $user ? $user->userId : null,
-                    'userEmail' => $user ? $user->email : null
-                ]);
+                if (!$user || !$user->email) {
+                    Log::warning('NotificationService: No user or user email associated', [
+                        'itinerary_id' => $itineraryId
+                    ]);
+                    continue;
+                }
 
-                if ($user && $user->email) {
+                // Prevent duplicate notifications
+                $alreadyNotified = UserNotification::where('singleitinerary_id', $itineraryId)
+                    ->where('user_id', $user->userId)
+                    ->whereNotNull('sent_at')
+                    ->exists();
 
-                    // Check if notification already sent
-                    $alreadyNotified = UserNotification::where('singleitinerary_id', $itinerary->id)
-                        ->where('user_id', $user->userId)
-                        ->exists();
+                if ($alreadyNotified) {
+                    Log::info('NotificationService: Notification already sent', [
+                        'itinerary_id' => $itineraryId,
+                        'user_id' => $user->userId
+                    ]);
+                    continue;
+                }
 
-                    Log::info('NotificationService: Already notified check', [
-                        'alreadyNotified' => $alreadyNotified
+                $title = $template->subject;
+
+                // Replace placeholders in template
+                $htmlMessage = str_replace(
+                    ['{{name}}', '{{itinerary_id}}', '{{remaining_days}}'],
+                    [$user->name, $itineraryId, $remainingDays],
+                    $template->body
+                );
+
+                // Send email
+                try {
+                    Mail::send([], [], function ($mail) use ($user, $title, $htmlMessage) {
+                        $mail->to($user->email)
+                            ->subject($title)
+                            ->setBody($htmlMessage, 'text/html');
+                    });
+
+                    // Record notification in DB
+                    UserNotification::create([
+                        'singleitinerary_id' => $itineraryId,
+                        'user_id' => $user->userId,
+                        'title' => $title,
+                        'message' => strip_tags($htmlMessage),
+                        'status' => 'unread',
+                        'sent_at' => now()
                     ]);
 
-                    if (!$alreadyNotified) {
-
-                        $title = $template->subject;
-
-                        // Replace placeholders in HTML
-                        $htmlMessage = str_replace(
-                            ['{{name}}', '{{itinerary_id}}', '{{remaining_days}}'],
-                            [$user->name, $itinerary->id, $remainingDays],
-                            $template->body
-                        );
-
-                        // Log before sending email
-                        Log::info('NotificationService: Sending email', [
-                            'to' => $user->email,
-                            'subject' => $title,
-                            'itinerary_id' => $itinerary->id
-                        ]);
-
-                        // Send HTML email
-                        Mail::send([], [], function ($mail) use ($user, $title, $htmlMessage) {
-                            $mail->to($user->email)
-                                 ->subject($title)
-                                 ->setBody($htmlMessage, 'text/html');
-                        });
-
-                        // Save notification in DB
-                        UserNotification::create([
-                            'singleitinerary_id' => $itinerary->id,
-                            'user_id' => $user->userId,
-                            'title' => $title,
-                            'message' => strip_tags($htmlMessage), // optional plain-text
-                            'status' => 'unread'
-                        ]);
-
-                        Log::info('NotificationService: Notification created in DB', [
-                            'itinerary_id' => $itinerary->id,
-                            'user_id' => $user->userId
-                        ]);
-                    }
-                } else {
-                    Log::warning('NotificationService: No user or user email associated with itinerary', [
-                        'itinerary_id' => $itinerary->id
+                    Log::info('NotificationService: Notification sent and recorded', [
+                        'itinerary_id' => $itineraryId,
+                        'user_id' => $user->userId
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('NotificationService: Failed to send email', [
+                        'itinerary_id' => $itineraryId,
+                        'user_id' => $user->userId,
+                        'error' => $e->getMessage()
                     ]);
                 }
             }
         }
+
+        Log::info('NotificationService: Finished processing itineraries.');
     }
 }

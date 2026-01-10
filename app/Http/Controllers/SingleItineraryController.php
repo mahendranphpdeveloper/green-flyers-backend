@@ -56,9 +56,9 @@ public function index(Request $request)
     if ($singleItineraries->isEmpty()) {
         Log::warning('No single itineraries found');
         return response()->json([
-            'status' => false,
+            'status' => true,
             'message' => 'No records found'
-        ], 404);
+        ]);
     }
 
     // Attach User & Itinerary data
