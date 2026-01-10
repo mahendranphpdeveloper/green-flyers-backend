@@ -183,6 +183,7 @@ Route::prefix('admin/dashboard')->group(function () {
         Route::get('/total-trees-chart', [App\Http\Controllers\AdminDashboardController::class, 'getMonthlyTreesPlantedChart']);
         Route::get('/carbon-offset-progress-chart', [App\Http\Controllers\AdminDashboardController::class, 'getMonthlyCarbonOffsetChart']);
         Route::get('/emissions-offset-chart', [App\Http\Controllers\AdminDashboardController::class, 'getAdminEmissionOffsetChart']);
+        Route::get('/pending-verfication-offsets', [App\Http\Controllers\AdminDashboardController::class, 'getPendingVerificationOffsets']);
 
     });
 

@@ -84,69 +84,70 @@ class AdminDashboardController extends Controller
     //     ]);
     // }
 
-public function getAdminDashboardStats(Request $request)
-{
-    // ------------------ ADMIN AUTH ------------------
-    if ($response = $this->checkAdmin($request)) {
-        Log::warning('Admin check failed for getAdminDashboardStats');
-        return $response;
-    }
-
-    // Configurable active window (6 months)
-    $activeMonths = 6;
-    $activeFromDate = Carbon::now()->subMonths($activeMonths);
-
-    $totalEnrolledUsers = ItineraryData::whereNotNull('updated_at')
-        ->where('updated_at', '>=', $activeFromDate)
-        ->distinct('userId')
-        ->count('userId');
-   
-    $itineraryOffsetKg = (float) ItineraryData::sum('offsetAmount');
-    $userCreditKg      = (float) User::sum('offsetCredit');
-
-    $totalOffsetTonnes = round(
-        ($itineraryOffsetKg + $userCreditKg) / 1000,
-        2
-    );
-
-    $totalTreesPlanted = (int) ItineraryData::sum('numberOfTrees');
-
-    $vendorsProjects = VendorsData::whereNotNull('projects')
-        ->pluck('projects');
-
-    $uniqueProjects = [];
-
-    foreach ($vendorsProjects as $projectsJson) {
-        $projects = json_decode($projectsJson, true);
-
-        if (!is_array($projects)) {
-            continue;
+    public function getAdminDashboardStats(Request $request)
+    {
+        // ------------------ ADMIN AUTH ------------------
+        if ($response = $this->checkAdmin($request)) {
+            Log::warning('Admin check failed for getAdminDashboardStats');
+            return $response;
         }
 
-        foreach ($projects as $projectName) {
-            if (!is_string($projectName)) {
+        $activeMonths   = 6;
+        $activeFromDate = Carbon::now()->subMonths($activeMonths);
+
+
+        $totalEnrolledUsers = ItineraryData::where(function ($query) use ($activeFromDate) {
+            $query->where('updated_at', '>=', $activeFromDate)
+                ->orWhere('created_at', '>=', $activeFromDate);
+        })
+            ->distinct('userId')
+            ->count('userId');
+        $itineraryOffsetKg = (float) ItineraryData::sum('offsetAmount');
+        $userCreditKg      = (float) User::sum('offsetCredit');
+
+        $totalOffsetTonnes = round(
+            ($itineraryOffsetKg + $userCreditKg) / 1000,
+            2
+        );
+        $totalTreesPlanted = (int) ItineraryData::sum('numberOfTrees');
+
+        $vendorsProjects = VendorsData::whereNotNull('projects')
+            ->pluck('projects');
+
+        $uniqueProjects = [];
+
+        foreach ($vendorsProjects as $projectsJson) {
+            $projects = json_decode($projectsJson, true);
+
+            if (!is_array($projects)) {
                 continue;
             }
 
-            $normalized = strtolower(trim($projectName));
+            foreach ($projects as $projectName) {
+                if (!is_string($projectName)) {
+                    continue;
+                }
 
-            if ($normalized === '') {
-                continue;
+                $normalized = strtolower(trim($projectName));
+
+                if ($normalized === '') {
+                    continue;
+                }
+
+                $uniqueProjects[$normalized] = true;
             }
-
-            $uniqueProjects[$normalized] = true;
         }
-    }
 
-    $totalProjects = count($uniqueProjects);
-    return response()->json([
-        'active_enrolled_users'  => $totalEnrolledUsers,
-        'total_emissions_offset' => $totalOffsetTonnes, // TONNES
-        'total_trees_planted'    => $totalTreesPlanted,
-        'total_projects'         => $totalProjects,
-        'active_user_window'     => "{$activeMonths} months"
-    ]);
-}
+        $totalProjects = count($uniqueProjects);
+
+        return response()->json([
+            'active_enrolled_users'  => $totalEnrolledUsers,
+            'total_emissions_offset' => $totalOffsetTonnes, // TONNES
+            'total_trees_planted'    => $totalTreesPlanted,
+            'total_projects'         => $totalProjects,
+            'active_user_window'     => "{$activeMonths} months"
+        ]);
+    }
 
 
     // Total users chart
@@ -591,6 +592,43 @@ public function getAdminDashboardStats(Request $request)
 
             'offset_growth_percentage'   => $offsetGrowthPercentage,
             'offset_growth_type'         => $offsetGrowthPercentage >= 0 ? 'increase' : 'decrease',
+        ]);
+    }
+
+    //Pending verfication data 
+    public function getPendingVerificationOffsets(Request $request)
+    {
+        Log::info('Admin Pending Verification SingleItinerary called');
+
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
+
+        $singleItineraries = SingleItineraryData::where('approvalStatus', 'Pending Verification')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        if ($singleItineraries->isEmpty()) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'No pending verification records found'
+            ], 404);
+        }
+
+        $singleItineraries->transform(function ($single) {
+            $single->user = User::where('userId', $single->userId)->first();
+            $single->itinerary = ItineraryData::where(
+                'ItineraryId',
+                $single->ItineraryId
+            )->first();
+
+            return $single;
+        });
+
+        return response()->json([
+            'status' => true,
+            'count'  => $singleItineraries->count(),
+            'data'   => $singleItineraries
         ]);
     }
 }
