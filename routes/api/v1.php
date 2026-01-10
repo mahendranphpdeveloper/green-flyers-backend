@@ -180,6 +180,7 @@ Route::prefix('admin/dashboard')->group(function () {
         Route::get('/total-users-chart', [App\Http\Controllers\AdminDashboardController::class, 'getMonthlyUsersChart']);
         Route::get('/project-types-chart', [App\Http\Controllers\AdminDashboardController::class, 'getProjectTypesChart']);
         Route::get('/total-trees-chart', [App\Http\Controllers\AdminDashboardController::class, 'getMonthlyTreesPlantedChart']);
+        Route::get('/carbon-offset-progress-chart', [App\Http\Controllers\AdminDashboardController::class, 'getMonthlyCarbonOffsetChart']);
 
     });
 

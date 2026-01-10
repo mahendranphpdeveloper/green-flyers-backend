@@ -282,4 +282,80 @@ class AdminDashboardController extends Controller
             'data' => array_values($currentYearData)
         ]);
     }
+    //get carbon offset chart values 
+    public function getMonthlyCarbonOffsetChart(Request $request)
+{
+    // Authenticate admin
+    if ($response = $this->checkAdmin($request)) {
+        Log::warning('Admin check failed for getMonthlyCarbonOffsetChart');
+        return $response;
+    }
+
+    $year = (int) $request->get('year', now()->year);
+    $previousYear = $year - 1;
+
+    // ---------- Current Year Monthly Data ----------
+    $monthlyRawData = array_fill(1, 12, 0);
+
+    $currentOffsets = ItineraryData::selectRaw(
+            'MONTH(created_at) as month, SUM(COALESCE(offsetAmount,0)) as total'
+        )
+        ->whereYear('created_at', $year)
+        ->groupBy('month')
+        ->pluck('total', 'month');
+
+    foreach ($currentOffsets as $month => $offsetTotal) {
+        $monthlyRawData[$month] = (float) $offsetTotal;
+    }
+
+    // ---------- Convert Monthly Values to Percentage ----------
+    $maxMonthValue = max($monthlyRawData);
+
+    $monthlyPercentageData = [];
+
+    foreach ($monthlyRawData as $value) {
+        if ($maxMonthValue > 0) {
+            $monthlyPercentageData[] = round(($value / $maxMonthValue) * 100, 2);
+        } else {
+            $monthlyPercentageData[] = 0;
+        }
+    }
+
+    // ---------- Yearly Totals ----------
+    $currentYearTotal = array_sum($monthlyRawData);
+
+    $previousYearTotal = ItineraryData::whereYear('created_at', $previousYear)
+        ->sum('offsetAmount');
+
+    // ---------- Growth / Decrease ----------
+    if ($previousYearTotal > 0) {
+        $growthPercentage = round(
+            (($currentYearTotal - $previousYearTotal) / $previousYearTotal) * 100,
+            2
+        );
+    } else {
+        $growthPercentage = 0;
+    }
+
+    return response()->json([
+        'year' => $year,
+
+        // Progress value (top right: 99%)
+        'progress_percentage' => $maxMonthValue > 0
+            ? round((end($monthlyRawData) / $maxMonthValue) * 100, 2)
+            : 0,
+
+        'total_carbon_offset' => round($currentYearTotal, 2),
+        'growth_percentage' => $growthPercentage,
+        'growth_type' => $growthPercentage >= 0 ? 'increase' : 'decrease',
+
+        'months' => [
+            'Jan','Feb','Mar','Apr','May','Jun',
+            'Jul','Aug','Sep','Oct','Nov','Dec'
+        ],
+
+        // THIS IS WHAT THE CHART USES
+        'data' => $monthlyPercentageData
+    ]);
+}
 }
