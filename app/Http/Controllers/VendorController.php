@@ -393,15 +393,16 @@ class VendorController extends Controller
     }
 
     // Fetch only ACTIVE vendors
-    $vendors = VendorsData::where('status', 'active')->get();
+    $vendors = VendorsData::where('status', 'active')->get(['projects']);
 
     $projectTypes = [];
+    $normalizedMap = []; // to track uniqueness
 
     foreach ($vendors as $vendor) {
 
         $projects = $vendor->projects;
 
-        // Decode if stored as string
+        // Decode if stored as JSON string
         if (is_string($projects)) {
             $projects = json_decode($projects, true);
         }
@@ -411,18 +412,37 @@ class VendorController extends Controller
         }
 
         foreach ($projects as $projectName) {
-            $projectTypes[] = $projectName;
+
+            if (!is_string($projectName)) {
+                continue;
+            }
+
+            // Normalize value for comparison
+            $normalized = strtolower(trim($projectName));
+
+            if ($normalized === '') {
+                continue;
+            }
+
+            // If already added, skip
+            if (isset($normalizedMap[$normalized])) {
+                continue;
+            }
+
+            // Store normalized reference
+            $normalizedMap[$normalized] = true;
+
+            // Store clean display value
+            $projectTypes[] = trim($projectName);
         }
     }
-
-    // Optional: remove duplicates
-    $projectTypes = array_values(array_unique($projectTypes));
 
     return response()->json([
         'status' => true,
         'data' => $projectTypes
     ]);
 }
+
 
 
 }
