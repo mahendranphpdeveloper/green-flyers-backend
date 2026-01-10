@@ -176,6 +176,7 @@ Route::post('/admin/vendors/bulk', [\App\Http\Controllers\VendorBulkController::
 
 Route::prefix('admin/dashboard')->group(function () {
      // Chart data routes
+        Route::get('/stats', [App\Http\Controllers\AdminDashboardController::class, 'getAdminDashboardStats']); 
         Route::get('/user-distribution-chart', [App\Http\Controllers\AdminDashboardController::class, 'getUserDistributionCharts']);
         Route::get('/total-users-chart', [App\Http\Controllers\AdminDashboardController::class, 'getMonthlyUsersChart']);
         Route::get('/project-types-chart', [App\Http\Controllers\AdminDashboardController::class, 'getProjectTypesChart']);

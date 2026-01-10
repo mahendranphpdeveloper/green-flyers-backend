@@ -7,6 +7,7 @@ use App\Models\ItineraryData;
 use App\Models\SingleItineraryData;
 use App\Models\AdminData;
 use App\Models\User;
+use App\Models\VendorsData;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
@@ -32,6 +33,57 @@ class AdminDashboardController extends Controller
 
         return null;
     }
+
+    //Dashboard stats
+    public function getAdminDashboardStats(Request $request)
+    {
+        // Admin authentication
+        if ($response = $this->checkAdmin($request)) {
+            Log::warning('Admin check failed for getAdminDashboardStats');
+            return $response;
+        }
+
+
+        $totalEnrolledUsers = ItineraryData::whereNotNull('updated_at')
+            ->distinct('userId')
+            ->count('userId');
+
+
+
+        $itineraryOffsetKg = (float) ItineraryData::sum('offsetAmount');
+        $userCreditKg     = (float) User::sum('offsetCredit');
+
+        $totalOffsetKg     = $itineraryOffsetKg + $userCreditKg;
+        $totalOffsetTonnes = round($totalOffsetKg / 1000, 2);
+
+
+
+        $totalTreesPlanted = (int) ItineraryData::sum('numberOfTrees');
+
+
+
+        $vendorsProjects = VendorsData::whereNotNull('projects')
+            ->pluck('projects');
+
+        $totalProjects = 0;
+
+        foreach ($vendorsProjects as $projectsJson) {
+            $projects = json_decode($projectsJson, true);
+
+            if (is_array($projects)) {
+                $totalProjects += count(array_filter($projects));
+            }
+        }
+
+
+        return response()->json([
+            'total_enrolled_users'   => $totalEnrolledUsers,
+            'total_emissions_offset' => $totalOffsetTonnes, // TONNES
+            'total_trees_planted'    => $totalTreesPlanted,
+            'total_projects'         => $totalProjects
+        ]);
+    }
+
     // Total users chart
     public function getMonthlyUsersChart(Request $request)
     {
@@ -284,176 +336,196 @@ class AdminDashboardController extends Controller
     }
     //get carbon offset chart values 
     public function getMonthlyCarbonOffsetChart(Request $request)
-{
-    // Authenticate admin
-    if ($response = $this->checkAdmin($request)) {
-        Log::warning('Admin check failed for getMonthlyCarbonOffsetChart');
-        return $response;
-    }
+    {
+        // Authenticate admin
+        if ($response = $this->checkAdmin($request)) {
+            Log::warning('Admin check failed for getMonthlyCarbonOffsetChart');
+            return $response;
+        }
 
-    $year = (int) $request->get('year', now()->year);
-    $previousYear = $year - 1;
+        $year = (int) $request->get('year', now()->year);
+        $previousYear = $year - 1;
 
-    // ---------- Current Year Monthly Data ----------
-    $monthlyRawData = array_fill(1, 12, 0);
+        // ---------- Current Year Monthly Data ----------
+        $monthlyRawData = array_fill(1, 12, 0);
 
-    $currentOffsets = ItineraryData::selectRaw(
+        $currentOffsets = ItineraryData::selectRaw(
             'MONTH(created_at) as month, SUM(COALESCE(offsetAmount,0)) as total'
         )
-        ->whereYear('created_at', $year)
-        ->groupBy('month')
-        ->pluck('total', 'month');
+            ->whereYear('created_at', $year)
+            ->groupBy('month')
+            ->pluck('total', 'month');
 
-    foreach ($currentOffsets as $month => $offsetTotal) {
-        $monthlyRawData[$month] = (float) $offsetTotal;
-    }
-
-    // ---------- Convert Monthly Values to Percentage ----------
-    $maxMonthValue = max($monthlyRawData);
-
-    $monthlyPercentageData = [];
-
-    foreach ($monthlyRawData as $value) {
-        if ($maxMonthValue > 0) {
-            $monthlyPercentageData[] = round(($value / $maxMonthValue) * 100, 2);
-        } else {
-            $monthlyPercentageData[] = 0;
+        foreach ($currentOffsets as $month => $offsetTotal) {
+            $monthlyRawData[$month] = (float) $offsetTotal;
         }
+
+        // ---------- Convert Monthly Values to Percentage ----------
+        $maxMonthValue = max($monthlyRawData);
+
+        $monthlyPercentageData = [];
+
+        foreach ($monthlyRawData as $value) {
+            if ($maxMonthValue > 0) {
+                $monthlyPercentageData[] = round(($value / $maxMonthValue) * 100, 2);
+            } else {
+                $monthlyPercentageData[] = 0;
+            }
+        }
+
+        // ---------- Yearly Totals ----------
+        $currentYearTotal = array_sum($monthlyRawData);
+
+        $previousYearTotal = ItineraryData::whereYear('created_at', $previousYear)
+            ->sum('offsetAmount');
+
+        // ---------- Growth / Decrease ----------
+        if ($previousYearTotal > 0) {
+            $growthPercentage = round(
+                (($currentYearTotal - $previousYearTotal) / $previousYearTotal) * 100,
+                2
+            );
+        } else {
+            $growthPercentage = 0;
+        }
+
+        return response()->json([
+            'year' => $year,
+
+            // Progress value (top right: 99%)
+            'progress_percentage' => $maxMonthValue > 0
+                ? round((end($monthlyRawData) / $maxMonthValue) * 100, 2)
+                : 0,
+
+            'total_carbon_offset' => round($currentYearTotal, 2),
+            'growth_percentage' => $growthPercentage,
+            'growth_type' => $growthPercentage >= 0 ? 'increase' : 'decrease',
+
+            'months' => [
+                'Jan',
+                'Feb',
+                'Mar',
+                'Apr',
+                'May',
+                'Jun',
+                'Jul',
+                'Aug',
+                'Sep',
+                'Oct',
+                'Nov',
+                'Dec'
+            ],
+
+            // THIS IS WHAT THE CHART USES
+            'data' => $monthlyPercentageData
+        ]);
     }
 
-    // ---------- Yearly Totals ----------
-    $currentYearTotal = array_sum($monthlyRawData);
+    public function getAdminEmissionOffsetChart(Request $request)
+    {
+        // Authenticate admin
+        if ($response = $this->checkAdmin($request)) {
+            Log::warning('Admin check failed for getAdminEmissionOffsetChart');
+            return $response;
+        }
 
-    $previousYearTotal = ItineraryData::whereYear('created_at', $previousYear)
-        ->sum('offsetAmount');
+        $year         = (int) $request->get('year', now()->year);
+        $previousYear = $year - 1;
 
-    // ---------- Growth / Decrease ----------
-    if ($previousYearTotal > 0) {
-        $growthPercentage = round(
-            (($currentYearTotal - $previousYearTotal) / $previousYearTotal) * 100,
-            2
-        );
-    } else {
-        $growthPercentage = 0;
-    }
+        // ------------------ Monthly defaults ------------------
+        $emissionsData = array_fill(1, 12, 0);
+        $offsetsData   = array_fill(1, 12, 0);
 
-    return response()->json([
-        'year' => $year,
-
-        // Progress value (top right: 99%)
-        'progress_percentage' => $maxMonthValue > 0
-            ? round((end($monthlyRawData) / $maxMonthValue) * 100, 2)
-            : 0,
-
-        'total_carbon_offset' => round($currentYearTotal, 2),
-        'growth_percentage' => $growthPercentage,
-        'growth_type' => $growthPercentage >= 0 ? 'increase' : 'decrease',
-
-        'months' => [
-            'Jan','Feb','Mar','Apr','May','Jun',
-            'Jul','Aug','Sep','Oct','Nov','Dec'
-        ],
-
-        // THIS IS WHAT THE CHART USES
-        'data' => $monthlyPercentageData
-    ]);
-}
-
-public function getAdminEmissionOffsetChart(Request $request)
-{
-    // Authenticate admin
-    if ($response = $this->checkAdmin($request)) {
-        Log::warning('Admin check failed for getAdminEmissionOffsetChart');
-        return $response;
-    }
-
-    $year         = (int) $request->get('year', now()->year);
-    $previousYear = $year - 1;
-
-    // ------------------ Monthly defaults ------------------
-    $emissionsData = array_fill(1, 12, 0);
-    $offsetsData   = array_fill(1, 12, 0);
-
-    // ------------------ CURRENT YEAR: Itinerary sums ------------------
-    $currentItineraries = ItineraryData::selectRaw('
+        // ------------------ CURRENT YEAR: Itinerary sums ------------------
+        $currentItineraries = ItineraryData::selectRaw('
             MONTH(created_at) as month,
             SUM(COALESCE(emission,0)) as total_emission,
             SUM(COALESCE(offsetAmount,0)) as total_offset
         ')
-        ->whereYear('created_at', $year)
-        ->groupBy('month')
-        ->get();
+            ->whereYear('created_at', $year)
+            ->groupBy('month')
+            ->get();
 
-    foreach ($currentItineraries as $row) {
-        $emissionsData[$row->month] = (float) $row->total_emission;
-        $offsetsData[$row->month]   = (float) $row->total_offset;
+        foreach ($currentItineraries as $row) {
+            $emissionsData[$row->month] = (float) $row->total_emission;
+            $offsetsData[$row->month]   = (float) $row->total_offset;
+        }
+
+        // ------------------ CURRENT YEAR: Add offsetCredit ------------------
+        $currentCredits = User::where('offsetCredit', '>', 0)
+            ->whereYear('updated_at', $year)
+            ->get(['offsetCredit', 'updated_at']);
+
+        foreach ($currentCredits as $user) {
+            $month = Carbon::parse($user->updated_at)->month;
+            $offsetsData[$month] += (float) $user->offsetCredit;
+        }
+
+        // ------------------ CURRENT YEAR TOTALS ------------------
+        $currentEmissionTotal = array_sum($emissionsData);
+        $currentOffsetTotal   = array_sum($offsetsData);
+
+        // ======================================================
+        // PREVIOUS YEAR CALCULATIONS
+        // ======================================================
+
+        // ------------------ Previous year itinerary sums ------------------
+        $previousEmissionTotal = (float) ItineraryData::whereYear('created_at', $previousYear)
+            ->sum('emission');
+
+        $previousOffsetTotal = (float) ItineraryData::whereYear('created_at', $previousYear)
+            ->sum('offsetAmount');
+
+        // ------------------ Previous year offsetCredit ------------------
+        $previousCredits = (float) User::where('offsetCredit', '>', 0)
+            ->whereYear('updated_at', $previousYear)
+            ->sum('offsetCredit');
+
+        $previousOffsetTotal += $previousCredits;
+
+        // ======================================================
+        // GROWTH CALCULATIONS
+        // ======================================================
+
+        $emissionGrowthPercentage = $previousEmissionTotal > 0
+            ? round((($currentEmissionTotal - $previousEmissionTotal) / $previousEmissionTotal) * 100, 2)
+            : 0;
+
+        $offsetGrowthPercentage = $previousOffsetTotal > 0
+            ? round((($currentOffsetTotal - $previousOffsetTotal) / $previousOffsetTotal) * 100, 2)
+            : 0;
+
+        return response()->json([
+            'year' => $year,
+
+            // Chart Data
+            'months' => [
+                'Jan',
+                'Feb',
+                'Mar',
+                'Apr',
+                'May',
+                'Jun',
+                'Jul',
+                'Aug',
+                'Sep',
+                'Oct',
+                'Nov',
+                'Dec'
+            ],
+            'emissions' => array_values($emissionsData),
+            'offsets'   => array_values($offsetsData),
+
+            // Totals
+            'total_emission' => round($currentEmissionTotal, 2),
+            'total_offset'   => round($currentOffsetTotal, 2),
+
+            // Growth (SEPARATE)
+            'emission_growth_percentage' => $emissionGrowthPercentage,
+            'emission_growth_type'       => $emissionGrowthPercentage >= 0 ? 'increase' : 'decrease',
+
+            'offset_growth_percentage'   => $offsetGrowthPercentage,
+            'offset_growth_type'         => $offsetGrowthPercentage >= 0 ? 'increase' : 'decrease',
+        ]);
     }
-
-    // ------------------ CURRENT YEAR: Add offsetCredit ------------------
-    $currentCredits = User::where('offsetCredit', '>', 0)
-        ->whereYear('updated_at', $year)
-        ->get(['offsetCredit', 'updated_at']);
-
-    foreach ($currentCredits as $user) {
-        $month = Carbon::parse($user->updated_at)->month;
-        $offsetsData[$month] += (float) $user->offsetCredit;
-    }
-
-    // ------------------ CURRENT YEAR TOTALS ------------------
-    $currentEmissionTotal = array_sum($emissionsData);
-    $currentOffsetTotal   = array_sum($offsetsData);
-
-    // ======================================================
-    // PREVIOUS YEAR CALCULATIONS
-    // ======================================================
-
-    // ------------------ Previous year itinerary sums ------------------
-    $previousEmissionTotal = (float) ItineraryData::whereYear('created_at', $previousYear)
-        ->sum('emission');
-
-    $previousOffsetTotal = (float) ItineraryData::whereYear('created_at', $previousYear)
-        ->sum('offsetAmount');
-
-    // ------------------ Previous year offsetCredit ------------------
-    $previousCredits = (float) User::where('offsetCredit', '>', 0)
-        ->whereYear('updated_at', $previousYear)
-        ->sum('offsetCredit');
-
-    $previousOffsetTotal += $previousCredits;
-
-    // ======================================================
-    // GROWTH CALCULATIONS
-    // ======================================================
-
-    $emissionGrowthPercentage = $previousEmissionTotal > 0
-        ? round((($currentEmissionTotal - $previousEmissionTotal) / $previousEmissionTotal) * 100, 2)
-        : 0;
-
-    $offsetGrowthPercentage = $previousOffsetTotal > 0
-        ? round((($currentOffsetTotal - $previousOffsetTotal) / $previousOffsetTotal) * 100, 2)
-        : 0;
-
-    return response()->json([
-        'year' => $year,
-
-        // Chart Data
-        'months' => [
-            'Jan','Feb','Mar','Apr','May','Jun',
-            'Jul','Aug','Sep','Oct','Nov','Dec'
-        ],
-        'emissions' => array_values($emissionsData),
-        'offsets'   => array_values($offsetsData),
-
-        // Totals
-        'total_emission' => round($currentEmissionTotal, 2),
-        'total_offset'   => round($currentOffsetTotal, 2),
-
-        // Growth (SEPARATE)
-        'emission_growth_percentage' => $emissionGrowthPercentage,
-        'emission_growth_type'       => $emissionGrowthPercentage >= 0 ? 'increase' : 'decrease',
-
-        'offset_growth_percentage'   => $offsetGrowthPercentage,
-        'offset_growth_type'         => $offsetGrowthPercentage >= 0 ? 'increase' : 'decrease',
-    ]);
-}
 }
