@@ -530,11 +530,6 @@ class AdminDashboardController extends Controller
         // ------------------ CURRENT YEAR TOTALS ------------------
         $currentEmissionTotal = array_sum($emissionsData);
         $currentOffsetTotal   = array_sum($offsetsData);
-
-        // ======================================================
-        // PREVIOUS YEAR CALCULATIONS
-        // ======================================================
-
         // ------------------ Previous year itinerary sums ------------------
         $previousEmissionTotal = (float) ItineraryData::whereYear('created_at', $previousYear)
             ->sum('emission');
@@ -549,9 +544,6 @@ class AdminDashboardController extends Controller
 
         $previousOffsetTotal += $previousCredits;
 
-        // ======================================================
-        // GROWTH CALCULATIONS
-        // ======================================================
 
         $emissionGrowthPercentage = $previousEmissionTotal > 0
             ? round((($currentEmissionTotal - $previousEmissionTotal) / $previousEmissionTotal) * 100, 2)
@@ -604,7 +596,7 @@ class AdminDashboardController extends Controller
             return $response;
         }
 
-        $singleItineraries = SingleItineraryData::where('approvalStatus', 'Pending Verification')
+        $singleItineraries = SingleItineraryData::where('approvelStatus', 'Pending Verification')
             ->orderBy('id', 'desc')
             ->get();
 
