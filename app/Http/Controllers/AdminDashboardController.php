@@ -162,44 +162,44 @@ class AdminDashboardController extends Controller
         if ($response = $this->checkAdmin($request)) {
             return $response;
         }
-    
+
         // Year from frontend
         $year = $request->get('year', now()->year);
-    
+
         // Fetch projectTypes column
         $itineraries = SingleItineraryData::whereYear('created_at', $year)
             ->whereNotNull('projectTypes')
             ->pluck('projectTypes');
-    
+
         $projectCounts = [];
         $totalProjectCount = 0;
-    
+
         foreach ($itineraries as $projectTypesString) {
-    
+
             // Convert comma-separated string to array
             $projectTypesArray = array_map(
                 'trim',
                 explode(',', $projectTypesString)
             );
-    
+
             foreach ($projectTypesArray as $projectType) {
-    
+
                 if ($projectType === '') {
                     continue;
                 }
-    
+
                 if (!isset($projectCounts[$projectType])) {
                     $projectCounts[$projectType] = 0;
                 }
-    
+
                 $projectCounts[$projectType]++;
                 $totalProjectCount++;
             }
         }
-    
+
         // Sort by highest count
         arsort($projectCounts);
-    
+
         // Frontend-required format
         $data = [];
         foreach ($projectCounts as $projectType => $count) {
@@ -208,11 +208,78 @@ class AdminDashboardController extends Controller
                 'count' => $count
             ];
         }
-    
+
         return response()->json([
             'year' => (int) $year,
             'data' => $data,
             'total_project' => $totalProjectCount
+        ]);
+    }
+
+    //get total tree planted values 
+
+    public function getMonthlyTreesPlantedChart(Request $request)
+    {
+        // Authenticate admin
+        if ($response = $this->checkAdmin($request)) {
+            Log::warning('Admin check failed for getMonthlyTreesPlantedChart');
+            return $response;
+        }
+
+        $year = (int) $request->get('year', now()->year);
+        $previousYear = $year - 1;
+
+        // ---------- Current Year Monthly Data ----------
+        $currentYearData = array_fill(1, 12, 0);
+
+        $currentTrees = ItineraryData::selectRaw(
+            'MONTH(created_at) as month, SUM(numberOfTrees) as total'
+        )
+            ->whereYear('created_at', $year)
+            ->groupBy('month')
+            ->pluck('total', 'month');
+
+        foreach ($currentTrees as $month => $totalTrees) {
+            $currentYearData[$month] = (int) $totalTrees;
+        }
+
+        $currentYearTotal = array_sum($currentYearData);
+
+        // ---------- Previous Year Total ----------
+        $previousYearTotal = ItineraryData::whereYear('created_at', $previousYear)
+            ->sum('numberOfTrees');
+
+        // ---------- Growth / Decrease Percentage ----------
+        if ($previousYearTotal > 0) {
+            $growthPercentage = round(
+                (($currentYearTotal - $previousYearTotal) / $previousYearTotal) * 100,
+                2
+            );
+        } else {
+            $growthPercentage = 0;
+        }
+
+        return response()->json([
+            'year' => $year,
+            'total_trees_planted' => $currentYearTotal,
+            'growth_percentage' => $growthPercentage,
+            'growth_type' => $growthPercentage >= 0 ? 'increase' : 'decrease',
+
+            'months' => [
+                'Jan',
+                'Feb',
+                'Mar',
+                'Apr',
+                'May',
+                'Jun',
+                'Jul',
+                'Aug',
+                'Sep',
+                'Oct',
+                'Nov',
+                'Dec'
+            ],
+            'data' => array_values($currentYearData)
         ]);
     }
 }
