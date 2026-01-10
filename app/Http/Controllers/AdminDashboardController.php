@@ -83,7 +83,6 @@ class AdminDashboardController extends Controller
     //         'total_projects'         => $totalProjects
     //     ]);
     // }
-
     public function getAdminDashboardStats(Request $request)
     {
         // ------------------ ADMIN AUTH ------------------
@@ -95,59 +94,47 @@ class AdminDashboardController extends Controller
         $activeMonths   = 6;
         $activeFromDate = Carbon::now()->subMonths($activeMonths);
 
-
-        $totalEnrolledUsers = ItineraryData::where(function ($query) use ($activeFromDate) {
-            $query->where('updated_at', '>=', $activeFromDate)
-                ->orWhere('created_at', '>=', $activeFromDate);
-        })
-            ->distinct('userId')
-            ->count('userId');
-        $itineraryOffsetKg = (float) ItineraryData::sum('offsetAmount');
-        $userCreditKg      = (float) User::sum('offsetCredit');
+        $totalEnrolledUsers = ItineraryData::select('userId')
+            ->selectRaw('MAX(GREATEST(created_at, updated_at)) as last_activity')
+            ->groupBy('userId')
+            ->having('last_activity', '>=', $activeFromDate)
+            ->count();
 
         $totalOffsetTonnes = round(
-            ($itineraryOffsetKg + $userCreditKg) / 1000,
+            ((float) ItineraryData::sum('offsetAmount') +
+                (float) User::sum('offsetCredit')) / 1000,
             2
         );
         $totalTreesPlanted = (int) ItineraryData::sum('numberOfTrees');
 
-        $vendorsProjects = VendorsData::whereNotNull('projects')
-            ->pluck('projects');
+        $vendorsProjects = VendorsData::whereNotNull('projects')->pluck('projects');
 
         $uniqueProjects = [];
 
         foreach ($vendorsProjects as $projectsJson) {
             $projects = json_decode($projectsJson, true);
 
-            if (!is_array($projects)) {
-                continue;
-            }
+            if (!is_array($projects)) continue;
 
             foreach ($projects as $projectName) {
-                if (!is_string($projectName)) {
-                    continue;
-                }
+                if (!is_string($projectName)) continue;
 
                 $normalized = strtolower(trim($projectName));
-
-                if ($normalized === '') {
-                    continue;
+                if ($normalized !== '') {
+                    $uniqueProjects[$normalized] = true;
                 }
-
-                $uniqueProjects[$normalized] = true;
             }
         }
 
-        $totalProjects = count($uniqueProjects);
-
         return response()->json([
             'active_enrolled_users'  => $totalEnrolledUsers,
-            'total_emissions_offset' => $totalOffsetTonnes, // TONNES
+            'total_emissions_offset' => $totalOffsetTonnes,
             'total_trees_planted'    => $totalTreesPlanted,
-            'total_projects'         => $totalProjects,
+            'total_projects'         => count($uniqueProjects),
             'active_user_window'     => "{$activeMonths} months"
         ]);
     }
+
 
 
     // Total users chart
