@@ -992,8 +992,8 @@ public function update(Request $request, $id)
         $user->offsetCredit += $extraOffset;
         $user->save();
 
-        /**store for response */
-        $offsetCreditAdded = $extraOffset;
+        /**store the final total credit for response */
+        $offsetCreditAdded = $user->offsetCredit;
     });
 
     return response()->json([

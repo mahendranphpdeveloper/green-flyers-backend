@@ -12,12 +12,14 @@ class Kernel extends ConsoleKernel
      * Define the application's command schedule.
      */
     protected function schedule(Schedule $schedule)
-{
-    $schedule->call(function () {
-        \App\Services\NotificationService::sendItineraryReminders();
-    })->everyMinute(); // <- runs every minute
-}
-
+    {
+        // Temporarily call the itinerary reminder service every minute
+        $schedule->call(function () {
+            NotificationService::sendItineraryReminders();
+        })->everyMinute()
+          ->withoutOverlapping()
+          ->onOneServer();
+    }
 
     /**
      * Register the commands for the application.

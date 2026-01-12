@@ -23,6 +23,8 @@ class ItineraryData extends Model
     {
         return $this->belongsTo(UserData::class, 'userId', 'userId');
     }
+    
+    
 
     public function offsets()
     {
