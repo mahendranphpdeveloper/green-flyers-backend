@@ -138,7 +138,7 @@ public function index(Request $request)
 
         if (!$authUser) {
             Log::warning('Unauthorized access attempt in store()');
-            return response()->json(['message' => 'Unauthorized.'], 401);
+            return response()->json(['status' => false, 'message' => 'Unauthorized.'], 401);
         }
 
         // Check if admin
@@ -164,7 +164,7 @@ public function index(Request $request)
             Log::warning('Itinerary not found in store()', [
                 'ItineraryId' => $validatedData['ItineraryId']
             ]);
-            return response()->json(['message' => 'Itinerary not found.'], 404);
+            return response()->json(['status' => false, 'message' => 'Itinerary not found.'], 404);
         }
 
         // Only allow non-admins to add for their own itinerary
@@ -173,7 +173,7 @@ public function index(Request $request)
                 'userId' => $authUser->userId,
                 'ItineraryId' => $validatedData['ItineraryId']
             ]);
-            return response()->json(['message' => 'Unauthorized: ItineraryId does not belong to this user.'], 403);
+            return response()->json(['status' => false, 'message' => 'Unauthorized: ItineraryId does not belong to this user.'], 403);
         }
 
         if ($request->hasFile('certificateFile')) {
@@ -195,9 +195,10 @@ public function index(Request $request)
         Log::info('SingleItinerary created', ['singleItinerary' => $singleItinerary]);
 
         return response()->json([
+            'status' => true,
             'message' => 'SingleItinerary created successfully.',
             'data' => $singleItinerary
-        ], 201);
+        ]);
     }
 
 
