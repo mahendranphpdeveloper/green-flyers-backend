@@ -14,4 +14,4 @@ Artisan::command('inspire', function () {
 Schedule::call(function () {
     Log::info('Laravel 12 scheduler triggered at ' . now()->toDateTimeString());
     NotificationService::sendItineraryReminders();
-})->everyMinute();
+})->dailyAt('09:00'); 
