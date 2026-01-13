@@ -79,59 +79,7 @@ public function index(Request $request)
     ]);
 }
 
-    // public function store(Request $request)
-    // {
-    //     $user = $request->user();
-    //     Log::info('store() called in SingleItineraryController', ['user' => $user, 'request' => $request->all()]);
-    //     if (!$user) {
-    //         Log::warning('Unauthorized access attempt in store()');
-    //         return response()->json(['message' => 'Unauthorized.'], 401);
-    //     }
-
-    //     $validatedData = $request->validate([
-    //         'ItineraryId'     => 'required|integer|exists:itinerarydata,ItineraryId',
-    //         'uploadDate'      => 'nullable|date',
-    //         'certificateFile' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-    //         'approvelStatus'  => 'nullable|string|max:255',
-    //         'emissionOffset'  => 'nullable|numeric',
-    //         'treesPlanted'    => 'nullable|integer',
-    //         'projectTypes'    => 'nullable|string|max:255',
-    //         'comments'        => 'nullable|string|max:1000',
-    //     ]);
-    //     Log::info('Validated data in store()', ['validatedData' => $validatedData]);
-
-    //     $itinerary = ItineraryData::where('ItineraryId', $validatedData['ItineraryId'])
-    //         ->where('userId', $user->userId)
-    //         ->first();
-
-    //     if (!$itinerary) {
-    //         Log::warning('Attempt to store SingleItinerary with unauthorized ItineraryId', [
-    //             'userId' => $user->userId,
-    //             'ItineraryId' => $validatedData['ItineraryId']
-    //         ]);
-    //         return response()->json(['message' => 'Unauthorized: ItineraryId does not belong to the authenticated user.'], 403);
-    //     }
-
-    //     if ($request->hasFile('certificateFile')) {
-    //         $file = $request->file('certificateFile');
-    //         $path = $file->store('certificates', 'public');
-    //         $validatedData['certificateFile'] = $path;
-    //         Log::info('Certificate file uploaded in store()', ['path' => $path]);
-    //     } else {
-    //         unset($validatedData['certificateFile']);
-    //     }
-
-    //     $validatedData['userId'] = $user->userId;
-
-    //     $singleItinerary = SingleItineraryData::create($validatedData);
-    //     Log::info('SingleItinerary created', ['singleItinerary' => $singleItinerary]);
-
-    //     return response()->json([
-    //         'message' => 'SingleItinerary created successfully.',
-    //         'data' => $singleItinerary
-    //     ], 201);
-    // }
-    // public function store(Request $request)
+    // 1. public function store(Request $request)
     // {
     //     $authUser = $request->user();
     //     Log::info('store() called in SingleItineraryController', ['user' => $authUser, 'request' => $request->all()]);
@@ -201,162 +149,321 @@ public function index(Request $request)
     //     ]);
     // }
 
+    // 2. public function store(Request $request)
+    // {
+    //     $authUser = $request->user();
+    
+    //     Log::info('store() called in SingleItineraryController', [
+    //         'user'    => $authUser,
+    //         'request' => $request->all()
+    //     ]);
+    
+    //     if (!$authUser) {
+    //         Log::warning('Unauthorized access attempt in store()');
+    //         return response()->json([
+    //             'status'  => false,
+    //             'message' => 'Unauthorized.'
+    //         ], 401);
+    //     }
+    
+    //     /** ---------------- ADMIN CHECK ---------------- */
+    //     $isAdmin = AdminData::where('id', $authUser->id)->exists();
+    
+    //     /** ---------------- VALIDATION ---------------- */
+    //     $validatedData = $request->validate([
+    //         'ItineraryId'     => 'required|integer|exists:itinerarydata,ItineraryId',
+    //         'uploadDate'      => 'nullable|date',
+    //         'certificateFile' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+    //         'approvelStatus'  => 'nullable|string', // Removed `in:` rule
+    //         'emissionOffset'  => 'nullable|integer|min:0',
+    //         'projectTypes'    => 'nullable|string|max:255',
+    //         'comments'        => 'nullable|string|max:1000',
+    //         'count'           => 'nullable|integer|min:0',
+    //         'note'            => 'nullable|string|max:1000',
+    //     ]);
+    
+    //     Log::info('Validated data in store()', $validatedData);
+    
+    //     /** ---------------- ITINERARY ---------------- */
+    //     $itinerary = ItineraryData::where(
+    //         'ItineraryId',
+    //         $validatedData['ItineraryId']
+    //     )->first();
+    
+    //     if (!$itinerary) {
+    //         return response()->json([
+    //             'status'  => false,
+    //             'message' => 'Itinerary not found.'
+    //         ], 404);
+    //     }
+    
+    //     /** ---------------- OWNERSHIP CHECK ---------------- */
+    //     if (!$isAdmin && $itinerary->userId !== $authUser->userId) {
+    //         Log::warning('Unauthorized itinerary access', [
+    //             'userId'      => $authUser->userId,
+    //             'ItineraryId' => $validatedData['ItineraryId']
+    //         ]);
+    
+    //         return response()->json([
+    //             'status'  => false,
+    //             'message' => 'Unauthorized: Itinerary does not belong to this user.'
+    //         ], 403);
+    //     }
+    
+    //     /** ---------------- FILE UPLOAD ---------------- */
+    //     if ($request->hasFile('certificateFile')) {
+    //         $path = $request->file('certificateFile')
+    //             ->store('certificates', 'public');
+    
+    //         $validatedData['certificateFile'] = $path;
+    //     }
+    
+    //     /** ---------------- USER ID ---------------- */
+    //     $validatedData['userId'] = $isAdmin
+    //         ? $itinerary->userId
+    //         : $authUser->userId;
+    
+    //     /** ---------------- DEFAULTS ---------------- */
+    //     $approvalStatus   = $validatedData['approvelStatus'] ?? null;
+    //     $requestedOffset  = (int) ($validatedData['emissionOffset'] ?? 0);
+    //     $offsetCreditAdded = 0;
+    
+    //     DB::transaction(function () use (
+    //         $validatedData,
+    //         $approvalStatus,
+    //         $requestedOffset,
+    //         $itinerary,
+    //         &$offsetCreditAdded
+    //     ) {
+    
+    //         /** ---------------- CREATE SINGLE ITINERARY ---------------- */
+    //         $singleItinerary = new SingleItineraryData($validatedData);
+    
+    //         /** If not completed → just save */
+    //         if ($approvalStatus !== 'Completed') {
+    //             $singleItinerary->save();
+    //             return;
+    //         }
+    
+    //         /** ---------------- EMISSION LIMITS ---------------- */
+    //         $emissionLimit = $itinerary->emission;
+    //         $currentOffset = $itinerary->offsetAmount ?? 0;
+    
+    //         $remainingEmission = max(
+    //             $emissionLimit - $currentOffset,
+    //             0
+    //         );
+    
+    //         /** ---------------- APPLY OFFSET ---------------- */
+    //         $appliedOffset = min($requestedOffset, $remainingEmission);
+    //         $extraOffset   = $requestedOffset - $appliedOffset;
+    
+    //         /** ---------------- SAVE SINGLE ITINERARY ---------------- */
+    //         $singleItinerary->emissionOffset = $appliedOffset;
+    //         $singleItinerary->treesPlanted   = intdiv($appliedOffset, 50);
+    //         $singleItinerary->save();
+    
+    //         /** ---------------- UPDATE MASTER ITINERARY ---------------- */
+    //         $newOffset = $currentOffset + $appliedOffset;
+    //         $newTrees  = intdiv($newOffset, 50);
+    
+    //         $offsetPercentage = $emissionLimit > 0
+    //             ? min(round(($newOffset / $emissionLimit) * 100, 2), 100)
+    //             : 0;
+    
+    //         $status = match (true) {
+    //             $offsetPercentage == 0  => 'pending',
+    //             $offsetPercentage < 100 => 'partial',
+    //             default                 => 'completed',
+    //         };
+    
+    //         $itinerary->update([
+    //             'offsetAmount'     => $newOffset,
+    //             'numberOfTrees'    => $newTrees,
+    //             'offsetPercentage' => $offsetPercentage,
+    //             'status'           => $status
+    //         ]);
+    
+    //         /** ---------------- USER CREDIT ---------------- */
+    //         if ($extraOffset > 0) {
+    //             $user = User::where('userId', $itinerary->userId)
+    //                 ->lockForUpdate()
+    //                 ->first();
+    
+    //             $user->offsetCredit += $extraOffset;
+    //             $user->save();
+    
+    //             $offsetCreditAdded = $user->offsetCredit;
+    //         }
+    //     });
+    
+    //     return response()->json([
+    //         'status'            => true,
+    //         'message'           => 'SingleItinerary created successfully.',
+    //         'offsetCreditAdded' => $offsetCreditAdded,
+    //         'info'              => 'Extra offset stored as user credit (if any)'
+    //     ]);
+    // }
+    
     public function store(Request $request)
-    {
-        $authUser = $request->user();
-    
-        Log::info('store() called in SingleItineraryController', [
-            'user'    => $authUser,
-            'request' => $request->all()
-        ]);
-    
-        if (!$authUser) {
-            Log::warning('Unauthorized access attempt in store()');
-            return response()->json([
-                'status'  => false,
-                'message' => 'Unauthorized.'
-            ], 401);
-        }
-    
-        /** ---------------- ADMIN CHECK ---------------- */
-        $isAdmin = AdminData::where('id', $authUser->id)->exists();
-    
-        /** ---------------- VALIDATION ---------------- */
-        $validatedData = $request->validate([
-            'ItineraryId'     => 'required|integer|exists:itinerarydata,ItineraryId',
-            'uploadDate'      => 'nullable|date',
-            'certificateFile' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'approvelStatus'  => 'nullable|string', // Removed `in:` rule
-            'emissionOffset'  => 'nullable|integer|min:0',
-            'projectTypes'    => 'nullable|string|max:255',
-            'comments'        => 'nullable|string|max:1000',
-            'count'           => 'nullable|integer|min:0',
-            'note'            => 'nullable|string|max:1000',
-        ]);
-    
-        Log::info('Validated data in store()', $validatedData);
-    
-        /** ---------------- ITINERARY ---------------- */
-        $itinerary = ItineraryData::where(
-            'ItineraryId',
-            $validatedData['ItineraryId']
-        )->first();
-    
-        if (!$itinerary) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'Itinerary not found.'
-            ], 404);
-        }
-    
-        /** ---------------- OWNERSHIP CHECK ---------------- */
-        if (!$isAdmin && $itinerary->userId !== $authUser->userId) {
-            Log::warning('Unauthorized itinerary access', [
-                'userId'      => $authUser->userId,
-                'ItineraryId' => $validatedData['ItineraryId']
-            ]);
-    
-            return response()->json([
-                'status'  => false,
-                'message' => 'Unauthorized: Itinerary does not belong to this user.'
-            ], 403);
-        }
-    
-        /** ---------------- FILE UPLOAD ---------------- */
-        if ($request->hasFile('certificateFile')) {
-            $path = $request->file('certificateFile')
-                ->store('certificates', 'public');
-    
-            $validatedData['certificateFile'] = $path;
-        }
-    
-        /** ---------------- USER ID ---------------- */
-        $validatedData['userId'] = $isAdmin
-            ? $itinerary->userId
-            : $authUser->userId;
-    
-        /** ---------------- DEFAULTS ---------------- */
-        $approvalStatus   = $validatedData['approvelStatus'] ?? null;
-        $requestedOffset  = (int) ($validatedData['emissionOffset'] ?? 0);
-        $offsetCreditAdded = 0;
-    
-        DB::transaction(function () use (
-            $validatedData,
-            $approvalStatus,
-            $requestedOffset,
-            $itinerary,
-            &$offsetCreditAdded
-        ) {
-    
-            /** ---------------- CREATE SINGLE ITINERARY ---------------- */
-            $singleItinerary = new SingleItineraryData($validatedData);
-    
-            /** If not completed → just save */
-            if ($approvalStatus !== 'Completed') {
-                $singleItinerary->save();
-                return;
-            }
-    
-            /** ---------------- EMISSION LIMITS ---------------- */
-            $emissionLimit = $itinerary->emission;
-            $currentOffset = $itinerary->offsetAmount ?? 0;
-    
-            $remainingEmission = max(
-                $emissionLimit - $currentOffset,
-                0
-            );
-    
-            /** ---------------- APPLY OFFSET ---------------- */
-            $appliedOffset = min($requestedOffset, $remainingEmission);
-            $extraOffset   = $requestedOffset - $appliedOffset;
-    
-            /** ---------------- SAVE SINGLE ITINERARY ---------------- */
-            $singleItinerary->emissionOffset = $appliedOffset;
-            $singleItinerary->treesPlanted   = intdiv($appliedOffset, 50);
-            $singleItinerary->save();
-    
-            /** ---------------- UPDATE MASTER ITINERARY ---------------- */
-            $newOffset = $currentOffset + $appliedOffset;
-            $newTrees  = intdiv($newOffset, 50);
-    
-            $offsetPercentage = $emissionLimit > 0
-                ? min(round(($newOffset / $emissionLimit) * 100, 2), 100)
-                : 0;
-    
-            $status = match (true) {
-                $offsetPercentage == 0  => 'pending',
-                $offsetPercentage < 100 => 'partial',
-                default                 => 'completed',
-            };
-    
-            $itinerary->update([
-                'offsetAmount'     => $newOffset,
-                'numberOfTrees'    => $newTrees,
-                'offsetPercentage' => $offsetPercentage,
-                'status'           => $status
-            ]);
-    
-            /** ---------------- USER CREDIT ---------------- */
-            if ($extraOffset > 0) {
-                $user = User::where('userId', $itinerary->userId)
-                    ->lockForUpdate()
-                    ->first();
-    
-                $user->offsetCredit += $extraOffset;
-                $user->save();
-    
-                $offsetCreditAdded = $user->offsetCredit;
-            }
-        });
-    
+{
+    $authUser = $request->user();
+
+    Log::info('store() called in SingleItineraryController', [
+        'user'    => $authUser,
+        'request' => $request->all()
+    ]);
+
+    if (!$authUser) {
+        Log::warning('Unauthorized access attempt in store()');
         return response()->json([
-            'status'            => true,
-            'message'           => 'SingleItinerary created successfully.',
-            'offsetCreditAdded' => $offsetCreditAdded,
-            'info'              => 'Extra offset stored as user credit (if any)'
-        ]);
+            'status'  => false,
+            'message' => 'Unauthorized.'
+        ], 401);
     }
-    
+
+    /** ---------------- ADMIN CHECK ---------------- */
+    $isAdmin = AdminData::where('id', $authUser->id)->exists();
+
+    /** ---------------- VALIDATION ---------------- */
+    $validatedData = $request->validate([
+        'ItineraryId'     => 'required|integer|exists:itinerarydata,ItineraryId',
+        'uploadDate'      => 'nullable|date',
+        'certificateFile' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        'approvelStatus'  => 'nullable|string', // Removed `in:` rule
+        'emissionOffset'  => 'nullable|integer|min:0',
+        'projectTypes'    => 'nullable|string|max:255',
+        'comments'        => 'nullable|string|max:1000',
+        'count'           => 'nullable|integer|min:0',
+        'note'            => 'nullable|string|max:1000',
+    ]);
+
+    Log::info('Validated data in store()', $validatedData);
+
+    /** ---------------- ITINERARY ---------------- */
+    $itinerary = ItineraryData::where(
+        'ItineraryId',
+        $validatedData['ItineraryId']
+    )->first();
+
+    if (!$itinerary) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Itinerary not found.'
+        ], 404);
+    }
+
+    /** ---------------- OWNERSHIP CHECK ---------------- */
+    if (!$isAdmin && $itinerary->userId !== $authUser->userId) {
+        Log::warning('Unauthorized itinerary access', [
+            'userId'      => $authUser->userId,
+            'ItineraryId' => $validatedData['ItineraryId']
+        ]);
+
+        return response()->json([
+            'status'  => false,
+            'message' => 'Unauthorized: Itinerary does not belong to this user.'
+        ], 403);
+    }
+
+    /** ---------------- FILE UPLOAD ---------------- */
+    if ($request->hasFile('certificateFile')) {
+        $path = $request->file('certificateFile')
+            ->store('certificates', 'public');
+
+        $validatedData['certificateFile'] = $path;
+    }
+
+    /** ---------------- USER ID ---------------- */
+    $validatedData['userId'] = $isAdmin
+        ? $itinerary->userId
+        : $authUser->userId;
+
+    /** ---------------- DEFAULTS ---------------- */
+    $approvalStatus   = $validatedData['approvelStatus'] ?? null;
+    $requestedOffset  = (int) ($validatedData['emissionOffset'] ?? 0);
+    $offsetCreditAdded = 0;
+
+    DB::transaction(function () use (
+        $validatedData,
+        $approvalStatus,
+        $requestedOffset,
+        $itinerary,
+        &$offsetCreditAdded
+    ) {
+
+        /** ---------------- CREATE SINGLE ITINERARY ---------------- */
+        $singleItinerary = new SingleItineraryData($validatedData);
+
+        /** If not completed → just save */
+        if ($approvalStatus !== 'Completed') {
+            $singleItinerary->save();
+            return;
+        }
+
+        /** ---------------- EMISSION LIMITS ---------------- */
+        $emissionLimit = $itinerary->emission;
+        $currentOffset = $itinerary->offsetAmount ?? 0;
+
+        $remainingEmission = max(
+            $emissionLimit - $currentOffset,
+            0
+        );
+
+        /** ---------------- APPLY OFFSET ---------------- */
+        $appliedOffset = min($requestedOffset, $remainingEmission);
+        $extraOffset   = $requestedOffset - $appliedOffset;
+
+        /** ---------------- SAVE SINGLE ITINERARY ---------------- */
+        $singleItinerary->emissionOffset = $appliedOffset;
+        $singleItinerary->treesPlanted   = intdiv($appliedOffset, 50);
+        $singleItinerary->save();
+
+        /** ---------------- UPDATE MASTER ITINERARY ---------------- */
+        $newOffset = $currentOffset + $appliedOffset;
+        $newTrees  = intdiv($newOffset, 50);
+
+        $offsetPercentage = $emissionLimit > 0
+            ? min(round(($newOffset / $emissionLimit) * 100, 2), 100)
+            : 0;
+
+        $status = match (true) {
+            $offsetPercentage == 0  => 'pending',
+            $offsetPercentage < 100 => 'partial',
+            default                 => 'completed',
+        };
+
+        $itinerary->update([
+            'offsetAmount'     => $newOffset,
+            'numberOfTrees'    => $newTrees,
+            'offsetPercentage' => $offsetPercentage,
+            'status'           => $status
+        ]);
+
+        /** ---------------- USER CREDIT ---------------- */
+        $user = User::where('userId', $itinerary->userId)
+            ->lockForUpdate()
+            ->first();
+
+        if ($extraOffset > 0) {
+            // Add extraOffset to user's offsetCredit
+            $user->offsetCredit = ($user->offsetCredit ?? 0) + $extraOffset;
+            $user->save();
+
+            $offsetCreditAdded = $extraOffset; // only the amount added
+        } else {
+            $offsetCreditAdded = 0;
+        }
+    });
+
+    return response()->json([
+        'status'            => true,
+        'message'           => 'SingleItinerary created successfully.',
+        'offsetCreditAdded' => $offsetCreditAdded,
+        'info'              => 'Extra offset stored as user credit (if any)'
+    ]);
+}
+
 
 
     
