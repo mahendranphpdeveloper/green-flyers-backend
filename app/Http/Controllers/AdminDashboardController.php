@@ -35,52 +35,56 @@ class AdminDashboardController extends Controller
     }
 
     //Dashboard stats
+    
     // public function getAdminDashboardStats(Request $request)
     // {
-    //     // Admin authentication
+    //     // ------------------ ADMIN AUTH ------------------
     //     if ($response = $this->checkAdmin($request)) {
     //         Log::warning('Admin check failed for getAdminDashboardStats');
     //         return $response;
     //     }
 
+    //     $activeMonths   = 6;
+    //     $activeFromDate = Carbon::now()->subMonths($activeMonths);
 
-    //     $totalEnrolledUsers = ItineraryData::whereNotNull('updated_at')
-    //         ->distinct('userId')
-    //         ->count('userId');
+    //     $totalEnrolledUsers = ItineraryData::select('userId')
+    //         ->selectRaw('MAX(GREATEST(created_at, updated_at)) as last_activity')
+    //         ->groupBy('userId')
+    //         ->having('last_activity', '>=', $activeFromDate)
+    //         ->count();
 
-
-
-    //     $itineraryOffsetKg = (float) ItineraryData::sum('offsetAmount');
-    //     $userCreditKg     = (float) User::sum('offsetCredit');
-
-    //     $totalOffsetKg     = $itineraryOffsetKg + $userCreditKg;
-    //     $totalOffsetTonnes = round($totalOffsetKg / 1000, 2);
-
-
-
+    //     $totalOffsetTonnes = round(
+    //         ((float) ItineraryData::sum('offsetAmount') +
+    //             (float) User::sum('offsetCredit')) / 1000,
+    //         2
+    //     );
     //     $totalTreesPlanted = (int) ItineraryData::sum('numberOfTrees');
 
+    //     $vendorsProjects = VendorsData::whereNotNull('projects')->pluck('projects');
 
-
-    //     $vendorsProjects = VendorsData::whereNotNull('projects')
-    //         ->pluck('projects');
-
-    //     $totalProjects = 0;
+    //     $uniqueProjects = [];
 
     //     foreach ($vendorsProjects as $projectsJson) {
     //         $projects = json_decode($projectsJson, true);
 
-    //         if (is_array($projects)) {
-    //             $totalProjects += count(array_filter($projects));
+    //         if (!is_array($projects)) continue;
+
+    //         foreach ($projects as $projectName) {
+    //             if (!is_string($projectName)) continue;
+
+    //             $normalized = strtolower(trim($projectName));
+    //             if ($normalized !== '') {
+    //                 $uniqueProjects[$normalized] = true;
+    //             }
     //         }
     //     }
 
-
     //     return response()->json([
-    //         'total_enrolled_users'   => $totalEnrolledUsers,
-    //         'total_emissions_offset' => $totalOffsetTonnes, // TONNES
+    //         'active_enrolled_users'  => $totalEnrolledUsers,
+    //         'total_emissions_offset' => $totalOffsetTonnes,
     //         'total_trees_planted'    => $totalTreesPlanted,
-    //         'total_projects'         => $totalProjects
+    //         'total_projects'         => count($uniqueProjects),
+    //         'active_user_window'     => "{$activeMonths} months"
     //     ]);
     // }
     public function getAdminDashboardStats(Request $request)
@@ -105,6 +109,7 @@ class AdminDashboardController extends Controller
                 (float) User::sum('offsetCredit')) / 1000,
             2
         );
+
         $totalTreesPlanted = (int) ItineraryData::sum('numberOfTrees');
 
         $vendorsProjects = VendorsData::whereNotNull('projects')->pluck('projects');
@@ -126,8 +131,12 @@ class AdminDashboardController extends Controller
             }
         }
 
+        // Add total users count
+        $totalUsers = User::count();
+
         return response()->json([
             'active_enrolled_users'  => $totalEnrolledUsers,
+            'total_users'            => $totalUsers,
             'total_emissions_offset' => $totalOffsetTonnes,
             'total_trees_planted'    => $totalTreesPlanted,
             'total_projects'         => count($uniqueProjects),
