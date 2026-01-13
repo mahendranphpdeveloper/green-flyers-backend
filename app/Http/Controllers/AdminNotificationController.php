@@ -145,7 +145,7 @@ public function store(Request $request)
     // Validate including itinerary_id, optionally singleitinerary_id if needed for your structure
     $request->validate([
         'user_id'        => 'required|integer',
-        'itinerary_id'   => 'required|integer',
+        'itinerary_id'   => 'nullable|integer',
         'singleitinerary_id' => 'nullable|integer', // singleitinerary_id now optional; make required if needed
         'title'          => 'required|string|max:255',
         'message'        => 'required|string|max:255',
