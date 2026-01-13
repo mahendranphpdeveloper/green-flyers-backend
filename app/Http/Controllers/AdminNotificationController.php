@@ -142,31 +142,40 @@ public function store(Request $request)
         'data' => $request->all()
     ]);
 
-    // Validate including singleitinerary_id
+    // Validate including itinerary_id, optionally singleitinerary_id if needed for your structure
     $request->validate([
-        'user_id'             => 'required|integer',
-        'singleitinerary_id'  => 'required|integer',
-        'title'               => 'required|string|max:255',
-        'message'             => 'required|string|max:255',
-        'status'              => 'required|string|max:50',
-        'update_date'         => 'nullable|string|max:255',
+        'user_id'        => 'required|integer',
+        'itinerary_id'   => 'required|integer',
+        'singleitinerary_id' => 'nullable|integer', // singleitinerary_id now optional; make required if needed
+        'title'          => 'required|string|max:255',
+        'message'        => 'required|string|max:255',
+        'status'         => 'required|string|max:50',
+        'update_date'    => 'nullable|string|max:255',
     ]);
 
-    //  Create notification WITH itinerary reference
-    $notification = UserNotification::create([
-        'user_id'            => $request->user_id,
-        'singleitinerary_id' => $request->singleitinerary_id,
-        'title'              => $request->title,
-        'message'            => $request->message,
-        'status'             => $request->status,
-        'is_read'            => 'false',
-        'update_date'        => $request->update_date ?? now()->toDateTimeString(),
-    ]);
+    // Create notification including the itinerary_id
+    $notificationData = [
+        'user_id'        => $request->user_id,
+        'itinerary_id'   => $request->itinerary_id,
+        'title'          => $request->title,
+        'message'        => $request->message,
+        'status'         => $request->status,
+        'is_read'        => 'false',
+        'update_date'    => $request->update_date ?? now()->toDateTimeString(),
+    ];
+
+    // Optionally set singleitinerary_id if provided
+    if ($request->has('singleitinerary_id')) {
+        $notificationData['singleitinerary_id'] = $request->singleitinerary_id;
+    }
+
+    $notification = UserNotification::create($notificationData);
 
     Log::info('Admin notification reminder created successfully', [
         'notification_id' => $notification->id,
         'user_id' => $request->user_id,
-        'singleitinerary_id' => $request->singleitinerary_id
+        'itinerary_id' => $request->itinerary_id,
+        'singleitinerary_id' => $request->singleitinerary_id ?? null,
     ]);
 
     return response()->json([
