@@ -4,16 +4,46 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+use App\Models\AdminData;
 use Symfony\Component\HttpFoundation\Response;
 
 class CertificateController extends Controller
 {
     /**
+     * Check admin authentication (copied from AdminDashboardController)
+     */
+    private function checkAdmin(Request $request)
+    {
+        $admin = $request->user();
+
+        if (!$admin || !AdminData::where('id', $admin->id)->exists()) {
+            Log::warning('Unauthorized admin access attempt.', [
+                'admin_id' => $admin ? $admin->id : null,
+                'ip' => $request->ip()
+            ]);
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized admin access'
+            ], 403);
+        }
+
+        return null;
+    }
+
+    /**
      * View certificate file
+     * @param \Illuminate\Http\Request $request
      * @param string $fileName
      */
-    public function view($fileName)
+    public function view(Request $request, $fileName)
     {
+        // Authenticate admin before proceeding
+        if ($response = $this->checkAdmin($request)) {
+            Log::warning('Admin check failed for view certificate');
+            return $response;
+        }
+
         // Full path in storage/app/public/certificates
         $filePath = storage_path('app/public/certificates/' . $fileName);
 
