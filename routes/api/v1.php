@@ -85,6 +85,8 @@ Route::prefix('singleItinerary')->group(function () {
 
 Route::get('/admin/certificate/download/{path}', [\App\Http\Controllers\AdminCertificateController::class, 'download'])->where('path', '.*');
 
+Route::get('/admin/certificate/view/{fileName}', [\App\Http\Controllers\CertificateController::class, 'view']);
+
 // tree offset value
 Route::put('/treeoffsetvalue', [\App\Http\Controllers\HomeManageController::class, 'updateTreeOffsetValue']);
 
