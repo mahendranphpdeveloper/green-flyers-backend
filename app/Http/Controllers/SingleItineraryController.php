@@ -329,7 +329,22 @@ public function index(Request $request)
     $validatedData = $request->validate([
         'ItineraryId'     => 'required|integer|exists:itinerarydata,ItineraryId',
         'uploadDate'      => 'nullable|date',
-        'certificateFile' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        'certificateFile' => [
+            'nullable',
+            function ($attribute, $value, $fail) use ($request) {
+                // Accept if file is uploaded, or if string value present (e.g. after previous upload)
+                if (
+                    is_string($value) ||
+                    $request->hasFile('certificateFile')
+                ) {
+                    return true;
+                }
+                // else, if file, let Laravel's file rule handle it
+            },
+            'file',
+            'mimes:pdf,jpg,jpeg,png',
+            'max:5120'
+        ],
         'approvelStatus'  => 'nullable|string', // Removed `in:` rule
         'emissionOffset'  => 'nullable|integer|min:0',
         'projectTypes'    => 'nullable|string|max:255',
