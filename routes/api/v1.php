@@ -83,9 +83,9 @@ Route::prefix('singleItinerary')->group(function () {
     Route::delete('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'destroy']);
 });
 
-Route::get('/admin/certificate/download/{path}', [\App\Http\Controllers\AdminCertificateController::class, 'download'])->where('path', '.*');
+// Route::get('/admin/certificate/download/{path}', [\App\Http\Controllers\AdminCertificateController::class, 'download'])->where('path', '.*');
 
-Route::get('/admin/certificate/view/{fileName}', [\App\Http\Controllers\CertificateController::class, 'view']);
+// Route::get('/admin/certificate/view/{fileName}', [\App\Http\Controllers\CertificateController::class, 'view']);
 
 // tree offset value
 Route::put('/treeoffsetvalue', [\App\Http\Controllers\HomeManageController::class, 'updateTreeOffsetValue']);
@@ -235,6 +235,10 @@ Route::prefix('admin/notification-reminder')->group(function () {
     Route::put('/users/notifications/{id}', [\App\Http\Controllers\AdminNotificationController::class, 'markAsRead']);
 
     Route::post('singleItinerary/store', [\App\Http\Controllers\SingleItineraryController::class, 'store']);
+
+    Route::get('/admin/certificate/download/{path}', [\App\Http\Controllers\AdminCertificateController::class, 'download'])->where('path', '.*');
+
+Route::get('/admin/certificate/view/{fileName}', [\App\Http\Controllers\CertificateController::class, 'view']);
 
 
 
