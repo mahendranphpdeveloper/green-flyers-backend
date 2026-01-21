@@ -467,13 +467,16 @@ class SingleItineraryController extends Controller
 
     $requestedOffset   = (int) ($validatedData['emissionOffset'] ?? 0);
     $offsetCreditAdded = 0;
+    $updatedUser       = null;
 
+    /** ---------------- TRANSACTION ---------------- */
     DB::transaction(function () use (
         $validatedData,
         $approvalStatus,
-        $requestedOffset,
+        &$requestedOffset,
         $itinerary,
-        &$offsetCreditAdded
+        &$offsetCreditAdded,
+        &$updatedUser
     ) {
         /** ---------------- CREATE SINGLE ITINERARY ---------------- */
         $singleItinerary = new SingleItineraryData($validatedData);
@@ -483,6 +486,10 @@ class SingleItineraryController extends Controller
             ->lockForUpdate()
             ->first();
 
+        if (!$user) {
+            throw new \Exception('User not found');
+        }
+
         // Default offsets for Pending / Verification / Rejected
         $appliedOffset = 0;
         $creditUsed = 0;
@@ -490,14 +497,12 @@ class SingleItineraryController extends Controller
 
         // ---------------- CASE: Completed or Admin-added offset ----------------
         if (strcasecmp($approvalStatus, 'Completed') === 0 || $requestedOffset > 0) {
-            // Use user's offset credit
             $userCredit = $user->offsetCredit ?? 0;
+
+            // Use available user credit first
             $creditUsed = min($requestedOffset, $userCredit);
             $requestedOffset -= $creditUsed;
             $user->offsetCredit -= $creditUsed;
-
-            // Save user after using credit
-            $user->save();
 
             // Calculate applied offset within itinerary emission limit
             $emissionLimit = $itinerary->emission;
@@ -507,7 +512,7 @@ class SingleItineraryController extends Controller
             $appliedOffset = min($requestedOffset, $remainingEmission);
             $extraOffset = $requestedOffset - $appliedOffset;
 
-            // Save offsets in SingleItinerary
+            // Update SingleItinerary offsets
             $singleItinerary->emissionOffset = $appliedOffset + $creditUsed;
             $singleItinerary->treesPlanted = intdiv($singleItinerary->emissionOffset, 50);
 
@@ -531,9 +536,11 @@ class SingleItineraryController extends Controller
             // Return extra offset to user if any
             if ($extraOffset > 0) {
                 $user->offsetCredit += $extraOffset;
-                $user->save();
                 $offsetCreditAdded = $extraOffset;
             }
+
+            // Save user offset changes
+            $user->save();
         } else {
             // ---------------- CASE: Pending / Verification / Rejected ----------------
             $singleItinerary->emissionOffset = 0;
@@ -543,15 +550,16 @@ class SingleItineraryController extends Controller
         /** ---------------- SAVE SINGLE ITINERARY ---------------- */
         $singleItinerary->save();
 
-        // Pass updated offsetCredit to response
-        $validatedData['updatedOffsetCredit'] = $user->offsetCredit;
+        // Set updated user to return outside transaction
+        $updatedUser = $user;
     });
 
+    /** ---------------- RETURN RESPONSE ---------------- */
     return response()->json([
         'status'            => true,
         'message'           => 'SingleItinerary created successfully',
         'offsetCreditAdded' => $offsetCreditAdded,
-        'updatedOffsetCredit' => $validatedData['updatedOffsetCredit'] ?? 0,
+        'userOffsetCredit'  => $updatedUser->offsetCredit ?? 0,
     ]);
 }
 
