@@ -462,26 +462,9 @@ class SingleItineraryController extends Controller
 
     public function store(Request $request)
 {
-    /** ---------------- AUTH RESOLUTION ---------------- */
-    $user  = auth('sanctum')->user(); // App\Models\User
-    $admin = auth('admin')->user();   // App\Models\AdminData
-
     Log::info('store() called in SingleItineraryController', [
-        'user'  => $user,
-        'admin' => $admin,
         'request' => $request->all()
     ]);
-
-    if (!$user && !$admin) {
-        Log::warning('Unauthorized access attempt in store()');
-        return response()->json([
-            'status'  => false,
-            'message' => 'Unauthorized.'
-        ], 401);
-    }
-
-    $isAdmin  = (bool) $admin;
-    $authUser = $admin ?? $user;
 
     /** ---------------- VALIDATION ---------------- */
     $validatedData = $request->validate([
@@ -509,19 +492,6 @@ class SingleItineraryController extends Controller
         ], 404);
     }
 
-    /** ---------------- OWNERSHIP CHECK ---------------- */
-    if (!$isAdmin && $itinerary->userId !== $user->userId) {
-        Log::warning('Unauthorized itinerary access', [
-            'userId'      => $user->userId,
-            'ItineraryId' => $validatedData['ItineraryId']
-        ]);
-
-        return response()->json([
-            'status'  => false,
-            'message' => 'Unauthorized: Itinerary does not belong to this user.'
-        ], 403);
-    }
-
     /** ---------------- FILE UPLOAD ---------------- */
     if ($request->hasFile('certificateFile')) {
         $validatedData['certificateFile'] = $request->file('certificateFile')
@@ -543,7 +513,6 @@ class SingleItineraryController extends Controller
         $itinerary,
         &$offsetCreditAdded
     ) {
-
         $singleItinerary = new SingleItineraryData($validatedData);
 
         /** ---------------- FETCH USER ---------------- */

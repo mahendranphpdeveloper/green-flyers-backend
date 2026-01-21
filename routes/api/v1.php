@@ -76,7 +76,7 @@ Route::prefix('itineraries')->group(function () {
 //SingleItinerary 
 Route::prefix('singleItinerary')->group(function () {
     Route::get('/', [\App\Http\Controllers\SingleItineraryController::class, 'index']);
-    Route::post('/store', [\App\Http\Controllers\SingleItineraryController::class, 'store']);
+    // Route::post('/store', [\App\Http\Controllers\SingleItineraryController::class, 'store']);
     Route::get('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'show']);
     Route::get('/{userId}/itinerary/{ItineraryId}', [\App\Http\Controllers\SingleItineraryController::class, 'getByUserAndItinerary']);
     Route::put('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'update']);
@@ -233,6 +233,8 @@ Route::prefix('admin/notification-reminder')->group(function () {
     //user view the notification 
 
     Route::put('/users/notifications/{id}', [\App\Http\Controllers\AdminNotificationController::class, 'markAsRead']);
+
+    Route::post('singleItinerary/store', [\App\Http\Controllers\SingleItineraryController::class, 'store']);
 
 
 
