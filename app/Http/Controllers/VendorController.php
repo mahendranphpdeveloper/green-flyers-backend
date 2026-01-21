@@ -635,8 +635,69 @@ class VendorController extends Controller
         ], 200);
     }
 
-    //fetch the projects types only 
-    public function getProjectTypes(Request $request)
+    //fetch the projects Contributors only 
+//     public function getProjectTypes(Request $request)
+// {
+//     $authUser = $request->user();
+
+//     if (!$authUser) {
+//         return response()->json([
+//             'status' => false,
+//             'message' => 'Unauthorized access'
+//         ], 401);
+//     }
+
+//     // Fetch only ACTIVE vendors
+//     $vendors = VendorsData::where('status', 'active')->get(['projects']);
+
+//     $projectTypes = [];
+//     $normalizedMap = []; // to track uniqueness
+
+//     foreach ($vendors as $vendor) {
+
+//         $projects = $vendor->projects;
+
+//         // Decode if stored as JSON string
+//         if (is_string($projects)) {
+//             $projects = json_decode($projects, true);
+//         }
+
+//         if (!is_array($projects)) {
+//             continue;
+//         }
+
+//         foreach ($projects as $projectName) {
+
+//             if (!is_string($projectName)) {
+//                 continue;
+//             }
+
+//             // Normalize value for comparison
+//             $normalized = strtolower(trim($projectName));
+
+//             if ($normalized === '') {
+//                 continue;
+//             }
+
+//             // If already added, skip
+//             if (isset($normalizedMap[$normalized])) {
+//                 continue;
+//             }
+
+//             // Store normalized reference
+//             $normalizedMap[$normalized] = true;
+
+//             // Store clean display value
+//             $projectTypes[] = trim($projectName);
+//         }
+//     }
+
+//     return response()->json([
+//         'status' => true,
+//         'data' => $projectTypes
+//     ]);
+// }
+public function getProjectContributors(Request $request)
 {
     $authUser = $request->user();
 
@@ -647,17 +708,22 @@ class VendorController extends Controller
         ], 401);
     }
 
-    // Fetch only ACTIVE vendors
-    $vendors = VendorsData::where('status', 'active')->get(['projects']);
+    // Fetch ACTIVE vendors with contributors
+    $vendors = VendorsData::where('status', 'active')
+        ->whereNotNull('projectsContributed')
+        ->get(['projects', 'projectsContributed']);
 
-    $projectTypes = [];
-    $normalizedMap = []; // to track uniqueness
+    $contributorsMap = [];
 
     foreach ($vendors as $vendor) {
 
-        $projects = $vendor->projects;
+        $contributor = trim((string) $vendor->projectsContributed);
+        if ($contributor === '') {
+            continue;
+        }
 
-        // Decode if stored as JSON string
+        // Decode projects JSON
+        $projects = $vendor->projects;
         if (is_string($projects)) {
             $projects = json_decode($projects, true);
         }
@@ -666,37 +732,34 @@ class VendorController extends Controller
             continue;
         }
 
-        foreach ($projects as $projectName) {
+        // Initialize contributor key
+        if (!isset($contributorsMap[$contributor])) {
+            $contributorsMap[$contributor] = [];
+        }
 
-            if (!is_string($projectName)) {
+        foreach ($projects as $project) {
+            if (!is_string($project)) {
                 continue;
             }
 
-            // Normalize value for comparison
-            $normalized = strtolower(trim($projectName));
-
-            if ($normalized === '') {
+            $project = trim($project);
+            if ($project === '') {
                 continue;
             }
 
-            // If already added, skip
-            if (isset($normalizedMap[$normalized])) {
-                continue;
+            // Avoid duplicate projects
+            if (!in_array($project, $contributorsMap[$contributor])) {
+                $contributorsMap[$contributor][] = $project;
             }
-
-            // Store normalized reference
-            $normalizedMap[$normalized] = true;
-
-            // Store clean display value
-            $projectTypes[] = trim($projectName);
         }
     }
 
     return response()->json([
         'status' => true,
-        'data' => $projectTypes
+        'data' => $contributorsMap
     ]);
 }
+
 
 
 

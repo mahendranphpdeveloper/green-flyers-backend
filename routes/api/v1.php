@@ -116,7 +116,7 @@ Route::put('/treeoffsetvalue', [\App\Http\Controllers\HomeManageController::clas
 
 Route::prefix('vendors')->group(function () {
     Route::get('/', [\App\Http\Controllers\VendorController::class, 'index']);
-    Route::get('/projects-type', [\App\Http\Controllers\VendorController::class, 'getProjectTypes']);
+    Route::get('/projects_contributed', [\App\Http\Controllers\VendorController::class, 'getProjectContributors']);
     Route::post('/', [\App\Http\Controllers\VendorController::class, 'store']);
     Route::get('/{id}', [\App\Http\Controllers\VendorController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\VendorController::class, 'update']);
