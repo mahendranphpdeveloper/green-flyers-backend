@@ -585,16 +585,16 @@ public function store(Request $request)
 
     /** ---------------- VALIDATION ---------------- */
     $validatedData = $request->validate([
-        'ItineraryId'         => 'required|integer|exists:itinerarydata,ItineraryId',
-        'uploadDate'          => 'nullable|date',
-        'certificateFile'     => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-        'approvelStatus'      => 'nullable|string|in:Pending,Completed,Rejected',
-        'emissionOffset'      => 'nullable|integer|min:0',
-        'projectTypes'        => 'nullable|string|max:255',
-        'projectsContributed' => 'nullable|string|max:255',
-        'comments'            => 'nullable|string|max:1000',
-        'count'               => 'nullable|integer|min:0',
-        'note'                => 'nullable|string|max:1000',
+        'ItineraryId'            => 'required|integer|exists:itinerarydata,ItineraryId',
+        'uploadDate'             => 'nullable|date',
+        'certificateFile'        => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        'approvelStatus'         => 'nullable|string',
+        'emissionOffset'         => 'nullable|integer|min:0',
+        'projectTypes'           => 'nullable|string|max:255',
+        'projectsContributed'    => 'nullable|string|max:255',
+        'comments'               => 'nullable|string|max:1000',
+        'count'                  => 'nullable|integer|min:0',
+        'note'                   => 'nullable|string|max:1000',
     ]);
 
     /** ---------------- ITINERARY ---------------- */
@@ -610,12 +610,18 @@ public function store(Request $request)
             ->store('certificates', 'public');
     }
 
-    /** ---------------- DEFAULT VALUES ---------------- */
-    $validatedData['userId'] = $itinerary->userId;
-    $validatedData['approvelStatus'] = $validatedData['approvelStatus'] ?? 'Pending';
+    /** ---------------- NORMALIZE STATUS ---------------- */
+    $approvalStatus = $validatedData['approvelStatus'] ?? 'Pending';
 
-    $approvalStatus = $validatedData['approvelStatus'];
-    $requestedOffset = (int) ($validatedData['emissionOffset'] ?? 0);
+    // normalize frontend values
+    if ($approvalStatus === 'Pending Verification') {
+        $approvalStatus = 'Pending';
+    }
+
+    $validatedData['approvelStatus'] = $approvalStatus;
+    $validatedData['userId'] = $itinerary->userId;
+
+    $requestedOffset   = (int) ($validatedData['emissionOffset'] ?? 0);
     $offsetCreditAdded = 0;
 
     DB::transaction(function () use (
@@ -629,7 +635,7 @@ public function store(Request $request)
         /** ---------------- CREATE RECORD ---------------- */
         $singleItinerary = new SingleItineraryData($validatedData);
 
-        /** ---------------- IF NOT COMPLETED ---------------- */
+        /** ---------------- SAVE IF NOT COMPLETED ---------------- */
         if ($approvalStatus !== 'Completed') {
             $singleItinerary->save();
             return;
@@ -651,7 +657,6 @@ public function store(Request $request)
         /** ---------------- EMISSION LIMITS ---------------- */
         $emissionLimit = $itinerary->emission;
         $currentOffset = $itinerary->offsetAmount ?? 0;
-
         $remainingEmission = max($emissionLimit - $currentOffset, 0);
 
         $appliedOffset = min($requestedOffset, $remainingEmission);
@@ -662,7 +667,7 @@ public function store(Request $request)
         $singleItinerary->treesPlanted   = intdiv($singleItinerary->emissionOffset, 50);
         $singleItinerary->save();
 
-        /** ---------------- UPDATE MASTER ITINERARY ---------------- */
+        /** ---------------- UPDATE ITINERARY ---------------- */
         $newOffset = $currentOffset + $appliedOffset;
         $offsetPercentage = $emissionLimit > 0
             ? min(round(($newOffset / $emissionLimit) * 100, 2), 100)
@@ -679,7 +684,7 @@ public function store(Request $request)
             }
         ]);
 
-        /** ---------------- EXTRA OFFSET → CREDIT ---------------- */
+        /** ---------------- EXTRA OFFSET ---------------- */
         if ($extraOffset > 0) {
             $user->offsetCredit += $extraOffset;
             $user->save();
@@ -693,6 +698,7 @@ public function store(Request $request)
         'offsetCreditAdded' => $offsetCreditAdded,
     ]);
 }
+
 
 
 
