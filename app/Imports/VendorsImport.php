@@ -18,28 +18,27 @@ class VendorsImport implements ToCollection, WithHeadingRow
     {
         foreach ($rows as $row) {
             try {
-                // Map fields from Excel to DB columns
-                $status = $row['status'] ?? 'active';
-                // Force status to lowercase
-                $status = strtolower($status);
+                /** ---------------- STATUS ---------------- */
+                $status = strtolower($row['status'] ?? 'active');
 
+                /** ---------------- DATA MAPPING ---------------- */
                 $data = [
-                    'name'        => $row['name'] ?? null,
-                    'email'       => $row['email'] ?? null,
-                    'description' => $row['description'] ?? null,
-                    'state'       => $row['state'] ?? null,
-                    // 'country' column should be set to 'India' by default since it's not present in the frontend excel/csv
-                    'country'     => 'India',
-                    'status'      => $status,
-                    'projectUrl'  => $row['project_url'] ?? null, // Can be a string or comma-separated
-                    'projects'    => $row['projects'] ?? null,
-                    'projectsContributed'    => $row['projectsContributed'] ?? null,
+                    'name'                  => $row['name'] ?? null,
+                    'email'                 => $row['email'] ?? null,
+                    'description'           => $row['description'] ?? null,
+                    'state'                 => $row['state'] ?? null,
+                    'country'               => 'India', // default
+                    'status'                => $status,
+                    'projectUrl'            => $row['project_url'] ?? null,
+                    'projects'              => $row['projects'] ?? null,
+                    'projectsContributed'   => isset($row['projectscontributed'])
+                        ? trim($row['projectscontributed'])
+                        : null,
                 ];
 
-                // Convert projects column to JSON if array/string
+                /** ---------------- PROJECTS (JSON) ---------------- */
                 if (!empty($data['projects'])) {
                     if (is_string($data['projects'])) {
-                        // If multiple projects in Excel separated by commas
                         $data['projects'] = array_map('trim', explode(',', $data['projects']));
                     }
                     $data['projects'] = json_encode($data['projects']);
@@ -47,34 +46,37 @@ class VendorsImport implements ToCollection, WithHeadingRow
                     $data['projects'] = json_encode([]);
                 }
 
-                // Convert projectUrl if multiple URLs separated by commas
-                if (!empty($data['projectUrl'])) {
-                    if (is_string($data['projectUrl']) && str_contains($data['projectUrl'], ',')) {
+                /** ---------------- PROJECT URL (JSON if multiple) ---------------- */
+                if (!empty($data['projectUrl']) && is_string($data['projectUrl'])) {
+                    if (str_contains($data['projectUrl'], ',')) {
                         $urls = array_map('trim', explode(',', $data['projectUrl']));
                         $data['projectUrl'] = json_encode($urls);
                     }
                 }
 
-                // Check for existing vendor by email to avoid duplicates
+                /** ---------------- DUPLICATE CHECK ---------------- */
                 if (!empty($data['email']) && VendorsData::where('email', $data['email'])->exists()) {
                     Log::info('Skipping duplicate vendor', ['email' => $data['email']]);
                     continue;
                 }
 
-                // Create vendor
+                /** ---------------- CREATE VENDOR ---------------- */
                 $vendor = VendorsData::create($data);
 
-                // If logo file path is provided in Excel, move it to storage
+                /** ---------------- LOGO HANDLING ---------------- */
                 if (!empty($row['logo']) && file_exists($row['logo'])) {
                     $path = Storage::disk('public')->putFile('vendors', $row['logo']);
                     $vendor->logo = $path;
                     $vendor->save();
                 }
 
-                Log::info('Vendor imported', ['vendor_id' => $vendor->id, 'email' => $vendor->email ?? null]);
+                Log::info('Vendor imported successfully', [
+                    'vendor_id' => $vendor->id,
+                    'email'     => $vendor->email
+                ]);
             } catch (\Exception $e) {
                 Log::error('Vendor import failed', [
-                    'row' => $row->toArray(),
+                    'row'   => $row->toArray(),
                     'error' => $e->getMessage()
                 ]);
             }
