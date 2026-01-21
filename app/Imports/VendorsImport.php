@@ -33,6 +33,7 @@ class VendorsImport implements ToCollection, WithHeadingRow
                     'status'      => $status,
                     'projectUrl'  => $row['project_url'] ?? null, // Can be a string or comma-separated
                     'projects'    => $row['projects'] ?? null,
+                    'projectsContributed'    => $row['projectsContributed'] ?? null,
                 ];
 
                 // Convert projects column to JSON if array/string
