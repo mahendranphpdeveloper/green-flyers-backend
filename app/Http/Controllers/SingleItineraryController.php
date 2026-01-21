@@ -588,7 +588,7 @@ public function store(Request $request)
         'ItineraryId'            => 'required|integer|exists:itinerarydata,ItineraryId',
         'uploadDate'             => 'nullable|date',
         'certificateFile'        => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-        'approvelStatus'         => 'nullable|string',
+        'approvelStatus'         => 'nullable|string', // can be Pending, Completed, Rejected, or Pending Verification
         'emissionOffset'         => 'nullable|integer|min:0',
         'projectTypes'           => 'nullable|string|max:255',
         'projectsContributed'    => 'nullable|string|max:255',
@@ -611,13 +611,7 @@ public function store(Request $request)
     }
 
     /** ---------------- NORMALIZE STATUS ---------------- */
-    $approvalStatus = $validatedData['approvelStatus'] ?? 'Pending';
-
-    // normalize frontend values
-    if ($approvalStatus === 'Pending Verification') {
-        $approvalStatus = 'Pending';
-    }
-
+    $approvalStatus = $validatedData['approvelStatus'] ?? 'Pending Verification';
     $validatedData['approvelStatus'] = $approvalStatus;
     $validatedData['userId'] = $itinerary->userId;
 
@@ -632,12 +626,12 @@ public function store(Request $request)
         &$offsetCreditAdded
     ) {
 
-        /** ---------------- CREATE RECORD ---------------- */
+        /** ---------------- CREATE SINGLE ITINERARY ---------------- */
         $singleItinerary = new SingleItineraryData($validatedData);
 
-        /** ---------------- SAVE IF NOT COMPLETED ---------------- */
+        // ---------------- SAVE AS PENDING/VERIFICATION ----------------
         if ($approvalStatus !== 'Completed') {
-            $singleItinerary->save();
+            $singleItinerary->save(); // Save as Pending, Pending Verification, or Rejected
             return;
         }
 
@@ -667,7 +661,7 @@ public function store(Request $request)
         $singleItinerary->treesPlanted   = intdiv($singleItinerary->emissionOffset, 50);
         $singleItinerary->save();
 
-        /** ---------------- UPDATE ITINERARY ---------------- */
+        /** ---------------- UPDATE MASTER ITINERARY ---------------- */
         $newOffset = $currentOffset + $appliedOffset;
         $offsetPercentage = $emissionLimit > 0
             ? min(round(($newOffset / $emissionLimit) * 100, 2), 100)
