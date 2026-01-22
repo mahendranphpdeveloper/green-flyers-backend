@@ -505,19 +505,18 @@ class VendorController extends Controller
     }
 
     /**
-     * Validation (projectsContributed added)
+     * Validation (projectsContributed removed)
      */
     $request->validate([
-        'name'                => 'sometimes|required|string|max:255',
-        'projects'            => 'nullable|array',
-        'projectsContributed' => 'nullable|string|max:255',
-        'status'              => 'nullable|string|max:255',
-        'description'         => 'nullable|string',
-        'projectUrl'          => 'nullable|string|max:255',
-        'email'               => 'nullable|email|max:255',
-        'state'               => 'nullable|string|max:255',
-        'country'             => 'nullable|string|max:255',
-        'logo'                => 'nullable|file|image|max:4096',
+        'name'        => 'sometimes|required|string|max:255',
+        'projects'    => 'nullable|array',
+        'status'      => 'nullable|string|max:255',
+        'description' => 'nullable|string',
+        'projectUrl'  => 'nullable|string|max:255',
+        'email'       => 'nullable|email|max:255',
+        'state'       => 'nullable|string|max:255',
+        'country'     => 'nullable|string|max:255',
+        'logo'        => 'nullable|file|image|max:4096',
     ]);
 
     Log::info('Vendor validated for update', [
@@ -527,12 +526,11 @@ class VendorController extends Controller
     ]);
 
     /**
-     * Data mapping (projectsContributed added)
+     * Data mapping (projectsContributed removed)
      */
     $data = $request->only([
         'name',
         'projects',
-        'projectsContributed',
         'status',
         'description',
         'projectUrl',

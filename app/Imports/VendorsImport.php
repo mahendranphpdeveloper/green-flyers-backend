@@ -23,17 +23,15 @@ class VendorsImport implements ToCollection, WithHeadingRow
 
                 /** ---------------- DATA MAPPING ---------------- */
                 $data = [
-                    'name'                  => $row['name'] ?? null,
-                    'email'                 => $row['email'] ?? null,
-                    'description'           => $row['description'] ?? null,
-                    'state'                 => $row['state'] ?? null,
-                    'country'               => 'India', // default
-                    'status'                => $status,
-                    'projectUrl'            => $row['project_url'] ?? null,
-                    'projects'              => $row['projects'] ?? null,
-                    'projectsContributed'   => isset($row['projectscontributed'])
-                        ? trim($row['projectscontributed'])
-                        : null,
+                    'name'        => $row['name'] ?? null,
+                    'email'       => $row['email'] ?? null,
+                    'description' => $row['description'] ?? null,
+                    'state'       => $row['state'] ?? null,
+                    'country'     => 'India', // default
+                    'status'      => $status,
+                    'projectUrl'  => $row['project_url'] ?? null,
+                    'projects'    => $row['projects'] ?? null,
+                    
                 ];
 
                 /** ---------------- PROJECTS (JSON) ---------------- */
