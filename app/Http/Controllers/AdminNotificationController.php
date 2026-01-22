@@ -10,92 +10,92 @@ use App\Models\NotificationsReminder;
 class AdminNotificationController extends Controller
 {
    
-    // public function getUserNotifications($userId)
-    // {
-    //     Log::info('Fetching UNREAD notifications for user', ['userId' => $userId]);
-    
-    //     $notifications = UserNotification::with(['singleitinerary'])
-    //         ->where('user_id', $userId)
-    //         ->where('is_read', 'false') // ✅ ONLY unread
-    //         ->orderBy('created_at', 'desc')
-    //         ->get();
-    
-    //     Log::debug('Number of unread notifications fetched', [
-    //         'count' => $notifications->count()
-    //     ]);
-    
-    //     $notificationsTransformed = $notifications->map(function ($notification) {
-    //         Log::debug('Transforming unread notification', [
-    //             'notification_id' => $notification->id
-    //         ]);
-    
-    //         return [
-    //             'id'                 => $notification->id,
-    //             'singleitinerary_id' => $notification->singleitinerary_id,
-    //             'user_id'            => $notification->user_id,
-    //             'title'              => $notification->title,
-    //             'message'            => $notification->message,
-    //             'status'             => $notification->status,
-    //             'update_date'        => $notification->update_date,
-    //             'created_at'         => $notification->created_at,
-    //             'updated_at'         => $notification->updated_at,
-    //             'is_read'            => $notification->is_read,
-    //             'singleitinerary'    => $notification->singleitinerary,
-    //             'ItineraryId'        => $notification->singleitinerary
-    //                                     ? $notification->singleitinerary->ItineraryId
-    //                                     : null,
-    //         ];
-    //     });
-    
-    //     Log::info('Returning unread notifications for user', [
-    //         'userId' => $userId,
-    //         'notification_count' => $notificationsTransformed->count()
-    //     ]);
-    
-    //     return response()->json([
-    //         'success' => true,
-    //         'notifications' => $notificationsTransformed
-    //     ]);
-    // }
-
     public function getUserNotifications($userId)
-{
-    Log::info('Fetching ALL notifications for user', ['userId' => $userId]);
+    {
+        Log::info('Fetching UNREAD notifications for user', ['userId' => $userId]);
+    
+        $notifications = UserNotification::with(['singleitinerary'])
+            ->where('user_id', $userId)
+            ->where('is_read', 'false') // ✅ ONLY unread
+            ->orderBy('created_at', 'desc')
+            ->get();
+    
+        Log::debug('Number of unread notifications fetched', [
+            'count' => $notifications->count()
+        ]);
+    
+        $notificationsTransformed = $notifications->map(function ($notification) {
+            Log::debug('Transforming unread notification', [
+                'notification_id' => $notification->id
+            ]);
+    
+            return [
+                'id'                 => $notification->id,
+                'singleitinerary_id' => $notification->singleitinerary_id,
+                'user_id'            => $notification->user_id,
+                'title'              => $notification->title,
+                'message'            => $notification->message,
+                'status'             => $notification->status,
+                'update_date'        => $notification->update_date,
+                'created_at'         => $notification->created_at,
+                'updated_at'         => $notification->updated_at,
+                'is_read'            => $notification->is_read,
+                'singleitinerary'    => $notification->singleitinerary,
+                'ItineraryId'        => $notification->singleitinerary
+                                        ? $notification->singleitinerary->ItineraryId
+                                        : null,
+            ];
+        });
+    
+        Log::info('Returning unread notifications for user', [
+            'userId' => $userId,
+            'notification_count' => $notificationsTransformed->count()
+        ]);
+    
+        return response()->json([
+            'success' => true,
+            'notifications' => $notificationsTransformed
+        ]);
+    }
 
-    $notifications = UserNotification::with('singleitinerary')
-        ->where('user_id', $userId)
-        ->orderBy('created_at', 'desc')
-        ->get();
+//     public function getUserNotifications($userId)
+// {
+//     Log::info('Fetching ALL notifications for user', ['userId' => $userId]);
 
-    $notificationsTransformed = $notifications->map(function ($notification) {
+//     $notifications = UserNotification::with('singleitinerary')
+//         ->where('user_id', $userId)
+//         ->orderBy('created_at', 'desc')
+//         ->get();
 
-        return [
-            'id'          => $notification->id,
-            'user_id'     => $notification->user_id,
-            'title'       => $notification->title,
-            'message'     => $notification->message,
-            'status'      => $notification->status,
-            'is_read'     => $notification->is_read,
-            'read_at'     => $notification->read_at,
-            'update_date' => $notification->update_date,
-            'created_at'  => $notification->created_at,
-            'updated_at'  => $notification->updated_at,
+//     $notificationsTransformed = $notifications->map(function ($notification) {
 
-            //  Particular itinerary only
-            'singleitinerary' => $notification->singleitinerary,
+//         return [
+//             'id'          => $notification->id,
+//             'user_id'     => $notification->user_id,
+//             'title'       => $notification->title,
+//             'message'     => $notification->message,
+//             'status'      => $notification->status,
+//             'is_read'     => $notification->is_read,
+//             'read_at'     => $notification->read_at,
+//             'update_date' => $notification->update_date,
+//             'created_at'  => $notification->created_at,
+//             'updated_at'  => $notification->updated_at,
 
-            //  Direct itinerary ID
-            'ItineraryId' => $notification->singleitinerary
-                ? $notification->singleitinerary->ItineraryId
-                : null,
-        ];
-    });
+//             //  Particular itinerary only
+//             'singleitinerary' => $notification->singleitinerary,
 
-    return response()->json([
-        'success' => true,
-        'notifications' => $notificationsTransformed
-    ]);
-}
+//             //  Direct itinerary ID
+//             'ItineraryId' => $notification->singleitinerary
+//                 ? $notification->singleitinerary->ItineraryId
+//                 : null,
+//         ];
+//     });
+
+//     return response()->json([
+//         'success' => true,
+//         'notifications' => $notificationsTransformed
+//     ]);
+// }
 
 
     

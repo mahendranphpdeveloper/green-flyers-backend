@@ -757,8 +757,4 @@ public function getProjectContributors(Request $request)
         'data' => $vendorsMap
     ]);
 }
-
-
-
-
 }
