@@ -173,8 +173,8 @@ class AdminDashboardController extends Controller
     $totalTreesPlanted = (int) ItineraryData::sum('numberOfTrees');
 
     // Count ALL project contributors from SingleItineraryData (NOT unique)
-    $totalProjectContributors = SingleItineraryData::whereNotNull('projectsContributors')
-        ->where('projectsContributors', '!=', '')
+    $totalProjectContributors = SingleItineraryData::whereNotNull('projectsContributed')
+        ->where('projectsContributed', '!=', '')
         ->count();
 
     // Total users
