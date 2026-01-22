@@ -36,7 +36,7 @@ class AdminDashboardController extends Controller
 
     //Dashboard stats
     
-    // public function getAdminDashboardStats(Request $request)
+    // 1. public function getAdminDashboardStats(Request $request)
     // {
     //     // ------------------ ADMIN AUTH ------------------
     //     if ($response = $this->checkAdmin($request)) {

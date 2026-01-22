@@ -78,228 +78,228 @@ class VendorController extends Controller
      * POST /api/vendors
      * Create a new vendor
      */
-    // public function store(Request $request)
-    // {
-    //     $admin = $request->user();
-    //     Log::info('Checking admin for vendor store', ['user' => $admin]);
-
-    //     if (
-    //         !$admin ||
-    //         !\App\Models\AdminData::where('id', $admin->id)->exists()
-    //     ) {
-    //         Log::warning('Unauthorized admin access in store', ['user' => $admin]);
-    //         return response()->json([
-    //             'status' => false,
-    //             'message' => 'Unauthorized admin access',
-    //         ], 403);
-    //     }
-
-    //     // Fix incoming projects and logo data before validation
-
-    //     // Handle: If projects sent as JSON string (from e.g. JS clients), decode to array
-    //     if ($request->has('projects')) {
-    //         $projects = $request->input('projects');
-    //         if (is_string($projects)) {
-    //             $decoded = json_decode($projects, true);
-    //             if (is_array($decoded)) {
-    //                 // Overwrite the input value with the array (important for Validator)
-    //                 $request->merge(['projects' => $decoded]);
-    //             }
-    //         }
-    //     }
-
-    //     // Handle: If logo is sent as empty object, treat as "no file"
-    //     if ($request->has('logo') && is_array($request->input('logo')) && empty($request->input('logo'))) {
-    //         // Remove logo from request if it's an empty object (i.e., `{}`)
-    //         $request->request->remove('logo');
-    //     }
-
-    //     $request->validate([
-    //         'name'        => 'required|string|max:255',
-    //         'projects'    => 'nullable|array',
-    //         'status'      => 'nullable|string|max:255',
-    //         'description' => 'nullable|string',
-    //         'projectUrl'  => 'nullable|string|max:255',
-    //         'email'       => 'nullable|email|max:255',
-    //         'state'       => 'nullable|string|max:255',
-    //         'country'     => 'nullable|string|max:255',
-    //         'logo'        => 'nullable|file|image|max:4096', // max 4MB, adjust as needed
-    //     ]);
-    //     Log::info('Vendor validated for creation', ['admin_id' => $admin->id, 'data' => $request->all()]);
-
-    //     $data = $request->only([
-    //         'name',
-    //         'projects',
-    //         'status',
-    //         'description',
-    //         'projectUrl',
-    //         'email',
-    //         'state',
-    //         'country'
-    //         // 'logo' will be handled separately
-    //     ]);
-
-    //     // Handle logo upload
-    //     if ($request->hasFile('logo') && $request->file('logo')->isValid()) {
-    //         // Store the file in the "public/vendors" directory
-    //         $path = $request->file('logo')->store('vendors', 'public');
-    //         $data['logo'] = $path;
-    //     }
-
-    //     // Always ensure projects is JSON or NULL in DB
-    //     if (isset($data['projects'])) {
-    //         // After validation, always projects must be array or null
-    //         $data['projects'] = is_array($data['projects'])
-    //             ? json_encode($data['projects'])
-    //             : json_encode([]);
-    //     }
-
-    //     $vendor = VendorsData::create($data);
-
-    //     Log::info('Vendor created', ['vendor_id' => $vendor->id, 'admin_id' => $admin->id]);
-
-    //     // Attach logo url to response if exists
-    //     $vendorArr = $vendor->toArray();
-    //     // Always decode "projects" as array for output
-    //     if (isset($vendorArr['projects']) && !is_array($vendorArr['projects'])) {
-    //         $decoded = json_decode($vendorArr['projects'], true);
-    //         $vendorArr['projects'] = is_array($decoded) ? $decoded : [];
-    //     } elseif (!isset($vendorArr['projects'])) {
-    //         $vendorArr['projects'] = [];
-    //     }
-    //     if (!empty($vendorArr['logo'])) {
-    //         $vendorArr['logo'] = Storage::url($vendorArr['logo']);
-    //     } else {
-    //         $vendorArr['logo'] = null;
-    //     }
-
-    //     return response()->json([
-    //         'status' => true,
-    //         'message' => 'Vendor created successfully',
-    //         'data' => $vendorArr
-    //     ], 201);
-    // }
-
     public function store(Request $request)
-{
-    $admin = $request->user();
-    Log::info('Checking admin for vendor store', ['user' => $admin]);
+    {
+        $admin = $request->user();
+        Log::info('Checking admin for vendor store', ['user' => $admin]);
 
-    if (
-        !$admin ||
-        !\App\Models\AdminData::where('id', $admin->id)->exists()
-    ) {
-        Log::warning('Unauthorized admin access in store', ['user' => $admin]);
-        return response()->json([
-            'status' => false,
-            'message' => 'Unauthorized admin access',
-        ], 403);
-    }
+        if (
+            !$admin ||
+            !\App\Models\AdminData::where('id', $admin->id)->exists()
+        ) {
+            Log::warning('Unauthorized admin access in store', ['user' => $admin]);
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized admin access',
+            ], 403);
+        }
 
-    /**
-     * Fix incoming projects (JSON → array)
-     */
-    if ($request->has('projects')) {
-        $projects = $request->input('projects');
-        if (is_string($projects)) {
-            $decoded = json_decode($projects, true);
-            if (is_array($decoded)) {
-                $request->merge(['projects' => $decoded]);
+        // Fix incoming projects and logo data before validation
+
+        // Handle: If projects sent as JSON string (from e.g. JS clients), decode to array
+        if ($request->has('projects')) {
+            $projects = $request->input('projects');
+            if (is_string($projects)) {
+                $decoded = json_decode($projects, true);
+                if (is_array($decoded)) {
+                    // Overwrite the input value with the array (important for Validator)
+                    $request->merge(['projects' => $decoded]);
+                }
             }
         }
+
+        // Handle: If logo is sent as empty object, treat as "no file"
+        if ($request->has('logo') && is_array($request->input('logo')) && empty($request->input('logo'))) {
+            // Remove logo from request if it's an empty object (i.e., `{}`)
+            $request->request->remove('logo');
+        }
+
+        $request->validate([
+            'name'        => 'required|string|max:255',
+            'projects'    => 'nullable|array',
+            'status'      => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'projectUrl'  => 'nullable|string|max:255',
+            'email'       => 'nullable|email|max:255',
+            'state'       => 'nullable|string|max:255',
+            'country'     => 'nullable|string|max:255',
+            'logo'        => 'nullable|file|image|max:4096', // max 4MB, adjust as needed
+        ]);
+        Log::info('Vendor validated for creation', ['admin_id' => $admin->id, 'data' => $request->all()]);
+
+        $data = $request->only([
+            'name',
+            'projects',
+            'status',
+            'description',
+            'projectUrl',
+            'email',
+            'state',
+            'country'
+            // 'logo' will be handled separately
+        ]);
+
+        // Handle logo upload
+        if ($request->hasFile('logo') && $request->file('logo')->isValid()) {
+            // Store the file in the "public/vendors" directory
+            $path = $request->file('logo')->store('vendors', 'public');
+            $data['logo'] = $path;
+        }
+
+        // Always ensure projects is JSON or NULL in DB
+        if (isset($data['projects'])) {
+            // After validation, always projects must be array or null
+            $data['projects'] = is_array($data['projects'])
+                ? json_encode($data['projects'])
+                : json_encode([]);
+        }
+
+        $vendor = VendorsData::create($data);
+
+        Log::info('Vendor created', ['vendor_id' => $vendor->id, 'admin_id' => $admin->id]);
+
+        // Attach logo url to response if exists
+        $vendorArr = $vendor->toArray();
+        // Always decode "projects" as array for output
+        if (isset($vendorArr['projects']) && !is_array($vendorArr['projects'])) {
+            $decoded = json_decode($vendorArr['projects'], true);
+            $vendorArr['projects'] = is_array($decoded) ? $decoded : [];
+        } elseif (!isset($vendorArr['projects'])) {
+            $vendorArr['projects'] = [];
+        }
+        if (!empty($vendorArr['logo'])) {
+            $vendorArr['logo'] = Storage::url($vendorArr['logo']);
+        } else {
+            $vendorArr['logo'] = null;
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Vendor created successfully',
+            'data' => $vendorArr
+        ], 201);
     }
 
-    /**
-     * 🔹 Handle empty logo object
-     */
-    if ($request->has('logo') && is_array($request->input('logo')) && empty($request->input('logo'))) {
-        $request->request->remove('logo');
-    }
+//  1.   public function store(Request $request)
+// {
+//     $admin = $request->user();
+//     Log::info('Checking admin for vendor store', ['user' => $admin]);
 
-    /**
-     * Validation (projectsContributed added)
-     */
-    $request->validate([
-        'name'                => 'required|string|max:255',
-        'projects'            => 'nullable|array',
-        'projectsContributed' => 'nullable|string|max:255',
-        'status'              => 'nullable|string|max:255',
-        'description'         => 'nullable|string',
-        'projectUrl'          => 'nullable|string|max:255',
-        'email'               => 'nullable|email|max:255',
-        'state'               => 'nullable|string|max:255',
-        'country'             => 'nullable|string|max:255',
-        'logo'                => 'nullable|file|image|max:4096',
-    ]);
+//     if (
+//         !$admin ||
+//         !\App\Models\AdminData::where('id', $admin->id)->exists()
+//     ) {
+//         Log::warning('Unauthorized admin access in store', ['user' => $admin]);
+//         return response()->json([
+//             'status' => false,
+//             'message' => 'Unauthorized admin access',
+//         ], 403);
+//     }
 
-    Log::info('Vendor validated for creation', [
-        'admin_id' => $admin->id,
-        'data' => $request->all()
-    ]);
+//     /**
+//      * Fix incoming projects (JSON → array)
+//      */
+//     if ($request->has('projects')) {
+//         $projects = $request->input('projects');
+//         if (is_string($projects)) {
+//             $decoded = json_decode($projects, true);
+//             if (is_array($decoded)) {
+//                 $request->merge(['projects' => $decoded]);
+//             }
+//         }
+//     }
 
-    /**
-     * Data mapping (projectsContributed added)
-     */
-    $data = $request->only([
-        'name',
-        'projects',
-        'projectsContributed',
-        'status',
-        'description',
-        'projectUrl',
-        'email',
-        'state',
-        'country'
-    ]);
+//     /**
+//      * 🔹 Handle empty logo object
+//      */
+//     if ($request->has('logo') && is_array($request->input('logo')) && empty($request->input('logo'))) {
+//         $request->request->remove('logo');
+//     }
 
-    /**
-     * Handle logo upload
-     */
-    if ($request->hasFile('logo') && $request->file('logo')->isValid()) {
-        $path = $request->file('logo')->store('vendors', 'public');
-        $data['logo'] = $path;
-    }
+//     /**
+//      * Validation (projectsContributed added)
+//      */
+//     $request->validate([
+//         'name'                => 'required|string|max:255',
+//         'projects'            => 'nullable|array',
+//         'projectsContributed' => 'nullable|string|max:255',
+//         'status'              => 'nullable|string|max:255',
+//         'description'         => 'nullable|string',
+//         'projectUrl'          => 'nullable|string|max:255',
+//         'email'               => 'nullable|email|max:255',
+//         'state'               => 'nullable|string|max:255',
+//         'country'             => 'nullable|string|max:255',
+//         'logo'                => 'nullable|file|image|max:4096',
+//     ]);
 
-    /**
-     * Ensure projects stored as JSON
-     */
-    if (array_key_exists('projects', $data)) {
-        $data['projects'] = is_array($data['projects'])
-            ? json_encode($data['projects'])
-            : json_encode([]);
-    }
+//     Log::info('Vendor validated for creation', [
+//         'admin_id' => $admin->id,
+//         'data' => $request->all()
+//     ]);
 
-    /**
-     * Create vendor
-     */
-    $vendor = VendorsData::create($data);
+//     /**
+//      * Data mapping (projectsContributed added)
+//      */
+//     $data = $request->only([
+//         'name',
+//         'projects',
+//         'projectsContributed',
+//         'status',
+//         'description',
+//         'projectUrl',
+//         'email',
+//         'state',
+//         'country'
+//     ]);
 
-    Log::info('Vendor created', [
-        'vendor_id' => $vendor->id,
-        'admin_id' => $admin->id
-    ]);
+//     /**
+//      * Handle logo upload
+//      */
+//     if ($request->hasFile('logo') && $request->file('logo')->isValid()) {
+//         $path = $request->file('logo')->store('vendors', 'public');
+//         $data['logo'] = $path;
+//     }
 
-    /**
-     * Response formatting
-     */
-    $vendorArr = $vendor->toArray();
+//     /**
+//      * Ensure projects stored as JSON
+//      */
+//     if (array_key_exists('projects', $data)) {
+//         $data['projects'] = is_array($data['projects'])
+//             ? json_encode($data['projects'])
+//             : json_encode([]);
+//     }
 
-    // Decode projects JSON
-    $vendorArr['projects'] = isset($vendorArr['projects'])
-        ? json_decode($vendorArr['projects'], true) ?? []
-        : [];
+//     /**
+//      * Create vendor
+//      */
+//     $vendor = VendorsData::create($data);
 
-    // Logo URL
-    $vendorArr['logo'] = !empty($vendorArr['logo'])
-        ? Storage::url($vendorArr['logo'])
-        : null;
+//     Log::info('Vendor created', [
+//         'vendor_id' => $vendor->id,
+//         'admin_id' => $admin->id
+//     ]);
 
-    return response()->json([
-        'status' => true,
-        'message' => 'Vendor created successfully',
-        'data' => $vendorArr
-    ], 201);
-}
+//     /**
+//      * Response formatting
+//      */
+//     $vendorArr = $vendor->toArray();
+
+//     // Decode projects JSON
+//     $vendorArr['projects'] = isset($vendorArr['projects'])
+//         ? json_decode($vendorArr['projects'], true) ?? []
+//         : [];
+
+//     // Logo URL
+//     $vendorArr['logo'] = !empty($vendorArr['logo'])
+//         ? Storage::url($vendorArr['logo'])
+//         : null;
+
+//     return response()->json([
+//         'status' => true,
+//         'message' => 'Vendor created successfully',
+//         'data' => $vendorArr
+//     ], 201);
+// }
 
 
     /**
@@ -708,17 +708,17 @@ public function getProjectContributors(Request $request)
         ], 401);
     }
 
-    // Fetch ACTIVE vendors with contributors
+    // Fetch ACTIVE vendors with projects
     $vendors = VendorsData::where('status', 'active')
-        ->whereNotNull('projectsContributed')
-        ->get(['projects', 'projectsContributed']);
+        ->whereNotNull('projects')
+        ->get(['name', 'projects']);
 
-    $contributorsMap = [];
+    $vendorsMap = [];
 
     foreach ($vendors as $vendor) {
 
-        $contributor = trim((string) $vendor->projectsContributed);
-        if ($contributor === '') {
+        $vendorName = trim((string) $vendor->name);
+        if ($vendorName === '') {
             continue;
         }
 
@@ -732,9 +732,9 @@ public function getProjectContributors(Request $request)
             continue;
         }
 
-        // Initialize contributor key
-        if (!isset($contributorsMap[$contributor])) {
-            $contributorsMap[$contributor] = [];
+        // Initialize vendor key
+        if (!isset($vendorsMap[$vendorName])) {
+            $vendorsMap[$vendorName] = [];
         }
 
         foreach ($projects as $project) {
@@ -748,15 +748,15 @@ public function getProjectContributors(Request $request)
             }
 
             // Avoid duplicate projects
-            if (!in_array($project, $contributorsMap[$contributor])) {
-                $contributorsMap[$contributor][] = $project;
+            if (!in_array($project, $vendorsMap[$vendorName])) {
+                $vendorsMap[$vendorName][] = $project;
             }
         }
     }
 
     return response()->json([
         'status' => true,
-        'data' => $contributorsMap
+        'data' => $vendorsMap
     ]);
 }
 
