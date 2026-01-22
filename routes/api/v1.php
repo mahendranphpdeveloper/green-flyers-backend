@@ -156,6 +156,7 @@ Route::prefix('/admin/home-manage')->group(function () {
 
    //FAQ
 //    Route::get('/faq', [\App\Http\Controllers\HomeManageController::class, 'getHomeFAQ']);
+   Route::post('/faq', [\App\Http\Controllers\HomeManageController::class, 'storeHomeFAQ']);
    Route::put('/faq/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeFAQ']);
    Route::delete('/faq/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeFAQ']);
 

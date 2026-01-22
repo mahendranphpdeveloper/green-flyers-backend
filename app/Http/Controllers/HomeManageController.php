@@ -365,6 +365,56 @@ class HomeManageController extends Controller
         ]);
     }
 
+    //store faq
+    public function storeHomeFAQ(Request $request)
+    {
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
+
+        $request->validate([
+            'question' => 'required|string',
+            'answer'   => 'required|string',
+            'order'    => 'nullable|integer',
+            'isActive' => 'nullable|boolean'
+        ]);
+
+        $storeData = [
+            'question' => $request->question,
+            'answer'   => $request->answer,
+        ];
+
+        if ($request->has('order')) {
+            $storeData['order'] = $request->order;
+        }
+
+        // Boolean in → VARCHAR stored
+        if ($request->has('isActive')) {
+            $storeData['isActive'] = $request->boolean('isActive')
+                ? 'true'
+                : 'false';
+        } else {
+            // Optional default
+            $storeData['isActive'] = 'true';
+        }
+
+        $faq = HomeFaqData::create($storeData);
+
+        // Convert back to boolean for response
+        $faq->isActive = $faq->isActive === 'true';
+
+        Log::info('FAQ created', [
+            'faq_id' => $faq->id
+        ]);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'FAQ created successfully',
+            'data'    => $faq
+        ], 201);
+    }
+
+
 
     //update faq
     public function updateHomeFAQ(Request $request, $id)
