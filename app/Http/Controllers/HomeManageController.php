@@ -921,7 +921,7 @@ class HomeManageController extends Controller
 
     $request->validate([
         'title'    => 'nullable|string',
-        'content'  => 'nullable|array',
+        'content'  => json_encode($request->content),
         'order'    => 'nullable|integer',
         'isActive' => 'nullable|boolean'
     ]);
