@@ -12,6 +12,8 @@ use App\Models\HomeFaqData;
 use App\Models\FaqVisualSection;
 use App\Models\CallToAction;
 use App\Models\BackgroundImage;
+use App\Models\PrivacyPolicy;
+use App\Models\TeamofServices;
 
 class HomeManageController extends Controller
 {
@@ -837,4 +839,155 @@ class HomeManageController extends Controller
             'treeOffsetsValue' => (int) $backgroundImage->treeOffsetsValue
         ]);
     }
+
+
+    //get terms and conditions
+     public function getHomeTerms()
+    {
+        $services = TeamOfServices::orderBy('order')->get()->map(function ($service) {
+        $service->isActive = $service->isActive === 'true';
+        return $service;
+    });
+
+    Log::info('Team of services fetched', [
+        'count' => $services->count()
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'data'   => $services
+    ]);
+    }
+
+    //store terms and conditions
+    public function storeHomeTerms(Request $request)
+    {
+         if ($response = $this->checkAdmin($request)) {
+        return $response;
+    }
+
+    $request->validate([
+        'title'    => 'required|string',
+        'content'  => 'required|string',
+        'order'    => 'nullable|integer',
+        'isActive' => 'nullable|boolean'
+    ]);
+
+    $storeData = [
+        'title'   => $request->title,
+        'content' => $request->content,
+        'order'   => $request->order ?? 0,
+        'isActive'=> $request->has('isActive') && $request->boolean('isActive')
+                        ? 'true'
+                        : 'false'
+    ];
+
+    $service = TeamOfServices::create($storeData);
+
+    // Convert to boolean for response
+    $service->isActive = $service->isActive === 'true';
+
+    Log::info('Team of service created', [
+        'service_id' => $service->id
+    ]);
+
+    return response()->json([
+        'status'  => true,
+        'message' => 'Team of service created successfully',
+        'data'    => $service
+    ], 201);
+    }
+
+
+
+    //update terms and conditions
+    public function updateHomeTerms(Request $request, $id)
+    {
+        if ($response = $this->checkAdmin($request)) {
+        return $response;
+    }
+
+    $service = TeamOfServices::find($id);
+
+    if (!$service) {
+        Log::warning('Team of service update failed - not found', ['id' => $id]);
+
+        return response()->json([
+            'status'  => false,
+            'message' => 'Team of service not found'
+        ], 404);
+    }
+
+    $request->validate([
+        'title'    => 'nullable|string',
+        'content'  => 'nullable|string',
+        'order'    => 'nullable|integer',
+        'isActive' => 'nullable|boolean'
+    ]);
+
+    $updateData = [];
+
+    if ($request->has('title')) {
+        $updateData['title'] = $request->title;
+    }
+
+    if ($request->has('content')) {
+        $updateData['content'] = $request->content;
+    }
+
+    if ($request->has('order')) {
+        $updateData['order'] = $request->order;
+    }
+
+    if ($request->has('isActive')) {
+        $updateData['isActive'] = $request->boolean('isActive')
+            ? 'true'
+            : 'false';
+    }
+
+    $service->update($updateData);
+
+    $service->isActive = $service->isActive === 'true';
+
+    Log::info('Team of service updated', [
+        'service_id' => $service->id
+    ]);
+
+    return response()->json([
+        'status'  => true,
+        'message' => 'Team of service updated successfully',
+        'data'    => $service
+    ]);
+    }
+
+    //delete Terms and conditions
+    public function deleteHomeTerms(Request $request, $id)
+    {
+       if ($response = $this->checkAdmin($request)) {
+        return $response;
+    }
+
+    $service = TeamOfServices::find($id);
+
+    if (!$service) {
+        Log::warning('Team of service delete failed - not found', ['id' => $id]);
+
+        return response()->json([
+            'status'  => false,
+            'message' => 'Team of service not found'
+        ], 404);
+    }
+
+    $service->delete();
+
+    Log::info('Team of service deleted', [
+        'service_id' => $id
+    ]);
+
+    return response()->json([
+        'status'  => true,
+        'message' => 'Team of service deleted successfully'
+    ]);
+    }
+
 }

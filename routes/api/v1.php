@@ -168,9 +168,12 @@ Route::prefix('/admin/home-manage')->group(function () {
 //    Route::get('/bgimage', [\App\Http\Controllers\HomeManageController::class, 'getLoginBackgroundImage']);
    Route::put('/bgimage', [\App\Http\Controllers\HomeManageController::class, 'updateLoginBackgroundImage']);
 
+// terms and conditions
+// Route::get('/terms', [\App\Http\Controllers\HomeManageController::class, 'getHomeTerms']);
+Route::post('/terms', [\App\Http\Controllers\HomeManageController::class, 'storeHomeTerms']);
+Route::put('/terms/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeTerms']);
+ Route::delete('/terms/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeTerms']);
 
-  
-   
 });
 
 // for bulk upload
@@ -212,7 +215,7 @@ Route::prefix('/admin/home-manage')->group(function () {
     Route::get('/faq', [\App\Http\Controllers\HomeManageController::class, 'getHomeFAQ']);
     Route::get('/faq/visual-section', [\App\Http\Controllers\HomeManageController::class, 'getHomeVisualSection']);
     Route::get('/bgimage', [\App\Http\Controllers\HomeManageController::class, 'getLoginBackgroundImage']);
-
+    Route::get('/terms', [\App\Http\Controllers\HomeManageController::class, 'getHomeTerms']);
     
 });
 
