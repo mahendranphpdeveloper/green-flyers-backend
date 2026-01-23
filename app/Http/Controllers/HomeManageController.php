@@ -868,7 +868,7 @@ class HomeManageController extends Controller
 
     $request->validate([
         'title'    => 'required|string',
-        'content'  => 'required|string',
+        'content'  => 'required|array',
         'order'    => 'nullable|integer',
         'isActive' => 'nullable|boolean'
     ]);
@@ -920,7 +920,7 @@ class HomeManageController extends Controller
 
     $request->validate([
         'title'    => 'nullable|string',
-        'content'  => 'nullable|string',
+        'content'  => 'nullable|array',
         'order'    => 'nullable|integer',
         'isActive' => 'nullable|boolean'
     ]);
