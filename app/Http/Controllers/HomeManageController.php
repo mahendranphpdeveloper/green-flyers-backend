@@ -846,6 +846,7 @@ class HomeManageController extends Controller
     {
         $services = TeamOfServices::orderBy('order')->get()->map(function ($service) {
         $service->isActive = $service->isActive === 'true';
+        $service->content  = json_decode($service->content, true);
         return $service;
     });
 
@@ -875,7 +876,7 @@ class HomeManageController extends Controller
 
     $storeData = [
         'title'   => $request->title,
-        'content' => $request->content,
+        'content' => json_encode($request->content),
         'order'   => $request->order ?? 0,
         'isActive'=> $request->has('isActive') && $request->boolean('isActive')
                         ? 'true'
@@ -932,7 +933,7 @@ class HomeManageController extends Controller
     }
 
     if ($request->has('content')) {
-        $updateData['content'] = $request->content;
+        $updateData['content'] = json_encode($request->content);
     }
 
     if ($request->has('order')) {
