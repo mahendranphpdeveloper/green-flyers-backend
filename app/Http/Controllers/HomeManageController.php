@@ -861,32 +861,64 @@ class HomeManageController extends Controller
     }
 
     //store terms and conditions
+    // public function storeHomeTerms(Request $request)
+    // {
+    //      if ($response = $this->checkAdmin($request)) {
+    //     return $response;
+    //    }
+
+    // $request->validate([
+    //     'title'    => 'required|string',
+    //     'content'  => 'required|array',
+    //     'order'    => 'nullable|integer',
+    //     'isActive' => 'nullable|boolean'
+    // ]);
+
+    // $storeData = [
+    //     'title'   => $request->title,
+    //     'content' => json_encode($request->content),
+    //     'order'   => $request->order ?? 0,
+    //     'isActive'=> $request->has('isActive') && $request->boolean('isActive')
+    //                     ? 'true'
+    //                     : 'false'
+    // ];
+
+    // $service = TeamOfServices::create($storeData);
+
+    // // Convert to boolean for response
+    // $service->isActive = $service->isActive === 'true';
+
+    // Log::info('Team of service created', [
+    //     'service_id' => $service->id
+    // ]);
+
+    // return response()->json([
+    //     'status'  => true,
+    //     'message' => 'Team of service created successfully',
+    //     'data'    => $service
+    // ], 201);
+    // }
+
     public function storeHomeTerms(Request $request)
-    {
-         if ($response = $this->checkAdmin($request)) {
+{
+    if ($response = $this->checkAdmin($request)) {
         return $response;
     }
 
-    $request->validate([
-        'title'    => 'required|string',
-        'content'  => 'required|array',
-        'order'    => 'nullable|integer',
-        'isActive' => 'nullable|boolean'
+    $validated = $request->validate([
+        'title'       => 'required|string|max:255',
+        'content'     => 'required|array',
+        'content.*'   => 'required|string',
+        'order'       => 'nullable|integer',
+        'isActive'    => 'nullable|boolean',
     ]);
 
-    $storeData = [
-        'title'   => $request->title,
-        'content' => json_encode($request->content),
-        'order'   => $request->order ?? 0,
-        'isActive'=> $request->has('isActive') && $request->boolean('isActive')
-                        ? 'true'
-                        : 'false'
-    ];
-
-    $service = TeamOfServices::create($storeData);
-
-    // Convert to boolean for response
-    $service->isActive = $service->isActive === 'true';
+    $service = TeamOfServices::create([
+        'title'    => $validated['title'],
+        'content'  => $validated['content'], 
+        'order'    => $validated['order'] ?? 0,
+        'isActive' => $request->boolean('isActive'),
+    ]);
 
     Log::info('Team of service created', [
         'service_id' => $service->id
@@ -897,14 +929,74 @@ class HomeManageController extends Controller
         'message' => 'Team of service created successfully',
         'data'    => $service
     ], 201);
-    }
+}
+
 
 
 
     //update terms and conditions
+    // public function updateHomeTerms(Request $request, $id)
+    // {
+    //     if ($response = $this->checkAdmin($request)) {
+    //     return $response;
+    // }
+
+    // $service = TeamOfServices::find($id);
+
+    // if (!$service) {
+    //     Log::warning('Team of service update failed - not found', ['id' => $id]);
+
+    //     return response()->json([
+    //         'status'  => false,
+    //         'message' => 'Team of service not found'
+    //     ], 404);
+    // }
+
+    // $request->validate([
+    //     'title'    => 'nullable|string',
+    //     'content'  => 'nullable|array',
+    //     'order'    => 'nullable|integer',
+    //     'isActive' => 'nullable|boolean'
+    // ]);
+
+    // $updateData = [];
+
+    // if ($request->has('title')) {
+    //     $updateData['title'] = $request->title;
+    // }
+
+    // if ($request->has('content')) {
+    //     $updateData['content'] = $request->content;
+    // }
+
+    // if ($request->has('order')) {
+    //     $updateData['order'] = $request->order;
+    // }
+
+    // if ($request->has('isActive')) {
+    //     $updateData['isActive'] = $request->boolean('isActive')
+    //         ? 'true'
+    //         : 'false';
+    // }
+
+    // $service->update($updateData);
+
+    // $service->isActive = $service->isActive === 'true';
+
+    // Log::info('Team of service updated', [
+    //     'service_id' => $service->id
+    // ]);
+
+    // return response()->json([
+    //     'status'  => true,
+    //     'message' => 'Team of service updated successfully',
+    //     'data'    => $service
+    // ]);
+    // }
+
     public function updateHomeTerms(Request $request, $id)
-    {
-        if ($response = $this->checkAdmin($request)) {
+{
+    if ($response = $this->checkAdmin($request)) {
         return $response;
     }
 
@@ -919,36 +1011,22 @@ class HomeManageController extends Controller
         ], 404);
     }
 
-    $request->validate([
-        'title'    => 'nullable|string',
-        'content'  => 'nullable|array',
-        'order'    => 'nullable|integer',
-        'isActive' => 'nullable|boolean'
+    $validated = $request->validate([
+        'title'       => 'nullable|string|max:255',
+        'content'     => 'nullable|array',
+        'content.*'   => 'required|string',
+        'order'       => 'nullable|integer',
+        'isActive'    => 'nullable|boolean',
     ]);
 
-    $updateData = [];
-
-    if ($request->has('title')) {
-        $updateData['title'] = $request->title;
-    }
-
-    if ($request->has('content')) {
-        $updateData['content'] = $request->content;
-    }
-
-    if ($request->has('order')) {
-        $updateData['order'] = $request->order;
-    }
-
-    if ($request->has('isActive')) {
-        $updateData['isActive'] = $request->boolean('isActive')
-            ? 'true'
-            : 'false';
-    }
-
-    $service->update($updateData);
-
-    $service->isActive = $service->isActive === 'true';
+    $service->update([
+        'title'    => $validated['title']   ?? $service->title,
+        'content'  => $validated['content'] ?? $service->content,
+        'order'    => $validated['order']   ?? $service->order,
+        'isActive' => $request->has('isActive')
+                        ? $request->boolean('isActive')
+                        : $service->isActive,
+    ]);
 
     Log::info('Team of service updated', [
         'service_id' => $service->id
@@ -959,7 +1037,8 @@ class HomeManageController extends Controller
         'message' => 'Team of service updated successfully',
         'data'    => $service
     ]);
-    }
+}
+
 
     //delete Terms and conditions
     public function deleteHomeTerms(Request $request, $id)
