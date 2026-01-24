@@ -26,16 +26,23 @@ class User extends Authenticatable
         'userEmail',
         'profilePic',
         'google_token',
+        'facebook_token',
+        'otp_code',
+        'otp_expired_at',
         'lastModification',
-        'created_at',
-        'updated_at'
+        'offsetCredit',
+        'treeCredit',
     ];
 
     protected $hidden = [
+        'otp_code',          // security
+        'google_token',
+        'facebook_token',
     ];
 
     protected $casts = [
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'otp_expired_at' => 'datetime',
+        'created_at'     => 'datetime',
+        'updated_at'     => 'datetime',
     ];
 }
