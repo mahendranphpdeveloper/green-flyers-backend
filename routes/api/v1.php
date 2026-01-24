@@ -222,6 +222,7 @@ Route::prefix('/admin/home-manage')->group(function () {
     Route::get('/faq/visual-section', [\App\Http\Controllers\HomeManageController::class, 'getHomeVisualSection']);
     Route::get('/bgimage', [\App\Http\Controllers\HomeManageController::class, 'getLoginBackgroundImage']);
     Route::get('/terms', [\App\Http\Controllers\HomeManageController::class, 'getHomeTerms']);
+    Route::get('/privacy-policy', [\App\Http\Controllers\HomeManageController::class, 'getHomePrivacyPolicy']);
     
 });
 
