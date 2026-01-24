@@ -123,34 +123,35 @@ class AuthController extends Controller
 
     //generate and send otp
     public function sendOtp(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email'
-        ]);
+{
+    $request->validate([
+        'email' => 'required|email'
+    ]);
 
-        $email = $request->email;
+    $email = $request->email;
 
-        Log::info('Send OTP called', ['email' => $email]);
+    Log::info('Send OTP called', ['email' => $email]);
 
-        $user = User::where('userEmail', $email)->first();
+    $user = User::where('userEmail', $email)->first();
 
-        if (!$user) {
-            return response()->json([
-                'message' => 'User not found',
-                'action'  => 'REGISTER'
-            ], 404);
-        }
+    if (!$user) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'User not found',
+            'action'  => 'REGISTER'
+        ], 404);
+    }
 
-        // Generate 6-digit OTP
-        $otp = random_int(100000, 999999);
+    // Generate 6-digit OTP
+    $otp = random_int(100000, 999999);
 
-        // Save OTP with expiry (5 minutes)
-        $user->otp_code = (string) $otp;
-        $user->otp_expires_at = now()->addMinutes(5);
-        $user->save();
+    // Save OTP with expiry (5 minutes)
+    $user->otp_code = (string) $otp;
+    $user->otp_expires_at = now()->addMinutes(5);
+    $user->save();
 
-        // Email HTML Template
-        $html = '
+    // Email HTML Template
+    $html = '
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -215,18 +216,20 @@ Regards,<br><strong>Green Flyers Team</strong>
 </body>
 </html>';
 
-        // Send Email
-        Mail::html($html, function ($mail) use ($email) {
-            $mail->to($email)
-                ->subject('Your OTP Verification Code');
-        });
+    // Send Email
+    Mail::html($html, function ($mail) use ($email) {
+        $mail->to($email)
+             ->subject('Your OTP Verification Code');
+    });
 
-        return response()->json([
-            'message' => 'OTP sent successfully',
-            'expires_in' => 300, // seconds
-            'action' => 'VERIFY_OTP'
-        ]);
-    }
+    return response()->json([
+        'status'     => true,
+        'message'    => 'OTP sent successfully',
+        'expires_in' => 300, // seconds
+        'action'     => 'VERIFY_OTP'
+    ]);
+}
+
 
     //verify otp 
     public function verifyOtp(Request $request)
