@@ -147,7 +147,7 @@ class AuthController extends Controller
 
     // Save OTP with expiry (5 minutes)
     $user->otp_code = (string) $otp;
-    $user->otp_expires_at = now()->addMinutes(5);
+    $user->otp_expires_at = now()->addSeconds(10);
     $user->save();
 
     // Email HTML Template
