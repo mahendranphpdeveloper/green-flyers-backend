@@ -25,6 +25,9 @@ Route::get('/test', function () {
 | AUTH ROUTES
 |--------------------------------------------------------------------------
 */
+//Generate, Send and Verify OTP
+Route::post('/auth/send-otp', [\App\Http\Controllers\AuthController::class, 'sendOtp']);
+Route::post('/auth/verify-otp', [\App\Http\Controllers\AuthController::class, 'verifyOtp']);
 
 Route::post('/auth/login', [\App\Http\Controllers\AuthController::class, 'login'])->name('login');
 Route::post('/auth/register', [\App\Http\Controllers\AuthController::class, 'register']);
