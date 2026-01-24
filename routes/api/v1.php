@@ -180,6 +180,9 @@ Route::post('/privacy-policy', [\App\Http\Controllers\HomeManageController::clas
 Route::put('/privacy-policy/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomePrivacyPolicy']);
 Route::delete('/privacy-policy/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomePrivacyPolicy']);
 
+//Services and Privacy 
+Route::put('/terms-privacy-top-content/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeTermsPolicyTopContent']);
+
 });
 
 // for bulk upload
@@ -223,6 +226,8 @@ Route::prefix('/admin/home-manage')->group(function () {
     Route::get('/bgimage', [\App\Http\Controllers\HomeManageController::class, 'getLoginBackgroundImage']);
     Route::get('/terms', [\App\Http\Controllers\HomeManageController::class, 'getHomeTerms']);
     Route::get('/privacy-policy', [\App\Http\Controllers\HomeManageController::class, 'getHomePrivacyPolicy']);
+    Route::get('/terms-privacy-top-content/{id}', [\App\Http\Controllers\HomeManageController::class, 'getHomeTermsPolicyTopContent']);
+
     
 });
 

@@ -14,6 +14,7 @@ use App\Models\CallToAction;
 use App\Models\BackgroundImage;
 use App\Models\PrivacyPolicy;
 use App\Models\TeamofServices;
+use App\Models\ServicesPolicyContent;
 
 class HomeManageController extends Controller
 {
@@ -843,18 +844,18 @@ class HomeManageController extends Controller
 
     //get terms and conditions
     public function getHomeTerms()
-{
-    $services = TeamOfServices::orderBy('order')->get();
+    {
+        $services = TeamOfServices::orderBy('order')->get();
 
-    Log::info('Team of services fetched', [
-        'count' => $services->count()
-    ]);
+        Log::info('Team of services fetched', [
+            'count' => $services->count()
+        ]);
 
-    return response()->json([
-        'status' => true,
-        'data'   => $services
-    ]);
-}
+        return response()->json([
+            'status' => true,
+            'data'   => $services
+        ]);
+    }
 
 
     //store terms and conditions
@@ -970,124 +971,178 @@ class HomeManageController extends Controller
     public function getHomePrivacyPolicy()
     {
         $policies = PrivacyPolicy::orderBy('order')->get();
-    
+
         Log::info('Privacy policy fetched', [
             'count' => $policies->count()
         ]);
-    
+
         return response()->json([
             'status' => true,
             'data'   => $policies
         ]);
     }
+
+
+    //store Privacy Policy
+    public function storeHomePrivacyPolicy(Request $request)
+    {
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
+
+        $validated = $request->validate([
+            'title'       => 'required|string|max:255',
+            'content'     => 'required|array',
+            'content.*'   => 'required|string',
+            'order'       => 'nullable|integer',
+            'isActive'    => 'nullable|boolean',
+        ]);
+
+        $policy = PrivacyPolicy::create([
+            'title'    => $validated['title'],
+            'content'  => $validated['content'],
+            'order'    => $validated['order'] ?? 0,
+            'isActive' => $request->boolean('isActive'),
+        ]);
+
+        Log::info('Privacy policy created', [
+            'policy_id' => $policy->id
+        ]);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Privacy policy created successfully',
+            'data'    => $policy
+        ], 201);
+    }
+
+    //update Privacy Policy
+    public function updateHomePrivacyPolicy(Request $request, $id)
+    {
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
+
+        $policy = PrivacyPolicy::find($id);
+
+        if (!$policy) {
+            Log::warning('Privacy policy update failed - not found', ['id' => $id]);
+
+            return response()->json([
+                'status'  => false,
+                'message' => 'Privacy policy not found'
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'title'       => 'nullable|string|max:255',
+            'content'     => 'nullable|array',
+            'content.*'   => 'required|string',
+            'order'       => 'nullable|integer',
+            'isActive'    => 'nullable|boolean',
+        ]);
+
+        $policy->update([
+            'title'    => $validated['title']   ?? $policy->title,
+            'content'  => $validated['content'] ?? $policy->content,
+            'order'    => $validated['order']   ?? $policy->order,
+            'isActive' => $request->has('isActive')
+                ? $request->boolean('isActive')
+                : $policy->isActive,
+        ]);
+
+        Log::info('Privacy policy updated', [
+            'policy_id' => $policy->id
+        ]);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Privacy policy updated successfully',
+            'data'    => $policy
+        ]);
+    }
+
+    //delete Privacy Policy
+    public function deleteHomePrivacyPolicy(Request $request, $id)
+    {
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
+
+        $policy = PrivacyPolicy::find($id);
+
+        if (!$policy) {
+            Log::warning('Privacy policy delete failed - not found', ['id' => $id]);
+
+            return response()->json([
+                'status'  => false,
+                'message' => 'Privacy policy not found'
+            ], 404);
+        }
+
+        $policy->delete();
+
+        Log::info('Privacy policy deleted', [
+            'policy_id' => $id
+        ]);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Privacy policy deleted successfully'
+        ]);
+    }
+
+    //get services and policy top content
+    public function getHomeTermsPolicyTopContent($id)
+{
+    $content = ServicesPolicyContent::find($id);
+
+    if (!$content) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Content not found'
+        ], 404);
+    }
+
+    return response()->json([
+        'status' => true,
+        'data'   => $content
+    ]);
+}
+
+//update services and policy top content 
+public function updateHomeTermsPolicyTopContent(Request $request, $id)
+{
     
-
-//store Privacy Policy
-public function storeHomePrivacyPolicy(Request $request)
-{
     if ($response = $this->checkAdmin($request)) {
         return $response;
     }
 
-    $validated = $request->validate([
-        'title'       => 'required|string|max:255',
-        'content'     => 'required|array',
-        'content.*'   => 'required|string',
-        'order'       => 'nullable|integer',
-        'isActive'    => 'nullable|boolean',
-    ]);
+    $content = ServicesPolicyContent::find($id);
 
-    $policy = PrivacyPolicy::create([
-        'title'    => $validated['title'],
-        'content'  => $validated['content'],
-        'order'    => $validated['order'] ?? 0,
-        'isActive' => $request->boolean('isActive'),
-    ]);
-
-    Log::info('Privacy policy created', [
-        'policy_id' => $policy->id
-    ]);
-
-    return response()->json([
-        'status'  => true,
-        'message' => 'Privacy policy created successfully',
-        'data'    => $policy
-    ], 201);
-}
-
-//update Privacy Policy
-public function updateHomePrivacyPolicy(Request $request, $id)
-{
-    if ($response = $this->checkAdmin($request)) {
-        return $response;
-    }
-
-    $policy = PrivacyPolicy::find($id);
-
-    if (!$policy) {
-        Log::warning('Privacy policy update failed - not found', ['id' => $id]);
-
+    if (!$content) {
         return response()->json([
             'status'  => false,
-            'message' => 'Privacy policy not found'
+            'message' => 'Content not found'
         ], 404);
     }
 
     $validated = $request->validate([
-        'title'       => 'nullable|string|max:255',
-        'content'     => 'nullable|array',
-        'content.*'   => 'required|string',
-        'order'       => 'nullable|integer',
-        'isActive'    => 'nullable|boolean',
+        'content' => 'required|string',
     ]);
 
-    $policy->update([
-        'title'    => $validated['title']   ?? $policy->title,
-        'content'  => $validated['content'] ?? $policy->content,
-        'order'    => $validated['order']   ?? $policy->order,
-        'isActive' => $request->has('isActive')
-            ? $request->boolean('isActive')
-            : $policy->isActive,
+    $content->update([
+        'content' => $validated['content'],
     ]);
 
-    Log::info('Privacy policy updated', [
-        'policy_id' => $policy->id
+    Log::info('Terms / Privacy top content updated', [
+        'content_id' => $id
     ]);
 
     return response()->json([
         'status'  => true,
-        'message' => 'Privacy policy updated successfully',
-        'data'    => $policy
-    ]);
-}
-
-//delete Privacy Policy
-public function deleteHomePrivacyPolicy(Request $request, $id)
-{
-    if ($response = $this->checkAdmin($request)) {
-        return $response;
-    }
-
-    $policy = PrivacyPolicy::find($id);
-
-    if (!$policy) {
-        Log::warning('Privacy policy delete failed - not found', ['id' => $id]);
-
-        return response()->json([
-            'status'  => false,
-            'message' => 'Privacy policy not found'
-        ], 404);
-    }
-
-    $policy->delete();
-
-    Log::info('Privacy policy deleted', [
-        'policy_id' => $id
-    ]);
-
-    return response()->json([
-        'status'  => true,
-        'message' => 'Privacy policy deleted successfully'
+        'message' => 'Content updated successfully',
+        'data'    => $content
     ]);
 }
 
