@@ -933,7 +933,7 @@ class HomeManageController extends Controller
     }
 
     if ($request->has('content')) {
-        $updateData['content'] = json_encode($request->content);
+        $updateData['content'] = $request->content;
     }
 
     if ($request->has('order')) {
