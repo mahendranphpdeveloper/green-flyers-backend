@@ -32,6 +32,8 @@ Route::post('/auth/register', [\App\Http\Controllers\AuthController::class, 'reg
 // Google OAuth login endpoint for exchanging Google accessToken/profile for user login/registration
 Route::post('/auth/google-login', [\App\Http\Controllers\AuthController::class, 'googleLogin']);
 
+// Facebook OAuth login 
+Route::post('/auth/facebook-login', [\App\Http\Controllers\AuthController::class, 'facebookLogin']);
 
 Route::middleware('auth:sanctum')->group(function () {
 
