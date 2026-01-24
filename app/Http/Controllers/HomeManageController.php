@@ -1040,6 +1040,7 @@ class HomeManageController extends Controller
 }
 
 
+
     //delete Terms and conditions
     public function deleteHomeTerms(Request $request, $id)
     {

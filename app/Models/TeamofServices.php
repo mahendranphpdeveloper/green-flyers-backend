@@ -11,8 +11,18 @@ class TeamofServices extends Model
 
     protected $table = 'team_of_services';
     protected $primaryKey = 'id';
+    public $timestamps = true;
 
-    public $timestamps = true; // enables created_at and updated_at
+    // Allow mass assignment
+    protected $fillable = [
+        'title',
+        'content',
+        'order',
+        'isActive',
+    ];
 
-    protected $guarded = []; // allow mass assignment
+     protected $casts = [
+        'content'  => 'array',
+        'isActive' => 'boolean',
+    ];
 }
