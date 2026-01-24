@@ -842,13 +842,9 @@ class HomeManageController extends Controller
 
 
     //get terms and conditions
-     public function getHomeTerms()
-    {
-        $services = TeamOfServices::orderBy('order')->get()->map(function ($service) {
-        $service->isActive = $service->isActive === 'true';
-        $service->content  = json_decode($service->content, true);
-        return $service;
-    });
+    public function getHomeTerms()
+{
+    $services = TeamOfServices::orderBy('order')->get();
 
     Log::info('Team of services fetched', [
         'count' => $services->count()
@@ -858,48 +854,136 @@ class HomeManageController extends Controller
         'status' => true,
         'data'   => $services
     ]);
-    }
+}
+
 
     //store terms and conditions
-    // public function storeHomeTerms(Request $request)
-    // {
-    //      if ($response = $this->checkAdmin($request)) {
-    //     return $response;
-    //    }
-
-    // $request->validate([
-    //     'title'    => 'required|string',
-    //     'content'  => 'required|array',
-    //     'order'    => 'nullable|integer',
-    //     'isActive' => 'nullable|boolean'
-    // ]);
-
-    // $storeData = [
-    //     'title'   => $request->title,
-    //     'content' => json_encode($request->content),
-    //     'order'   => $request->order ?? 0,
-    //     'isActive'=> $request->has('isActive') && $request->boolean('isActive')
-    //                     ? 'true'
-    //                     : 'false'
-    // ];
-
-    // $service = TeamOfServices::create($storeData);
-
-    // // Convert to boolean for response
-    // $service->isActive = $service->isActive === 'true';
-
-    // Log::info('Team of service created', [
-    //     'service_id' => $service->id
-    // ]);
-
-    // return response()->json([
-    //     'status'  => true,
-    //     'message' => 'Team of service created successfully',
-    //     'data'    => $service
-    // ], 201);
-    // }
-
     public function storeHomeTerms(Request $request)
+    {
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
+
+        $validated = $request->validate([
+            'title'       => 'required|string|max:255',
+            'content'     => 'required|array',
+            'content.*'   => 'required|string',
+            'order'       => 'nullable|integer',
+            'isActive'    => 'nullable|boolean',
+        ]);
+
+        $service = TeamOfServices::create([
+            'title'    => $validated['title'],
+            'content'  => $validated['content'],
+            'order'    => $validated['order'] ?? 0,
+            'isActive' => $request->boolean('isActive'),
+        ]);
+
+        Log::info('Team of service created', [
+            'service_id' => $service->id
+        ]);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Team of service created successfully',
+            'data'    => $service
+        ], 201);
+    }
+
+    //update terms and conditions
+    public function updateHomeTerms(Request $request, $id)
+    {
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
+
+        $service = TeamOfServices::find($id);
+
+        if (!$service) {
+            Log::warning('Team of service update failed - not found', ['id' => $id]);
+
+            return response()->json([
+                'status'  => false,
+                'message' => 'Team of service not found'
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'title'       => 'nullable|string|max:255',
+            'content'     => 'nullable|array',
+            'content.*'   => 'required|string',
+            'order'       => 'nullable|integer',
+            'isActive'    => 'nullable|boolean',
+        ]);
+
+        $service->update([
+            'title'    => $validated['title']   ?? $service->title,
+            'content'  => $validated['content'] ?? $service->content,
+            'order'    => $validated['order']   ?? $service->order,
+            'isActive' => $request->has('isActive')
+                ? $request->boolean('isActive')
+                : $service->isActive,
+        ]);
+
+        Log::info('Team of service updated', [
+            'service_id' => $service->id
+        ]);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Team of service updated successfully',
+            'data'    => $service
+        ]);
+    }
+
+    //delete Terms and conditions
+    public function deleteHomeTerms(Request $request, $id)
+    {
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
+
+        $service = TeamOfServices::find($id);
+
+        if (!$service) {
+            Log::warning('Team of service delete failed - not found', ['id' => $id]);
+
+            return response()->json([
+                'status'  => false,
+                'message' => 'Team of service not found'
+            ], 404);
+        }
+
+        $service->delete();
+
+        Log::info('Team of service deleted', [
+            'service_id' => $id
+        ]);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Team of service deleted successfully'
+        ]);
+    }
+
+    //get Privacy Policy
+    public function getHomePrivacyPolicy()
+    {
+        $policies = PrivacyPolicy::orderBy('order')->get();
+    
+        Log::info('Privacy policy fetched', [
+            'count' => $policies->count()
+        ]);
+    
+        return response()->json([
+            'status' => true,
+            'data'   => $policies
+        ]);
+    }
+    
+
+//store Privacy Policy
+public function storeHomePrivacyPolicy(Request $request)
 {
     if ($response = $this->checkAdmin($request)) {
         return $response;
@@ -913,101 +997,39 @@ class HomeManageController extends Controller
         'isActive'    => 'nullable|boolean',
     ]);
 
-    $service = TeamOfServices::create([
+    $policy = PrivacyPolicy::create([
         'title'    => $validated['title'],
-        'content'  => $validated['content'], 
+        'content'  => $validated['content'],
         'order'    => $validated['order'] ?? 0,
         'isActive' => $request->boolean('isActive'),
     ]);
 
-    Log::info('Team of service created', [
-        'service_id' => $service->id
+    Log::info('Privacy policy created', [
+        'policy_id' => $policy->id
     ]);
 
     return response()->json([
         'status'  => true,
-        'message' => 'Team of service created successfully',
-        'data'    => $service
+        'message' => 'Privacy policy created successfully',
+        'data'    => $policy
     ], 201);
 }
 
-
-
-
-    //update terms and conditions
-    // public function updateHomeTerms(Request $request, $id)
-    // {
-    //     if ($response = $this->checkAdmin($request)) {
-    //     return $response;
-    // }
-
-    // $service = TeamOfServices::find($id);
-
-    // if (!$service) {
-    //     Log::warning('Team of service update failed - not found', ['id' => $id]);
-
-    //     return response()->json([
-    //         'status'  => false,
-    //         'message' => 'Team of service not found'
-    //     ], 404);
-    // }
-
-    // $request->validate([
-    //     'title'    => 'nullable|string',
-    //     'content'  => 'nullable|array',
-    //     'order'    => 'nullable|integer',
-    //     'isActive' => 'nullable|boolean'
-    // ]);
-
-    // $updateData = [];
-
-    // if ($request->has('title')) {
-    //     $updateData['title'] = $request->title;
-    // }
-
-    // if ($request->has('content')) {
-    //     $updateData['content'] = $request->content;
-    // }
-
-    // if ($request->has('order')) {
-    //     $updateData['order'] = $request->order;
-    // }
-
-    // if ($request->has('isActive')) {
-    //     $updateData['isActive'] = $request->boolean('isActive')
-    //         ? 'true'
-    //         : 'false';
-    // }
-
-    // $service->update($updateData);
-
-    // $service->isActive = $service->isActive === 'true';
-
-    // Log::info('Team of service updated', [
-    //     'service_id' => $service->id
-    // ]);
-
-    // return response()->json([
-    //     'status'  => true,
-    //     'message' => 'Team of service updated successfully',
-    //     'data'    => $service
-    // ]);
-    // }
-
-    public function updateHomeTerms(Request $request, $id)
+//update Privacy Policy
+public function updateHomePrivacyPolicy(Request $request, $id)
 {
     if ($response = $this->checkAdmin($request)) {
         return $response;
     }
 
-    $service = TeamOfServices::find($id);
+    $policy = PrivacyPolicy::find($id);
 
-    if (!$service) {
-        Log::warning('Team of service update failed - not found', ['id' => $id]);
+    if (!$policy) {
+        Log::warning('Privacy policy update failed - not found', ['id' => $id]);
 
         return response()->json([
             'status'  => false,
-            'message' => 'Team of service not found'
+            'message' => 'Privacy policy not found'
         ], 404);
     }
 
@@ -1019,56 +1041,54 @@ class HomeManageController extends Controller
         'isActive'    => 'nullable|boolean',
     ]);
 
-    $service->update([
-        'title'    => $validated['title']   ?? $service->title,
-        'content'  => $validated['content'] ?? $service->content,
-        'order'    => $validated['order']   ?? $service->order,
+    $policy->update([
+        'title'    => $validated['title']   ?? $policy->title,
+        'content'  => $validated['content'] ?? $policy->content,
+        'order'    => $validated['order']   ?? $policy->order,
         'isActive' => $request->has('isActive')
-                        ? $request->boolean('isActive')
-                        : $service->isActive,
+            ? $request->boolean('isActive')
+            : $policy->isActive,
     ]);
 
-    Log::info('Team of service updated', [
-        'service_id' => $service->id
+    Log::info('Privacy policy updated', [
+        'policy_id' => $policy->id
     ]);
 
     return response()->json([
         'status'  => true,
-        'message' => 'Team of service updated successfully',
-        'data'    => $service
+        'message' => 'Privacy policy updated successfully',
+        'data'    => $policy
     ]);
 }
 
-
-
-    //delete Terms and conditions
-    public function deleteHomeTerms(Request $request, $id)
-    {
-       if ($response = $this->checkAdmin($request)) {
+//delete Privacy Policy
+public function deleteHomePrivacyPolicy(Request $request, $id)
+{
+    if ($response = $this->checkAdmin($request)) {
         return $response;
     }
 
-    $service = TeamOfServices::find($id);
+    $policy = PrivacyPolicy::find($id);
 
-    if (!$service) {
-        Log::warning('Team of service delete failed - not found', ['id' => $id]);
+    if (!$policy) {
+        Log::warning('Privacy policy delete failed - not found', ['id' => $id]);
 
         return response()->json([
             'status'  => false,
-            'message' => 'Team of service not found'
+            'message' => 'Privacy policy not found'
         ], 404);
     }
 
-    $service->delete();
+    $policy->delete();
 
-    Log::info('Team of service deleted', [
-        'service_id' => $id
+    Log::info('Privacy policy deleted', [
+        'policy_id' => $id
     ]);
 
     return response()->json([
         'status'  => true,
-        'message' => 'Team of service deleted successfully'
+        'message' => 'Privacy policy deleted successfully'
     ]);
-    }
+}
 
 }

@@ -11,8 +11,17 @@ class PrivacyPolicy extends Model
 
     protected $table = 'privacy_policy';
     protected $primaryKey = 'id';
+    public $timestamps = true;
 
-    public $timestamps = true; // enables created_at and updated_at
+    protected $fillable = [
+        'title',
+        'content',
+        'order',
+        'isActive',
+    ];
 
-    protected $guarded = []; // allow mass assignment
+    protected $casts = [
+        'content'  => 'array',
+        'isActive' => 'boolean',
+    ];
 }

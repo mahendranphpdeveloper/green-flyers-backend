@@ -172,7 +172,13 @@ Route::prefix('/admin/home-manage')->group(function () {
 // Route::get('/terms', [\App\Http\Controllers\HomeManageController::class, 'getHomeTerms']);
 Route::post('/terms', [\App\Http\Controllers\HomeManageController::class, 'storeHomeTerms']);
 Route::put('/terms/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeTerms']);
- Route::delete('/terms/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeTerms']);
+Route::delete('/terms/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeTerms']);
+
+//Privacy Policy
+// Route::get('/privacy-policy', [\App\Http\Controllers\HomeManageController::class, 'getHomePrivacyPolicy']);
+Route::post('/privacy-policy', [\App\Http\Controllers\HomeManageController::class, 'storeHomePrivacyPolicy']);
+Route::put('/privacy-policy/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomePrivacyPolicy']);
+Route::delete('/privacy-policy/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomePrivacyPolicy']);
 
 });
 
