@@ -225,7 +225,7 @@ Regards,<br><strong>Green Flyers Team</strong>
     return response()->json([
         'status'     => true,
         'message'    => 'OTP sent successfully',
-        'expires_in' => 300, // seconds
+        'expires_in' => 10, // seconds
         'action'     => 'VERIFY_OTP'
     ]);
 }
