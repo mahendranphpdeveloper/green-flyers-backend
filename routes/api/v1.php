@@ -37,6 +37,7 @@ Route::post('/auth/google-login', [\App\Http\Controllers\AuthController::class, 
 
 // Facebook OAuth login 
 Route::post('/auth/facebook-login', [\App\Http\Controllers\AuthController::class, 'facebookLogin']);
+Route::post('/auth/linkedin-login', [\App\Http\Controllers\AuthController::class, 'linkedinLogin']);
 
 Route::middleware('auth:sanctum')->group(function () {
 

@@ -27,6 +27,7 @@ class User extends Authenticatable
         'profilePic',
         'google_token',
         'facebook_token',
+        'linkedin_token',
         'otp_code',
         'otp_expired_at',
         'lastModification',
@@ -38,6 +39,7 @@ class User extends Authenticatable
         'otp_code',          // security
         'google_token',
         'facebook_token',
+        'linkedin_token',
     ];
 
     protected $casts = [

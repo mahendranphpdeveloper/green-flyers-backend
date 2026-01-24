@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 
 
@@ -147,7 +148,7 @@ class AuthController extends Controller
 
     // Save OTP with expiry (5 minutes)
     $user->otp_code = (string) $otp;
-    $user->otp_expires_at = now()->addSeconds(10);
+    $user->otp_expires_at = now()->addMinutes(5);
     $user->save();
 
     // Email HTML Template
@@ -225,7 +226,7 @@ Regards,<br><strong>Green Flyers Team</strong>
     return response()->json([
         'status'     => true,
         'message'    => 'OTP sent successfully',
-        'expires_in' => 10, // seconds
+        'expires_in' => 300, // seconds
         'action'     => 'VERIFY_OTP'
     ]);
 }
@@ -553,4 +554,92 @@ Regards,<br><strong>Green Flyers Team</strong>
             ]
         ]);
     }
+
+    public function linkedinLogin(Request $request)
+{
+    // STEP 1: Validate input
+    $request->validate([
+        'code' => 'required|string',
+    ]);
+
+    // STEP 2: Exchange CODE → Access Token
+    $tokenResponse = Http::asForm()->post(
+        'https://www.linkedin.com/oauth/v2/accessToken',
+        [
+            'grant_type'    => 'authorization_code',
+            'code'          => $request->code,
+            'redirect_uri'  => config('services.linkedin.redirect'),
+            'client_id'     => config('services.linkedin.client_id'),
+            'client_secret' => config('services.linkedin.client_secret'),
+        ]
+    );
+
+    if (!$tokenResponse->successful()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'LinkedIn token exchange failed',
+        ], 400);
+    }
+
+    $linkedinToken = $tokenResponse['access_token'];
+
+    // STEP 3: Get LinkedIn Profile
+    $profileResponse = Http::withToken($linkedinToken)
+        ->get('https://api.linkedin.com/v2/me');
+
+    // STEP 4: Get LinkedIn Email
+    $emailResponse = Http::withToken($linkedinToken)
+        ->get('https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))');
+
+    if (!$profileResponse->successful() || !$emailResponse->successful()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Failed to fetch LinkedIn user data',
+        ], 400);
+    }
+
+    $profile = $profileResponse->json();
+    $email   = $emailResponse['elements'][0]['handle~']['emailAddress'];
+
+    $fullName = trim(
+        ($profile['localizedFirstName'] ?? '') . ' ' .
+        ($profile['localizedLastName'] ?? '')
+    );
+
+    // STEP 5: Check if user exists
+    $user = User::where('userEmail', $email)->first();
+
+    if (!$user) {
+        // FIRST TIME LINKEDIN LOGIN
+        $user = User::create([
+            'userName'       => $fullName,
+            'userEmail'      => $email,
+            'password'       => bcrypt(Str::random(16)), // dummy password
+            'linkedin_token' => $linkedinToken,
+        ]);
+    } else {
+        // EXISTING USER → update ONLY LinkedIn token
+        $user->linkedin_token = $linkedinToken;
+        $user->save();
+    }
+
+    // STEP 6: Generate API Token
+    $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
+
+    // STEP 7: Send response
+    return response()->json([
+        'message' => 'LinkedIn login successful',
+        'token'   => $token,
+        'user' => [
+            'userId'       => $user->userId,
+            'name'         => $user->userName,
+            'email'        => $user->userEmail,
+            'profilePic'   => $user->profilePic ?? null,
+            'offsetCredit' => $user->offsetCredit,
+            'treeCredit'   => $user->treeCredit,
+        ]
+    ]);
 }
+
+}
+
