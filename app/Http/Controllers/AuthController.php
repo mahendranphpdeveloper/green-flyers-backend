@@ -608,6 +608,7 @@ public function verifyOtp(Request $request)
     // =========================
     if (!$user) {
         return response()->json([
+            'status'      => false,
             'message'     => 'New user',
             'is_new_user' => true,
             'userEmail'   => $request->email
@@ -665,6 +666,7 @@ public function verifyOtp(Request $request)
     $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
 
     return response()->json([
+        'status'      => true,
         'message'     => 'OTP verified & login successful',
         'is_new_user' => $isNewUser,
         'token'       => $token,
