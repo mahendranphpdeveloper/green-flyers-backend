@@ -594,6 +594,93 @@ public function sendOtp(Request $request)
 
 
 
+// public function verifyOtp(Request $request)
+// {
+//     $request->validate([
+//         'email' => 'required|email',
+//         'otp'   => 'required|digits:6'
+//     ]);
+
+//     $user = User::where('userEmail', $request->email)->first();
+
+//     // =========================
+//     // USER NOT FOUND → NEW
+//     // =========================
+//     if (!$user) {
+//         return response()->json([
+//             'status'      => false,
+//             'message'     => 'New user',
+//             'is_new_user' => true,
+//             'userEmail'   => $request->email
+//         ], 200);
+//     }
+
+//     // =========================
+//     // DETECT NEW USER BEFORE OTP VERIFY
+//     // =========================
+//     $isNewUser = is_null($user->email_verified_at);
+
+//     // =========================
+//     // OTP NOT GENERATED
+//     // =========================
+//     if (!$user->otp_code) {
+//         return response()->json([
+//             'status'  => false,
+//             'message' => 'OTP not generated'
+//         ], 400);
+//     }
+
+//     // =========================
+//     // OTP EXPIRED
+//     // =========================
+//     if (!$user->otp_expires_at || now()->gt($user->otp_expires_at)) {
+//         $user->otp_code = null;
+//         $user->otp_expires_at = null;
+//         $user->save();
+
+//         return response()->json([
+//             'status'  => false,
+//             'message' => 'OTP expired'
+//         ], 400);
+//     }
+
+//     // =========================
+//     // INVALID OTP
+//     // =========================
+//     if ($user->otp_code !== $request->otp) {
+//         return response()->json([
+//             'status'  => false,
+//             'message' => 'Invalid OTP'
+//         ], 400);
+//     }
+
+//     // =========================
+//     // OTP VERIFIED SUCCESS
+//     // =========================
+//     $user->otp_code = null;
+//     $user->otp_expires_at = null;
+//     $user->email_verified_at = now();
+//     $user->save();
+
+//     // Create token
+//     $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
+
+//     return response()->json([
+//         'status'      => true,
+//         'message'     => 'OTP verified & login successful',
+//         'is_new_user' => $isNewUser,
+//         'token'       => $token,
+//         'user'        => [
+//             'userId'       => $user->userId,
+//             'userName'     => $user->userName,
+//             'userEmail'    => $user->userEmail,
+//             'profilePic'   => $user->profilePic,
+//             'offsetCredit' => $user->offsetCredit,
+//             'treeCredit'   => $user->treeCredit,
+//         ]
+//     ], 200);
+// }
+
 public function verifyOtp(Request $request)
 {
     $request->validate([
@@ -604,7 +691,7 @@ public function verifyOtp(Request $request)
     $user = User::where('userEmail', $request->email)->first();
 
     // =========================
-    // USER NOT FOUND → NEW
+    // USER NOT FOUND → NEW USER
     // =========================
     if (!$user) {
         return response()->json([
@@ -616,9 +703,9 @@ public function verifyOtp(Request $request)
     }
 
     // =========================
-    // DETECT NEW USER BEFORE OTP VERIFY
+    // DETECT NEW USER FROM `is_new_user` COLUMN
     // =========================
-    $isNewUser = is_null($user->email_verified_at);
+    $isNewUser = $user->is_new_user == 1;
 
     // =========================
     // OTP NOT GENERATED
@@ -659,7 +746,15 @@ public function verifyOtp(Request $request)
     // =========================
     $user->otp_code = null;
     $user->otp_expires_at = null;
+
+    // Mark email as verified
     $user->email_verified_at = now();
+
+    // If it was a new user, set `is_new_user` to 0 after first verification
+    if ($isNewUser) {
+        $user->is_new_user = 0;
+    }
+
     $user->save();
 
     // Create token
@@ -680,6 +775,7 @@ public function verifyOtp(Request $request)
         ]
     ], 200);
 }
+
 
 
 
