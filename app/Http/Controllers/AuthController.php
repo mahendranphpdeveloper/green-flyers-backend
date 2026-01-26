@@ -750,11 +750,7 @@ public function verifyOtp(Request $request)
     // Mark email as verified
     $user->email_verified_at = now();
 
-    // If it was a new user, set `is_new_user` to 0 after first verification
-    if ($isNewUser) {
-        $user->is_new_user = 0;
-    }
-
+    // NOTE: Do NOT change `is_new_user`; keep it as 1
     $user->save();
 
     // Create token
@@ -763,7 +759,7 @@ public function verifyOtp(Request $request)
     return response()->json([
         'status'      => true,
         'message'     => 'OTP verified & login successful',
-        'is_new_user' => $isNewUser,
+        'is_new_user' => $isNewUser, // will still be 1 for new user
         'token'       => $token,
         'user'        => [
             'userId'       => $user->userId,
@@ -775,6 +771,7 @@ public function verifyOtp(Request $request)
         ]
     ], 200);
 }
+
 
 
 
@@ -978,51 +975,39 @@ public function verifyOtp(Request $request)
     //         'token' => 'required|string'
     //     ]);
 
-    //     $email = $request->input('userEmail');
-    //     $name = $request->input('userName');
-    //     $profilePic = $request->input('profilePic');
-    //     $googleToken = $request->input('token');
+    //     $email = $request->userEmail;
+    //     $name = $request->userName;
+    //     $profilePic = $request->profilePic;
+    //     $googleToken = $request->token;
 
     //     $user = User::where('userEmail', $email)->first();
 
     //     if (!$user) {
+    //         // FIRST TIME GOOGLE LOGIN
     //         $user = User::create([
-    //             'userName' => $name,
-    //             'userEmail' => $email,
-    //             'profilePic' => $profilePic,
+    //             'userName'     => $name,
+    //             'userEmail'    => $email,
+    //             'profilePic'   => $profilePic,
     //             'google_token' => $googleToken,
-    //             // password not required for google login (auth happens by google token)
     //         ]);
     //     } else {
-    //         $updated = false;
-    //         if ($user->userName !== $name) {
-    //             $user->userName = $name;
-    //             $updated = true;
-    //         }
-    //         if ($profilePic && $user->profilePic !== $profilePic) {
-    //             $user->profilePic = $profilePic;
-    //             $updated = true;
-    //         }
-    //         if ($user->google_token !== $googleToken) {
-    //             $user->google_token = $googleToken;
-    //             $updated = true;
-    //         }
-    //         if ($updated) {
-    //             $user->save();
-    //         }
+    //         // EXISTING USER → DO NOT overwrite profile edits
+    //         $user->google_token = $googleToken;
+    //         $user->save();
     //     }
 
-    //     // Issue token using Laravel Sanctum
     //     $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
 
     //     return response()->json([
     //         'message' => 'Google login successful',
     //         'token' => $token,
     //         'user' => [
-    //             'userId' => $user->userId,
-    //             'name' => $user->userName,
-    //             'email' => $user->userEmail,
-    //             'profilePic' => $user->profilePic,
+    //             'userId'     => $user->userId,
+    //             'name'       => $user->userName,   // always DB value
+    //             'email'      => $user->userEmail,
+    //             'profilePic' => $user->profilePic, // always DB value
+    //             'offsetCredit' => $user->offsetCredit,
+    //             'treeCredit' => $user->treeCredit,
     //         ]
     //     ]);
     // }
@@ -1050,10 +1035,12 @@ public function verifyOtp(Request $request)
                 'userEmail'    => $email,
                 'profilePic'   => $profilePic,
                 'google_token' => $googleToken,
+                'is_new_user'  => 0, // set is_new_user to 0
             ]);
         } else {
             // EXISTING USER → DO NOT overwrite profile edits
             $user->google_token = $googleToken;
+            $user->is_new_user = 0; // set is_new_user to 0
             $user->save();
         }
 
@@ -1074,6 +1061,56 @@ public function verifyOtp(Request $request)
     }
 
     //Facebook Login
+    // public function facebookLogin(Request $request)
+    // {
+    //     // Validate incoming request
+    //     $request->validate([
+    //         'userEmail'   => 'required|email',
+    //         'userName'    => 'required|string',
+    //         'profilePic'  => 'nullable|url',
+    //         'token'       => 'required|string'
+    //     ]);
+
+    //     $email = $request->userEmail;
+    //     $name = $request->userName;
+    //     $profilePic = $request->profilePic;
+    //     $facebookToken = $request->token;
+
+    //     // Check if user already exists
+    //     $user = User::where('userEmail', $email)->first();
+
+    //     if (!$user) {
+    //         // FIRST TIME FACEBOOK LOGIN
+    //         $user = User::create([
+    //             'userName'       => $name,
+    //             'userEmail'      => $email,
+    //             'profilePic'     => $profilePic,
+    //             'facebook_token' => $facebookToken,
+    //         ]);
+    //     } else {
+    //         // EXISTING USER → update facebook token without overwriting profile edits
+    //         $user->facebook_token = $facebookToken;
+    //         $user->save();
+    //     }
+
+    //     // Generate API token
+    //     $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
+
+    //     // Return response
+    //     return response()->json([
+    //         'message' => 'Facebook login successful',
+    //         'token'   => $token,
+    //         'user' => [
+    //             'userId'       => $user->userId,
+    //             'name'         => $user->userName,    // DB value
+    //             'email'        => $user->userEmail,
+    //             'profilePic'   => $user->profilePic,  // DB value
+    //             'offsetCredit' => $user->offsetCredit,
+    //             'treeCredit'   => $user->treeCredit,
+    //         ]
+    //     ]);
+    // }
+
     public function facebookLogin(Request $request)
     {
         // Validate incoming request
@@ -1099,10 +1136,12 @@ public function verifyOtp(Request $request)
                 'userEmail'      => $email,
                 'profilePic'     => $profilePic,
                 'facebook_token' => $facebookToken,
+                'is_new_user'    => 0,
             ]);
         } else {
             // EXISTING USER → update facebook token without overwriting profile edits
             $user->facebook_token = $facebookToken;
+            $user->is_new_user = 0;
             $user->save();
         }
 
