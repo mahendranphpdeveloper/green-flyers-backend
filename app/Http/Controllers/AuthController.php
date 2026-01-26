@@ -231,121 +231,121 @@ class AuthController extends Controller
 //     ]);
 // }
 
-public function sendOtp(Request $request)
-{
-    $request->validate([
-        'email' => 'required|email'
-    ]);
+// public function sendOtp(Request $request)
+// {
+//     $request->validate([
+//         'email' => 'required|email'
+//     ]);
 
-    $email = $request->email;
-    Log::info('Send OTP called', ['email' => $email]);
+//     $email = $request->email;
+//     Log::info('Send OTP called', ['email' => $email]);
 
-    // Generate OTP
-    $otp = random_int(100000, 999999);
-    $expiresAt = now()->addMinutes(5);
+//     // Generate OTP
+//     $otp = random_int(100000, 999999);
+//     $expiresAt = now()->addMinutes(5);
 
-    // Find user
-    $user = User::where('userEmail', $email)->first();
+//     // Find user
+//     $user = User::where('userEmail', $email)->first();
 
-    // =========================
-    // NEW USER → CREATE FIRST
-    // =========================
-    if (!$user) {
-        Log::info('New user - creating record', ['email' => $email]);
+//     // =========================
+//     // NEW USER → CREATE FIRST
+//     // =========================
+//     if (!$user) {
+//         Log::info('New user - creating record', ['email' => $email]);
 
-        $user = User::create([
-            'userEmail'        => $email,
-            'otp_code'         => (string) $otp,
-            'otp_expires_at'   => $expiresAt,
-        ]);
+//         $user = User::create([
+//             'userEmail'        => $email,
+//             'otp_code'         => (string) $otp,
+//             'otp_expires_at'   => $expiresAt,
+//         ]);
 
-        $action = 'VERIFY_OTP_REGISTER';
-    }
-    // =========================
-    // EXISTING USER
-    // =========================
-    else {
-        $user->otp_code = (string) $otp;
-        $user->otp_expires_at = $expiresAt;
-        $user->save();
+//         $action = 'VERIFY_OTP_REGISTER';
+//     }
+//     // =========================
+//     // EXISTING USER
+//     // =========================
+//     else {
+//         $user->otp_code = (string) $otp;
+//         $user->otp_expires_at = $expiresAt;
+//         $user->save();
 
-        $action = 'VERIFY_OTP_LOGIN';
-    }
+//         $action = 'VERIFY_OTP_LOGIN';
+//     }
 
-    // =========================
-    // EMAIL TEMPLATE
-    // =========================
-    $html = '
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>OTP Verification</title>
-</head>
-<body style="margin:0;padding:0;background-color:#f4f6f8;font-family:Arial,Helvetica,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr>
-<td align="center" style="padding:40px 0;">
-<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+//     // =========================
+//     // EMAIL TEMPLATE
+//     // =========================
+//     $html = '
+// <!DOCTYPE html>
+// <html lang="en">
+// <head>
+// <meta charset="UTF-8">
+// <title>OTP Verification</title>
+// </head>
+// <body style="margin:0;padding:0;background-color:#f4f6f8;font-family:Arial,Helvetica,sans-serif;">
+// <table width="100%" cellpadding="0" cellspacing="0">
+// <tr>
+// <td align="center" style="padding:40px 0;">
+// <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
 
-<tr>
-<td style="padding:24px 32px;border-bottom:1px solid #eaeaea;">
-<h2 style="margin:0;color:#2e7d32;">Green Flyers</h2>
-</td>
-</tr>
+// <tr>
+// <td style="padding:24px 32px;border-bottom:1px solid #eaeaea;">
+// <h2 style="margin:0;color:#2e7d32;">Green Flyers</h2>
+// </td>
+// </tr>
 
-<tr>
-<td style="padding:32px;">
-<p style="font-size:15px;color:#333;">Hello,</p>
+// <tr>
+// <td style="padding:32px;">
+// <p style="font-size:15px;color:#333;">Hello,</p>
 
-<p style="font-size:15px;color:#333;">
-Use the following One-Time Password (OTP) to verify
-<strong>' . $email . '</strong>.
-</p>
+// <p style="font-size:15px;color:#333;">
+// Use the following One-Time Password (OTP) to verify
+// <strong>' . $email . '</strong>.
+// </p>
 
-<div style="margin:24px 0;padding:16px;background:#f1f8e9;border:1px dashed #81c784;text-align:center;border-radius:6px;">
-<span style="font-size:28px;letter-spacing:6px;font-weight:bold;color:#2e7d32;">
-' . $otp . '
-</span>
-</div>
+// <div style="margin:24px 0;padding:16px;background:#f1f8e9;border:1px dashed #81c784;text-align:center;border-radius:6px;">
+// <span style="font-size:28px;letter-spacing:6px;font-weight:bold;color:#2e7d32;">
+// ' . $otp . '
+// </span>
+// </div>
 
-<p style="font-size:14px;color:#555;">
-This OTP is valid for <strong>5 minutes</strong>. Do not share it with anyone.
-</p>
+// <p style="font-size:14px;color:#555;">
+// This OTP is valid for <strong>5 minutes</strong>. Do not share it with anyone.
+// </p>
 
-<p style="font-size:14px;color:#333;margin-top:30px;">
-Regards,<br><strong>Green Flyers Team</strong>
-</p>
-</td>
-</tr>
+// <p style="font-size:14px;color:#333;margin-top:30px;">
+// Regards,<br><strong>Green Flyers Team</strong>
+// </p>
+// </td>
+// </tr>
 
-<tr>
-<td style="padding:16px 32px;background:#fafafa;border-top:1px solid #eaeaea;font-size:12px;color:#777;text-align:center;">
-© ' . date('Y') . ' Green Flyers. All rights reserved.
-</td>
-</tr>
+// <tr>
+// <td style="padding:16px 32px;background:#fafafa;border-top:1px solid #eaeaea;font-size:12px;color:#777;text-align:center;">
+// © ' . date('Y') . ' Green Flyers. All rights reserved.
+// </td>
+// </tr>
 
-</table>
-</td>
-</tr>
-</table>
-</body>
-</html>';
+// </table>
+// </td>
+// </tr>
+// </table>
+// </body>
+// </html>';
 
-    // =========================
-    // SEND EMAIL
-    // =========================
-    Mail::html($html, function ($mail) use ($email) {
-        $mail->to($email)->subject('Your OTP Verification Code');
-    });
+//     // =========================
+//     // SEND EMAIL
+//     // =========================
+//     Mail::html($html, function ($mail) use ($email) {
+//         $mail->to($email)->subject('Your OTP Verification Code');
+//     });
 
-    return response()->json([
-        'status'     => true,
-        'message'    => 'OTP sent successfully',
-        'expires_in' => 300,
-        'action'     => $action
-    ]);
-}
+//     return response()->json([
+//         'status'     => true,
+//         'message'    => 'OTP sent successfully',
+//         'expires_in' => 300,
+//         'action'     => $action
+//     ]);
+// }
 
 //verify otp 
 //     public function verifyOtp(Request $request)
@@ -395,6 +395,205 @@ Regards,<br><strong>Green Flyers Team</strong>
 //     ]);
 // }
 
+// public function verifyOtp(Request $request)
+// {
+//     $request->validate([
+//         'email' => 'required|email',
+//         'otp'   => 'required|digits:6'
+//     ]);
+
+//     $user = User::where('userEmail', $request->email)->first();
+
+//     // =========================
+//     // NEW USER (NOT FOUND)
+//     // =========================
+//     if (!$user) {
+//         return response()->json([
+//             'message' => 'New user',
+//             'is_new_user' => true,
+//             'userEmail' => $request->email
+//         ], 200);
+//     }
+
+//     // =========================
+//     // OTP NOT GENERATED
+//     // =========================
+//     if (!$user->otp_code) {
+//         return response()->json([
+//             'status'  => false,
+//             'message' => 'OTP not generated'
+//         ], 400);
+//     }
+
+//     // =========================
+//     // OTP EXPIRED
+//     // =========================
+//     if (!$user->otp_expires_at || now()->gt($user->otp_expires_at)) {
+//         $user->otp_code = null;
+//         $user->otp_expires_at = null;
+//         $user->save();
+
+//         return response()->json([
+//             'status'  => false,
+//             'message' => 'OTP expired'
+//         ], 400);
+//     }
+
+//     // =========================
+//     // INVALID OTP
+//     // =========================
+//     if ($user->otp_code !== $request->otp) {
+//         return response()->json([
+//             'status'  => false,
+//             'message' => 'Invalid OTP'
+//         ], 400);
+//     }
+
+//     // =========================
+//     // OTP VERIFIED (SUCCESS)
+//     // =========================
+//     $user->otp_code = null;
+//     $user->otp_expires_at = null;
+//     $user->email_verified_at = now();
+//     $user->save();
+
+//     // Create token like login()
+//     $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
+
+//     return response()->json([
+//         'message' => 'OTP verified & login successful',
+//         'is_new_user' => false,
+//         'token' => $token,
+//         'user' => [
+//             'userId' => $user->userId,
+//             'userName' => $user->userName,
+//             'userEmail' => $user->userEmail,
+//             'profilePic' => $user->profilePic,
+//             'offsetCredit' => $user->offsetCredit,
+//             'treeCredit' => $user->treeCredit,
+//         ]
+//     ], 200);
+// }
+
+public function sendOtp(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email'
+    ]);
+
+    $email = $request->email;
+    Log::info('Send OTP called', ['email' => $email]);
+
+    // Generate OTP
+    $otp = random_int(100000, 999999);
+    $expiresAt = now()->addMinutes(5);
+
+    // Find user
+    $user = User::where('userEmail', $email)->first();
+    $isNewUser = false;
+
+    // =========================
+    // NEW USER → CREATE
+    // =========================
+    if (!$user) {
+        Log::info('New user - creating record', ['email' => $email]);
+
+        $user = User::create([
+            'userEmail'      => $email,
+            'otp_code'       => (string) $otp,
+            'otp_expires_at' => $expiresAt,
+        ]);
+
+        $action = 'VERIFY_OTP_REGISTER';
+        $isNewUser = true;
+    }
+    // =========================
+    // EXISTING USER
+    // =========================
+    else {
+        $user->otp_code = (string) $otp;
+        $user->otp_expires_at = $expiresAt;
+        $user->save();
+
+        $action = 'VERIFY_OTP_LOGIN';
+    }
+
+    // =========================
+    // EMAIL TEMPLATE
+    // =========================
+    $html = '
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="UTF-8">
+    <title>OTP Verification</title>
+    </head>
+    <body style="margin:0;padding:0;background-color:#f4f6f8;font-family:Arial,Helvetica,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+    <td align="center" style="padding:40px 0;">
+    <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+    
+    <tr>
+    <td style="padding:24px 32px;border-bottom:1px solid #eaeaea;">
+    <h2 style="margin:0;color:#2e7d32;">Green Flyers</h2>
+    </td>
+    </tr>
+    
+    <tr>
+    <td style="padding:32px;">
+    <p style="font-size:15px;color:#333;">Hello,</p>
+    
+    <p style="font-size:15px;color:#333;">
+    Use the following One-Time Password (OTP) to verify
+    <strong>' . $email . '</strong>.
+    </p>
+    
+    <div style="margin:24px 0;padding:16px;background:#f1f8e9;border:1px dashed #81c784;text-align:center;border-radius:6px;">
+    <span style="font-size:28px;letter-spacing:6px;font-weight:bold;color:#2e7d32;">
+    ' . $otp . '
+    </span>
+    </div>
+    
+    <p style="font-size:14px;color:#555;">
+    This OTP is valid for <strong>5 minutes</strong>. Do not share it with anyone.
+    </p>
+    
+    <p style="font-size:14px;color:#333;margin-top:30px;">
+    Regards,<br><strong>Green Flyers Team</strong>
+    </p>
+    </td>
+    </tr>
+    
+    <tr>
+    <td style="padding:16px 32px;background:#fafafa;border-top:1px solid #eaeaea;font-size:12px;color:#777;text-align:center;">
+    © ' . date('Y') . ' Green Flyers. All rights reserved.
+    </td>
+    </tr>
+    
+    </table>
+    </td>
+    </tr>
+    </table>
+    </body>
+    </html>';
+
+    Mail::html($html, function ($mail) use ($email) {
+        $mail->to($email)->subject('Your OTP Verification Code');
+    });
+
+    return response()->json([
+        'status'      => true,
+        'message'     => 'OTP sent successfully',
+        'expires_in'  => 300,
+        'action'      => $action,
+        'is_new_user' => $isNewUser
+    ]);
+}
+
+
+
+
 public function verifyOtp(Request $request)
 {
     $request->validate([
@@ -405,15 +604,20 @@ public function verifyOtp(Request $request)
     $user = User::where('userEmail', $request->email)->first();
 
     // =========================
-    // NEW USER (NOT FOUND)
+    // USER NOT FOUND → NEW
     // =========================
     if (!$user) {
         return response()->json([
-            'message' => 'New user',
+            'message'     => 'New user',
             'is_new_user' => true,
-            'userEmail' => $request->email
+            'userEmail'   => $request->email
         ], 200);
     }
+
+    // =========================
+    // DETECT NEW USER BEFORE OTP VERIFY
+    // =========================
+    $isNewUser = is_null($user->email_verified_at);
 
     // =========================
     // OTP NOT GENERATED
@@ -450,30 +654,31 @@ public function verifyOtp(Request $request)
     }
 
     // =========================
-    // OTP VERIFIED (SUCCESS)
+    // OTP VERIFIED SUCCESS
     // =========================
     $user->otp_code = null;
     $user->otp_expires_at = null;
     $user->email_verified_at = now();
     $user->save();
 
-    // Create token like login()
+    // Create token
     $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
 
     return response()->json([
-        'message' => 'OTP verified & login successful',
-        'is_new_user' => false,
-        'token' => $token,
-        'user' => [
-            'userId' => $user->userId,
-            'userName' => $user->userName,
-            'userEmail' => $user->userEmail,
-            'profilePic' => $user->profilePic,
+        'message'     => 'OTP verified & login successful',
+        'is_new_user' => $isNewUser,
+        'token'       => $token,
+        'user'        => [
+            'userId'       => $user->userId,
+            'userName'     => $user->userName,
+            'userEmail'    => $user->userEmail,
+            'profilePic'   => $user->profilePic,
             'offsetCredit' => $user->offsetCredit,
-            'treeCredit' => $user->treeCredit,
+            'treeCredit'   => $user->treeCredit,
         ]
     ], 200);
 }
+
 
 
     

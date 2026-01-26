@@ -30,6 +30,7 @@ class User extends Authenticatable
         'linkedin_token',
         'otp_code',
         'otp_expires_at',
+         'is_new_user',
         'lastModification',
         'offsetCredit',
         'treeCredit',
@@ -48,3 +49,4 @@ class User extends Authenticatable
         'updated_at'     => 'datetime',
     ];
 }
+
