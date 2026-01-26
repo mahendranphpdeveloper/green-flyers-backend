@@ -123,35 +123,162 @@ class AuthController extends Controller
     // }
 
     //generate and send otp
-    public function sendOtp(Request $request)
+//     public function sendOtp(Request $request)
+// {
+//     $request->validate([
+//         'email' => 'required|email'
+//     ]);
+
+//     $email = $request->email;
+
+//     Log::info('Send OTP called', ['email' => $email]);
+
+//     $user = User::where('userEmail', $email)->first();
+
+//     if (!$user) {
+//         return response()->json([
+//             'status'  => false,
+//             'message' => 'User not found',
+//             'action'  => 'REGISTER'
+//         ], 404);
+//     }
+
+//     // Generate 6-digit OTP
+//     $otp = random_int(100000, 999999);
+
+//     // Save OTP with expiry (5 minutes)
+//     $user->otp_code = (string) $otp;
+//     $user->otp_expires_at = now()->addMinutes(5);
+//     $user->save();
+
+//     // Email HTML Template
+//     $html = '
+// <!DOCTYPE html>
+// <html lang="en">
+// <head>
+// <meta charset="UTF-8">
+// <title>OTP Verification</title>
+// </head>
+// <body style="margin:0;padding:0;background-color:#f4f6f8;font-family:Arial,Helvetica,sans-serif;">
+// <table width="100%" cellpadding="0" cellspacing="0">
+// <tr>
+// <td align="center" style="padding:40px 0;">
+// <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+
+// <tr>
+// <td style="padding:24px 32px;border-bottom:1px solid #eaeaea;">
+// <h2 style="margin:0;color:#2e7d32;">Green Flyers</h2>
+// </td>
+// </tr>
+
+// <tr>
+// <td style="padding:32px;">
+// <p style="font-size:15px;color:#333;">Hello,</p>
+
+// <p style="font-size:15px;color:#333;">
+// We received a request to verify your email address
+// <strong>' . $email . '</strong>.
+// </p>
+
+// <p style="font-size:15px;color:#333;margin-top:24px;">
+// Use the following One-Time Password (OTP):
+// </p>
+
+// <div style="margin:24px 0;padding:16px;background:#f1f8e9;border:1px dashed #81c784;text-align:center;border-radius:6px;">
+// <span style="font-size:28px;letter-spacing:6px;font-weight:bold;color:#2e7d32;">
+// ' . $otp . '
+// </span>
+// </div>
+
+// <p style="font-size:14px;color:#555;">
+// This OTP is valid for <strong>5 minutes</strong>. Please do not share this code with anyone.
+// </p>
+
+// <p style="font-size:14px;color:#555;margin-top:20px;">
+// If you did not request this, please ignore this email.
+// </p>
+
+// <p style="font-size:14px;color:#333;margin-top:30px;">
+// Regards,<br><strong>Green Flyers Team</strong>
+// </p>
+// </td>
+// </tr>
+
+// <tr>
+// <td style="padding:16px 32px;background:#fafafa;border-top:1px solid #eaeaea;font-size:12px;color:#777;text-align:center;">
+// © ' . date('Y') . ' Green Flyers. All rights reserved.
+// </td>
+// </tr>
+
+// </table>
+// </td>
+// </tr>
+// </table>
+// </body>
+// </html>';
+
+//     // Send Email
+//     Mail::html($html, function ($mail) use ($email) {
+//         $mail->to($email)
+//              ->subject('Your OTP Verification Code');
+//     });
+
+//     return response()->json([
+//         'status'     => true,
+//         'message'    => 'OTP sent successfully',
+//         'expires_in' => 300, // seconds
+//         'action'     => 'VERIFY_OTP'
+//     ]);
+// }
+
+public function sendOtp(Request $request)
 {
+    // Add Cache facade import if not already present
+    // use Illuminate\Support\Facades\Cache;
+
     $request->validate([
         'email' => 'required|email'
     ]);
 
     $email = $request->email;
-
     Log::info('Send OTP called', ['email' => $email]);
-
-    $user = User::where('userEmail', $email)->first();
-
-    if (!$user) {
-        return response()->json([
-            'status'  => false,
-            'message' => 'User not found',
-            'action'  => 'REGISTER'
-        ], 404);
-    }
 
     // Generate 6-digit OTP
     $otp = random_int(100000, 999999);
+    $expiresAt = now()->addMinutes(5);
 
-    // Save OTP with expiry (5 minutes)
-    $user->otp_code = (string) $otp;
-    $user->otp_expires_at = now()->addMinutes(5);
-    $user->save();
+    $user = User::where('userEmail', $email)->first();
 
-    // Email HTML Template
+    // =========================
+    // EXISTING USER
+    // =========================
+    if ($user) {
+        $user->otp_code = (string) $otp;
+        $user->otp_expires_at = $expiresAt;
+        $user->save();
+
+        $action = 'VERIFY_OTP_LOGIN';
+    }
+    // =========================
+    // NEW USER (OTP ONLY)
+    // =========================
+    else {
+        // Temporary OTP store (no user creation yet)
+        \Illuminate\Support\Facades\Cache::put(
+            'otp_' . $email,
+            [
+                'otp' => (string) $otp,
+                'expires_at' => $expiresAt
+            ],
+            300 // 5 minutes
+        );
+
+        $action = 'VERIFY_OTP_REGISTER';
+    }
+
+    // =========================
+    // EMAIL TEMPLATE
+    // =========================
     $html = '
 <!DOCTYPE html>
 <html lang="en">
@@ -176,12 +303,8 @@ class AuthController extends Controller
 <p style="font-size:15px;color:#333;">Hello,</p>
 
 <p style="font-size:15px;color:#333;">
-We received a request to verify your email address
+Use the following One-Time Password (OTP) to verify
 <strong>' . $email . '</strong>.
-</p>
-
-<p style="font-size:15px;color:#333;margin-top:24px;">
-Use the following One-Time Password (OTP):
 </p>
 
 <div style="margin:24px 0;padding:16px;background:#f1f8e9;border:1px dashed #81c784;text-align:center;border-radius:6px;">
@@ -191,11 +314,7 @@ Use the following One-Time Password (OTP):
 </div>
 
 <p style="font-size:14px;color:#555;">
-This OTP is valid for <strong>5 minutes</strong>. Please do not share this code with anyone.
-</p>
-
-<p style="font-size:14px;color:#555;margin-top:20px;">
-If you did not request this, please ignore this email.
+This OTP is valid for <strong>5 minutes</strong>. Do not share it with anyone.
 </p>
 
 <p style="font-size:14px;color:#333;margin-top:30px;">
@@ -217,19 +336,21 @@ Regards,<br><strong>Green Flyers Team</strong>
 </body>
 </html>';
 
-    // Send Email
+    // =========================
+    // SEND EMAIL
+    // =========================
     Mail::html($html, function ($mail) use ($email) {
-        $mail->to($email)
-             ->subject('Your OTP Verification Code');
+        $mail->to($email)->subject('Your OTP Verification Code');
     });
 
     return response()->json([
         'status'     => true,
         'message'    => 'OTP sent successfully',
-        'expires_in' => 300, // seconds
-        'action'     => 'VERIFY_OTP'
+        'expires_in' => 300,
+        'action'     => $action
     ]);
 }
+
 
 
     //verify otp 
