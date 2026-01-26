@@ -29,7 +29,7 @@ class User extends Authenticatable
         'facebook_token',
         'linkedin_token',
         'otp_code',
-        'otp_expired_at',
+        'otp_expires_at',
         'lastModification',
         'offsetCredit',
         'treeCredit',
@@ -43,7 +43,7 @@ class User extends Authenticatable
     ];
 
     protected $casts = [
-        'otp_expired_at' => 'datetime',
+        'otp_expires_at' => 'datetime',
         'created_at'     => 'datetime',
         'updated_at'     => 'datetime',
     ];
