@@ -350,50 +350,98 @@ Regards,<br><strong>Green Flyers Team</strong>
 
 
     //verify otp 
+    // public function verifyOtp(Request $request)
+    // {
+    //     $request->validate([
+    //         'email' => 'required|email',
+    //         'otp'   => 'required|digits:6'
+    //     ]);
+    
+    //     $user = User::where('userEmail', $request->email)->first();
+    
+    //     if (!$user || !$user->otp_code) {
+    //         return response()->json([
+    //             'status'  => false,
+    //             'message' => 'OTP not generated'
+    //         ], 400);
+    //     }
+    
+    //     if (now()->gt($user->otp_expires_at)) {
+    //         $user->otp_code = null;
+    //         $user->otp_expires_at = null;
+    //         $user->save();
+    
+    //         return response()->json([
+    //             'status'  => false,
+    //             'message' => 'OTP expired'
+    //         ], 400);
+    //     }
+    
+    //     if ($user->otp_code !== $request->otp) {
+    //         return response()->json([
+    //             'status'  => false,
+    //             'message' => 'Invalid OTP'
+    //         ], 400);
+    //     }
+    
+    //     // OTP VERIFIED SUCCESSFULLY
+    //     $user->otp_code = null;
+    //     $user->otp_expires_at = null;
+    //     $user->save();
+    
+    //     return response()->json([
+    //         'status'  => true,
+    //         'message' => 'OTP verified successfully'
+    //     ]);
+    // }
+
     public function verifyOtp(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'otp'   => 'required|digits:6'
-        ]);
-    
-        $user = User::where('userEmail', $request->email)->first();
-    
-        if (!$user || !$user->otp_code) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'OTP not generated'
-            ], 400);
-        }
-    
-        if (now()->gt($user->otp_expires_at)) {
-            $user->otp_code = null;
-            $user->otp_expires_at = null;
-            $user->save();
-    
-            return response()->json([
-                'status'  => false,
-                'message' => 'OTP expired'
-            ], 400);
-        }
-    
-        if ($user->otp_code !== $request->otp) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'Invalid OTP'
-            ], 400);
-        }
-    
-        // OTP VERIFIED SUCCESSFULLY
+{
+    $request->validate([
+        'email' => 'required|email',
+        'otp'   => 'required|digits:6'
+    ]);
+
+    $user = User::where('userEmail', $request->email)->first();
+
+    if (!$user || !$user->otp_code) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'OTP not generated'
+        ], 400);
+    }
+
+    //  SAFETY CHECK (IMPORTANT)
+    if (!$user->otp_expires_at || now()->gt($user->otp_expires_at)) {
         $user->otp_code = null;
         $user->otp_expires_at = null;
         $user->save();
-    
+
         return response()->json([
-            'status'  => true,
-            'message' => 'OTP verified successfully'
-        ]);
+            'status'  => false,
+            'message' => 'OTP expired'
+        ], 400);
     }
+
+    if ($user->otp_code !== $request->otp) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Invalid OTP'
+        ], 400);
+    }
+
+    // OTP VERIFIED
+    $user->otp_code = null;
+    $user->otp_expires_at = null;
+    $user->email_verified_at = now(); // optional but recommended
+    $user->save();
+
+    return response()->json([
+        'status'  => true,
+        'message' => 'OTP verified successfully'
+    ]);
+}
+
     
 
 
