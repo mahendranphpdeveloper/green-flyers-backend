@@ -233,9 +233,6 @@ class AuthController extends Controller
 
 public function sendOtp(Request $request)
 {
-    // Add Cache facade import if not already present
-    // use Illuminate\Support\Facades\Cache;
-
     $request->validate([
         'email' => 'required|email'
     ]);
@@ -243,37 +240,36 @@ public function sendOtp(Request $request)
     $email = $request->email;
     Log::info('Send OTP called', ['email' => $email]);
 
-    // Generate 6-digit OTP
+    // Generate OTP
     $otp = random_int(100000, 999999);
     $expiresAt = now()->addMinutes(5);
 
+    // Find user
     $user = User::where('userEmail', $email)->first();
 
     // =========================
+    // NEW USER → CREATE FIRST
+    // =========================
+    if (!$user) {
+        Log::info('New user - creating record', ['email' => $email]);
+
+        $user = User::create([
+            'userEmail'        => $email,
+            'otp_code'         => (string) $otp,
+            'otp_expires_at'   => $expiresAt,
+        ]);
+
+        $action = 'VERIFY_OTP_REGISTER';
+    }
+    // =========================
     // EXISTING USER
     // =========================
-    if ($user) {
+    else {
         $user->otp_code = (string) $otp;
         $user->otp_expires_at = $expiresAt;
         $user->save();
 
         $action = 'VERIFY_OTP_LOGIN';
-    }
-    // =========================
-    // NEW USER (OTP ONLY)
-    // =========================
-    else {
-        // Temporary OTP store (no user creation yet)
-        \Illuminate\Support\Facades\Cache::put(
-            'otp_' . $email,
-            [
-                'otp' => (string) $otp,
-                'expires_at' => $expiresAt
-            ],
-            300 // 5 minutes
-        );
-
-        $action = 'VERIFY_OTP_REGISTER';
     }
 
     // =========================
