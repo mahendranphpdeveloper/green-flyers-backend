@@ -536,7 +536,7 @@ public function sendOtp(Request $request)
     
     <tr>
     <td style="padding:24px 32px;border-bottom:1px solid #eaeaea;">
-    <h2 style="margin:0;color:#2e7d32;">Green Flyers</h2>
+    <h2 style="margin:0;color:#2e7d32;">Green Flyers Club</h2>
     </td>
     </tr>
     
@@ -560,14 +560,14 @@ public function sendOtp(Request $request)
     </p>
     
     <p style="font-size:14px;color:#333;margin-top:30px;">
-    Regards,<br><strong>Green Flyers Team</strong>
+    Regards,<br><strong>Green Flyers Club Team</strong>
     </p>
     </td>
     </tr>
     
     <tr>
     <td style="padding:16px 32px;background:#fafafa;border-top:1px solid #eaeaea;font-size:12px;color:#777;text-align:center;">
-    © ' . date('Y') . ' Green Flyers. All rights reserved.
+    © ' . date('Y') . ' Green Flyers Club. All rights reserved.
     </td>
     </tr>
     

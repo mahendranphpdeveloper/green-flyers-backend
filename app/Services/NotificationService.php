@@ -64,7 +64,7 @@ class NotificationService
 </head>
 <body>
     <div class="container">
-        <h2>Carbon Offset Reminder</h2>
+        <h2>Offset Reminder</h2>
         <p>Hi {{name}},</p>
         <p>We noticed that your recent trip is not fully carbon-offset yet. Offsetting your emissions helps reduce your environmental impact and brings you closer to your sustainability goals.</p>
         
@@ -78,9 +78,9 @@ class NotificationService
         <p>If you’ve already taken action, thank you! You may ignore this message.</p>
         <p>Need help? Just reply to this email, and we’ll assist you.</p>
         <p>Thank you for choosing to make a positive impact.</p>
-        <p>Regards,<br>GreenFly Team</p>
+        <p>Regards,<br>Green Flyers Club Team</p>
         <div class="footer">
-            &copy; 2026 GreenFly. All rights reserved.
+            &copy; 2026 Green Flyers Club. All rights reserved.
         </div>
     </div>
 </body>
