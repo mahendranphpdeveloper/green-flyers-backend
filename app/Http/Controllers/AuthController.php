@@ -743,61 +743,131 @@ public function verifyOtp(Request $request)
 
 
 
+    // public function register(Request $request)
+    // {
+    //     Log::info('Register API called', $request->all());
+
+    //     $request->validate([
+    //         'email'        => 'required|email',
+    //         'userName'     => 'required|string|max:255',
+    //         'google_token' => 'nullable|string',
+    //     ]);
+
+    //     $email       = $request->email;
+    //     $userName    = $request->userName;
+    //     $googleToken = $request->google_token;
+
+    //     // Prevent duplicate registration
+    //     $existingUser = User::where('userEmail', $email)->first();
+
+    //     if ($existingUser) {
+    //         Log::warning('User already exists', ['email' => $email]);
+
+    //         return response()->json([
+    //             'message' => 'User already registered',
+    //             'is_new_user' => false
+    //         ], 409);
+    //     }
+
+    //     //  Create new user
+    //     $user = User::create([
+    //         'userEmail'    => $email,
+    //         'userName'     => $userName,
+    //         'google_token' => $googleToken,
+    //     ]);
+
+    //     Log::info('New user registered', [
+    //         'userId' => $user->userId,
+    //         'email' => $user->userEmail
+    //     ]);
+
+    //     //  Create auth token
+    //     $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
+
+    //     return response()->json([
+    //         'message' => 'Registration successful',
+    //         'is_new_user' => false,
+    //         'token' => $token,
+    //         'user' => [
+    //             'userId'     => $user->userId,
+    //             'userName'   => $user->userName,
+    //             'userEmail'  => $user->userEmail,
+    //             'profilePic' => $user->profilePic,
+    //             'offsetCredit' => $user->offsetCredit,
+    //             'treeCredit' => $user->treeCredit,
+    //         ]
+    //     ], 201);
+    // }
+
     public function register(Request $request)
-    {
-        Log::info('Register API called', $request->all());
+{
+    Log::info('Register API called', $request->all());
 
-        $request->validate([
-            'email'        => 'required|email',
-            'userName'     => 'required|string|max:255',
-            'google_token' => 'nullable|string',
-        ]);
+    $request->validate([
+        'email'        => 'required|email',
+        'userName'     => 'required|string|max:255',
+        'google_token' => 'nullable|string',
+    ]);
 
-        $email       = $request->email;
-        $userName    = $request->userName;
-        $googleToken = $request->google_token;
+    $email       = $request->email;
+    $userName    = $request->userName;
+    $googleToken = $request->google_token;
 
-        // Prevent duplicate registration
-        $existingUser = User::where('userEmail', $email)->first();
+    // Check if user exists
+    $user = User::where('userEmail', $email)->first();
 
-        if ($existingUser) {
-            Log::warning('User already exists', ['email' => $email]);
-
-            return response()->json([
-                'message' => 'User already registered',
-                'is_new_user' => false
-            ], 409);
-        }
-
-        //  Create new user
+    // =========================
+    // NEW USER → CREATE
+    // =========================
+    if (!$user) {
         $user = User::create([
             'userEmail'    => $email,
             'userName'     => $userName,
             'google_token' => $googleToken,
+            'is_new_user'  => true,   // mark as new
         ]);
 
         Log::info('New user registered', [
             'userId' => $user->userId,
-            'email' => $user->userEmail
+            'email'  => $user->userEmail
         ]);
 
-        //  Create auth token
-        $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
-
-        return response()->json([
-            'message' => 'Registration successful',
-            'is_new_user' => false,
-            'token' => $token,
-            'user' => [
-                'userId'     => $user->userId,
-                'userName'   => $user->userName,
-                'userEmail'  => $user->userEmail,
-                'profilePic' => $user->profilePic,
-                'offsetCredit' => $user->offsetCredit,
-                'treeCredit' => $user->treeCredit,
-            ]
-        ], 201);
+        $isNewUser = true;
     }
+    // =========================
+    // EXISTING USER → UPDATE
+    // =========================
+    else {
+        $user->userName     = $userName;          // update name
+        $user->google_token = $googleToken ?? $user->google_token; // update token if provided
+        $user->is_new_user  = false;              // mark as existing
+        $user->save();
+
+        Log::info('Existing user updated', [
+            'userId' => $user->userId,
+            'email'  => $user->userEmail
+        ]);
+
+        $isNewUser = false;
+    }
+
+    // Create auth token
+    $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
+
+    return response()->json([
+        'message'     => $isNewUser ? 'Registration successful' : 'User updated successfully',
+        'is_new_user' => $isNewUser,
+        'token'       => $token,
+        'user'        => [
+            'userId'       => $user->userId,
+            'userName'     => $user->userName,
+            'userEmail'    => $user->userEmail,
+            'profilePic'   => $user->profilePic,
+            'offsetCredit' => $user->offsetCredit,
+            'treeCredit'   => $user->treeCredit,
+        ]
+    ], $isNewUser ? 201 : 200);
+}
 
 
 
