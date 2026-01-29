@@ -825,16 +825,15 @@ public function verifyOtp(Request $request)
     $user->save();
 
     // =========================
-    // CALCULATE TREE COUNT (GLOBAL VALUE)
+    // CALCULATE TREE COUNT
     // =========================
     $treeOffsetValue = BackgroundImage::where('id', 1)
         ->value('treeOffsetsValue');
 
-    $totalOffsetCredits = $user->offsetCredit;
     $treeCount = 0;
 
-    if ($treeOffsetValue > 0 && $totalOffsetCredits > 0) {
-        $treeCount = round($totalOffsetCredits / $treeOffsetValue);
+    if ($treeOffsetValue > 0 && $user->offsetCredit > 0) {
+        $treeCount = round($user->offsetCredit / $treeOffsetValue);
     }
 
     $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
@@ -849,8 +848,7 @@ public function verifyOtp(Request $request)
             'userName'     => $user->userName,
             'userEmail'    => $user->userEmail,
             'profilePic'   => $user->profilePic,
-            'offsetCredit' => $treeCount,
-            // 'treeCredit'   => $treeCount,
+            'offsetCredit' => $treeCount, 
         ]
     ], 200);
 }
@@ -1048,14 +1046,13 @@ public function register(Request $request)
     // =========================
     // CALCULATE TREE COUNT (GLOBAL + ROUNDED)
     // =========================
-    $treeOffsetValue = BackgroundImage::where('id', 1)
+    $treeOffsetValue = (int) BackgroundImage::where('id', 1)
         ->value('treeOffsetsValue');
 
-    $totalOffsetCredits = $user->offsetCredit;
     $treeCount = 0;
 
-    if ($treeOffsetValue > 0 && $totalOffsetCredits > 0) {
-        $treeCount = round($totalOffsetCredits / $treeOffsetValue);
+    if ($treeOffsetValue > 0 && $user->offsetCredit > 0) {
+        $treeCount = round($user->offsetCredit / $treeOffsetValue);
     }
 
     // Create auth token
@@ -1066,15 +1063,15 @@ public function register(Request $request)
         'is_new_user' => $isNewUser,
         'token'       => $token,
         'user'        => [
-            'userId'        => $user->userId,
-            'userName'      => $user->userName,
-            'userEmail'     => $user->userEmail,
-            'profilePic'    => $user->profilePic,
-            'offsetCredit'  =>$treeCount,
-            // 'treeCredit'    => $treeCount, 
+            'userId'       => $user->userId,
+            'userName'     => $user->userName,
+            'userEmail'    => $user->userEmail,
+            'profilePic'   => $user->profilePic,
+            'offsetCredit' => $treeCount, 
         ]
     ], $isNewUser ? 201 : 200);
 }
+
 
 
 
@@ -1156,21 +1153,20 @@ public function googleLogin(Request $request)
     } else {
         // EXISTING USER
         $user->google_token = $googleToken;
-        $user->is_new_user = 0;
+        $user->is_new_user  = 0;
         $user->save();
     }
 
     // =========================
     // CALCULATE TREE COUNT (GLOBAL + ROUNDED)
     // =========================
-    $treeOffsetValue = BackgroundImage::where('id', 1)
+    $treeOffsetValue = (int) BackgroundImage::where('id', 1)
         ->value('treeOffsetsValue');
 
-    $totalOffsetCredits = $user->offsetCredit;
     $treeCount = 0;
 
-    if ($treeOffsetValue > 0 && $totalOffsetCredits > 0) {
-        $treeCount = round($totalOffsetCredits / $treeOffsetValue);
+    if ($treeOffsetValue > 0 && $user->offsetCredit > 0) {
+        $treeCount = round($user->offsetCredit / $treeOffsetValue);
     }
 
     $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
@@ -1179,15 +1175,15 @@ public function googleLogin(Request $request)
         'message' => 'Google login successful',
         'token'   => $token,
         'user'    => [
-            'userId'        => $user->userId,
-            'name'          => $user->userName,
-            'email'         => $user->userEmail,
-            'profilePic'    => $user->profilePic,
-            'offsetCredit'  =>$treeCount,
-            // 'treeCredit'    => $treeCount,
+            'userId'       => $user->userId,
+            'name'         => $user->userName,
+            'email'        => $user->userEmail,
+            'profilePic'   => $user->profilePic,
+            'offsetCredit' => $treeCount, 
         ]
     ]);
 }
+
 
 
     //Facebook Login
@@ -1273,21 +1269,20 @@ public function googleLogin(Request $request)
         } else {
             // EXISTING USER → update facebook token without overwriting profile edits
             $user->facebook_token = $facebookToken;
-            $user->is_new_user = 0;
+            $user->is_new_user    = 0;
             $user->save();
         }
     
         // =========================
         // CALCULATE TREE COUNT (GLOBAL + ROUNDED)
         // =========================
-        $treeOffsetValue = BackgroundImage::where('id', 1)
+        $treeOffsetValue = (int) BackgroundImage::where('id', 1)
             ->value('treeOffsetsValue');
     
-        $totalOffsetCredits = $user->offsetCredit;
         $treeCount = 0;
     
-        if ($treeOffsetValue > 0 && $totalOffsetCredits > 0) {
-            $treeCount = round($totalOffsetCredits / $treeOffsetValue);
+        if ($treeOffsetValue > 0 && $user->offsetCredit > 0) {
+            $treeCount = round($user->offsetCredit / $treeOffsetValue);
         }
     
         // Generate API token
@@ -1298,15 +1293,15 @@ public function googleLogin(Request $request)
             'message' => 'Facebook login successful',
             'token'   => $token,
             'user' => [
-                'userId'        => $user->userId,
-                'name'          => $user->userName,
-                'email'         => $user->userEmail,
-                'profilePic'    => $user->profilePic,
-                'offsetCredit'  => $treeCount,
-                // 'treeCredit'    => $treeCount,
+                'userId'       => $user->userId,
+                'name'         => $user->userName,
+                'email'        => $user->userEmail,
+                'profilePic'   => $user->profilePic,
+                'offsetCredit' => $treeCount, 
             ]
         ]);
     }
+    
     
 
 
