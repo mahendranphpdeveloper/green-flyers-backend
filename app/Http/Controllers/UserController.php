@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 use App\Models\AdminData;
 use App\Models\ItineraryData;
+use App\Models\BackgroundImage;
 
 class UserController extends Controller
 {
@@ -121,32 +122,73 @@ class UserController extends Controller
     // }
 
 
+    // public function show(Request $request, string $id)
+    // {
+    //     $authUser = $request->user();
+
+    //     if (!$authUser) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'User not authenticated.'
+    //         ], 401);
+    //     }
+
+    //     // Fetch the requested user by the provided ID, not the authenticated user's ID
+    //     $user = User::find($id);
+
+    //     if (!$user) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'User not found.'
+    //         ], 404);
+    //     }
+
+    //     return response()->json([
+    //         'status' => true,
+    //         'user' => $user
+    //     ]);
+    // }
+
     public function show(Request $request, string $id)
-    {
-        $authUser = $request->user();
+{
+    $authUser = $request->user();
 
-        if (!$authUser) {
-            return response()->json([
-                'status' => false,
-                'message' => 'User not authenticated.'
-            ], 401);
-        }
-
-        // Fetch the requested user by the provided ID, not the authenticated user's ID
-        $user = User::find($id);
-
-        if (!$user) {
-            return response()->json([
-                'status' => false,
-                'message' => 'User not found.'
-            ], 404);
-        }
-
+    if (!$authUser) {
         return response()->json([
-            'status' => true,
-            'user' => $user
-        ]);
+            'status' => false,
+            'message' => 'User not authenticated.'
+        ], 401);
     }
+
+    // Fetch the requested user by the provided ID
+    $user = User::find($id);
+
+    if (!$user) {
+        return response()->json([
+            'status' => false,
+            'message' => 'User not found.'
+        ], 404);
+    }
+
+    // ✅ Calculate tree count for offsetCredit
+    $treeOffsetValue = (int) BackgroundImage::where('id', 1)
+        ->value('treeOffsetsValue');
+
+    $treeCount = 0;
+    if ($treeOffsetValue > 0 && $user->offsetCredit > 0) {
+        $treeCount = round($user->offsetCredit / $treeOffsetValue);
+    }
+
+    // Convert user model to array and override offsetCredit
+    $userArray = $user->toArray();
+    $userArray['offsetCredit'] = $treeCount;
+
+    return response()->json([
+        'status' => true,
+        'user' => $userArray
+    ]);
+}
+
 
     /**
      * Update the specified resource in storage.
