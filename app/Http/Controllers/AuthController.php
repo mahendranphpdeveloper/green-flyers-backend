@@ -849,8 +849,8 @@ public function verifyOtp(Request $request)
             'userName'     => $user->userName,
             'userEmail'    => $user->userEmail,
             'profilePic'   => $user->profilePic,
-            'offsetCredit' => $totalOffsetCredits,
-            'treeCredit'   => $treeCount,
+            'offsetCredit' => $treeCount,
+            // 'treeCredit'   => $treeCount,
         ]
     ], 200);
 }
@@ -1070,8 +1070,8 @@ public function register(Request $request)
             'userName'      => $user->userName,
             'userEmail'     => $user->userEmail,
             'profilePic'    => $user->profilePic,
-            'offsetCredit'  => $totalOffsetCredits,
-            'treeCredit'    => $treeCount, 
+            'offsetCredit'  =>$treeCount,
+            // 'treeCredit'    => $treeCount, 
         ]
     ], $isNewUser ? 201 : 200);
 }
@@ -1183,8 +1183,8 @@ public function googleLogin(Request $request)
             'name'          => $user->userName,
             'email'         => $user->userEmail,
             'profilePic'    => $user->profilePic,
-            'offsetCredit'  => $totalOffsetCredits,
-            'treeCredit'    => $treeCount,
+            'offsetCredit'  =>$treeCount,
+            // 'treeCredit'    => $treeCount,
         ]
     ]);
 }
@@ -1302,8 +1302,8 @@ public function googleLogin(Request $request)
                 'name'          => $user->userName,
                 'email'         => $user->userEmail,
                 'profilePic'    => $user->profilePic,
-                'offsetCredit'  => $totalOffsetCredits,
-                'treeCredit'    => $treeCount,
+                'offsetCredit'  => $treeCount,
+                // 'treeCredit'    => $treeCount,
             ]
         ]);
     }
