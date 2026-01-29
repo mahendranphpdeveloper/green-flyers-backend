@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\BackgroundImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
@@ -681,6 +682,99 @@ public function sendOtp(Request $request)
 //     ], 200);
 // }
 
+// public function verifyOtp(Request $request)
+// {
+//     $request->validate([
+//         'email' => 'required|email',
+//         'otp'   => 'required|digits:6'
+//     ]);
+
+//     $user = User::where('userEmail', $request->email)->first();
+
+//     // =========================
+//     // USER NOT FOUND → NEW USER
+//     // =========================
+//     if (!$user) {
+//         return response()->json([
+//             'status'      => false,
+//             'message'     => 'New user',
+//             'is_new_user' => true,
+//             'userEmail'   => $request->email
+//         ], 200);
+//     }
+
+//     // =========================
+//     // DETECT NEW USER FROM `is_new_user` COLUMN
+//     // =========================
+//     $isNewUser = $user->is_new_user == 1;
+
+//     // =========================
+//     // OTP NOT GENERATED
+//     // =========================
+//     if (!$user->otp_code) {
+//         return response()->json([
+//             'status'  => false,
+//             'message' => 'OTP not generated'
+//         ], 400);
+//     }
+
+//     // =========================
+//     // OTP EXPIRED
+//     // =========================
+//     if (!$user->otp_expires_at || now()->gt($user->otp_expires_at)) {
+//         $user->otp_code = null;
+//         $user->otp_expires_at = null;
+//         $user->save();
+
+//         return response()->json([
+//             'status'  => false,
+//             'message' => 'OTP expired'
+//         ], 400);
+//     }
+
+//     // =========================
+//     // INVALID OTP
+//     // =========================
+//     if ($user->otp_code !== $request->otp) {
+//         return response()->json([
+//             'status'  => false,
+//             'message' => 'Invalid OTP'
+//         ], 400);
+//     }
+
+//     // =========================
+//     // OTP VERIFIED SUCCESS
+//     // =========================
+//     $user->otp_code = null;
+//     $user->otp_expires_at = null;
+
+//     // Mark email as verified
+//     $user->email_verified_at = now();
+
+//     // NOTE: Do NOT change `is_new_user`; keep it as 1
+//     $user->save();
+
+//     // Create token
+//     $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
+
+//     return response()->json([
+//         'status'      => true,
+//         'message'     => 'OTP verified & login successful',
+//         'is_new_user' => $isNewUser, // will still be 1 for new user
+//         'token'       => $token,
+//         'user'        => [
+//             'userId'       => $user->userId,
+//             'userName'     => $user->userName,
+//             'userEmail'    => $user->userEmail,
+//             'profilePic'   => $user->profilePic,
+//             'offsetCredit' => $user->offsetCredit,
+//             'treeCredit'   => $user->treeCredit,
+//         ]
+//     ], 200);
+// }
+
+
+
 public function verifyOtp(Request $request)
 {
     $request->validate([
@@ -703,7 +797,7 @@ public function verifyOtp(Request $request)
     }
 
     // =========================
-    // DETECT NEW USER FROM `is_new_user` COLUMN
+    // DETECT NEW USER
     // =========================
     $isNewUser = $user->is_new_user == 1;
 
@@ -746,28 +840,42 @@ public function verifyOtp(Request $request)
     // =========================
     $user->otp_code = null;
     $user->otp_expires_at = null;
-
-    // Mark email as verified
     $user->email_verified_at = now();
-
-    // NOTE: Do NOT change `is_new_user`; keep it as 1
     $user->save();
 
-    // Create token
+    // =========================
+    // CALCULATE TREE COUNT (DYNAMIC + ROUNDED)
+    // =========================
+
+    // Fetch treeOffsetsValue dynamically (latest record)
+    $treeOffsetValue = BackgroundImage::where('userId', $user->userId)
+        ->orderBy('id', 'desc')
+        ->value('treeOffsetsValue');
+
+    $totalOffsetCredits = $user->offsetCredit;
+    $treeCount = 0;
+
+    if ($treeOffsetValue > 0 && $totalOffsetCredits > 0) {
+        $treeCount = round($totalOffsetCredits / $treeOffsetValue);
+    }
+
+    // =========================
+    // CREATE TOKEN
+    // =========================
     $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
 
     return response()->json([
         'status'      => true,
         'message'     => 'OTP verified & login successful',
-        'is_new_user' => $isNewUser, // will still be 1 for new user
+        'is_new_user' => $isNewUser,
         'token'       => $token,
         'user'        => [
             'userId'       => $user->userId,
             'userName'     => $user->userName,
             'userEmail'    => $user->userEmail,
             'profilePic'   => $user->profilePic,
-            'offsetCredit' => $user->offsetCredit,
-            'treeCredit'   => $user->treeCredit,
+            'offsetCredit' => $totalOffsetCredits,
+            'treeCredit'   => $treeCount,
         ]
     ], 200);
 }
@@ -836,61 +944,7 @@ public function verifyOtp(Request $request)
 
 
 
-    // public function register(Request $request)
-    // {
-    //     Log::info('Register API called', $request->all());
-
-    //     $request->validate([
-    //         'email'        => 'required|email',
-    //         'userName'     => 'required|string|max:255',
-    //         'google_token' => 'nullable|string',
-    //     ]);
-
-    //     $email       = $request->email;
-    //     $userName    = $request->userName;
-    //     $googleToken = $request->google_token;
-
-    //     // Prevent duplicate registration
-    //     $existingUser = User::where('userEmail', $email)->first();
-
-    //     if ($existingUser) {
-    //         Log::warning('User already exists', ['email' => $email]);
-
-    //         return response()->json([
-    //             'message' => 'User already registered',
-    //             'is_new_user' => false
-    //         ], 409);
-    //     }
-
-    //     //  Create new user
-    //     $user = User::create([
-    //         'userEmail'    => $email,
-    //         'userName'     => $userName,
-    //         'google_token' => $googleToken,
-    //     ]);
-
-    //     Log::info('New user registered', [
-    //         'userId' => $user->userId,
-    //         'email' => $user->userEmail
-    //     ]);
-
-    //     //  Create auth token
-    //     $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
-
-    //     return response()->json([
-    //         'message' => 'Registration successful',
-    //         'is_new_user' => false,
-    //         'token' => $token,
-    //         'user' => [
-    //             'userId'     => $user->userId,
-    //             'userName'   => $user->userName,
-    //             'userEmail'  => $user->userEmail,
-    //             'profilePic' => $user->profilePic,
-    //             'offsetCredit' => $user->offsetCredit,
-    //             'treeCredit' => $user->treeCredit,
-    //         ]
-    //     ], 201);
-    // }
+   
 
     public function register(Request $request)
 {
@@ -965,100 +1019,118 @@ public function verifyOtp(Request $request)
 
 
     //Google Login
+//  public function googleLogin(Request $request)
+//     {
+//         $request->validate([
+//             'userEmail' => 'required|email',
+//             'userName' => 'required|string',
+//             'profilePic' => 'nullable|url',
+//             'token' => 'required|string'
+//         ]);
 
-    // public function googleLogin(Request $request)
-    // {
-    //     $request->validate([
-    //         'userEmail' => 'required|email',
-    //         'userName' => 'required|string',
-    //         'profilePic' => 'nullable|url',
-    //         'token' => 'required|string'
-    //     ]);
+//         $email = $request->userEmail;
+//         $name = $request->userName;
+//         $profilePic = $request->profilePic;
+//         $googleToken = $request->token;
 
-    //     $email = $request->userEmail;
-    //     $name = $request->userName;
-    //     $profilePic = $request->profilePic;
-    //     $googleToken = $request->token;
+//         $user = User::where('userEmail', $email)->first();
 
-    //     $user = User::where('userEmail', $email)->first();
+//         if (!$user) {
+//             // FIRST TIME GOOGLE LOGIN
+//             $user = User::create([
+//                 'userName'     => $name,
+//                 'userEmail'    => $email,
+//                 'profilePic'   => $profilePic,
+//                 'google_token' => $googleToken,
+//                 'is_new_user'  => 0, // set is_new_user to 0
+//             ]);
+//         } else {
+//             // EXISTING USER → DO NOT overwrite profile edits
+//             $user->google_token = $googleToken;
+//             $user->is_new_user = 0; // set is_new_user to 0
+//             $user->save();
+//         }
 
-    //     if (!$user) {
-    //         // FIRST TIME GOOGLE LOGIN
-    //         $user = User::create([
-    //             'userName'     => $name,
-    //             'userEmail'    => $email,
-    //             'profilePic'   => $profilePic,
-    //             'google_token' => $googleToken,
-    //         ]);
-    //     } else {
-    //         // EXISTING USER → DO NOT overwrite profile edits
-    //         $user->google_token = $googleToken;
-    //         $user->save();
-    //     }
+//         $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
 
-    //     $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
+//         return response()->json([
+//             'message' => 'Google login successful',
+//             'token' => $token,
+//             'user' => [
+//                 'userId'     => $user->userId,
+//                 'name'       => $user->userName,   // always DB value
+//                 'email'      => $user->userEmail,
+//                 'profilePic' => $user->profilePic, // always DB value
+//                 'offsetCredit' => $user->offsetCredit,
+//                 'treeCredit' => $user->treeCredit,
+//             ]
+//         ]);
+//     }
 
-    //     return response()->json([
-    //         'message' => 'Google login successful',
-    //         'token' => $token,
-    //         'user' => [
-    //             'userId'     => $user->userId,
-    //             'name'       => $user->userName,   // always DB value
-    //             'email'      => $user->userEmail,
-    //             'profilePic' => $user->profilePic, // always DB value
-    //             'offsetCredit' => $user->offsetCredit,
-    //             'treeCredit' => $user->treeCredit,
-    //         ]
-    //     ]);
-    // }
 
-    public function googleLogin(Request $request)
-    {
-        $request->validate([
-            'userEmail' => 'required|email',
-            'userName' => 'required|string',
-            'profilePic' => 'nullable|url',
-            'token' => 'required|string'
+
+public function googleLogin(Request $request)
+{
+    $request->validate([
+        'userEmail'  => 'required|email',
+        'userName'   => 'required|string',
+        'profilePic' => 'nullable|url',
+        'token'      => 'required|string'
+    ]);
+
+    $email       = $request->userEmail;
+    $name        = $request->userName;
+    $profilePic  = $request->profilePic;
+    $googleToken = $request->token;
+
+    $user = User::where('userEmail', $email)->first();
+
+    if (!$user) {
+        // FIRST TIME GOOGLE LOGIN
+        $user = User::create([
+            'userName'     => $name,
+            'userEmail'    => $email,
+            'profilePic'   => $profilePic,
+            'google_token' => $googleToken,
+            'is_new_user'  => 0,
         ]);
-
-        $email = $request->userEmail;
-        $name = $request->userName;
-        $profilePic = $request->profilePic;
-        $googleToken = $request->token;
-
-        $user = User::where('userEmail', $email)->first();
-
-        if (!$user) {
-            // FIRST TIME GOOGLE LOGIN
-            $user = User::create([
-                'userName'     => $name,
-                'userEmail'    => $email,
-                'profilePic'   => $profilePic,
-                'google_token' => $googleToken,
-                'is_new_user'  => 0, // set is_new_user to 0
-            ]);
-        } else {
-            // EXISTING USER → DO NOT overwrite profile edits
-            $user->google_token = $googleToken;
-            $user->is_new_user = 0; // set is_new_user to 0
-            $user->save();
-        }
-
-        $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
-
-        return response()->json([
-            'message' => 'Google login successful',
-            'token' => $token,
-            'user' => [
-                'userId'     => $user->userId,
-                'name'       => $user->userName,   // always DB value
-                'email'      => $user->userEmail,
-                'profilePic' => $user->profilePic, // always DB value
-                'offsetCredit' => $user->offsetCredit,
-                'treeCredit' => $user->treeCredit,
-            ]
-        ]);
+    } else {
+        // EXISTING USER
+        $user->google_token = $googleToken;
+        $user->is_new_user = 0;
+        $user->save();
     }
+
+    // =========================
+    // CALCULATE TREE COUNT (DYNAMIC + ROUNDED)
+    // =========================
+    $treeOffsetValue = BackgroundImage::where('userId', $user->userId)
+        ->orderBy('id', 'desc')
+        ->value('treeOffsetsValue');
+
+    $totalOffsetCredits = $user->offsetCredit;
+    $treeCount = 0;
+
+    if ($treeOffsetValue > 0 && $totalOffsetCredits > 0) {
+        $treeCount = round($totalOffsetCredits / $treeOffsetValue);
+    }
+
+    $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
+
+    return response()->json([
+        'message' => 'Google login successful',
+        'token'   => $token,
+        'user'    => [
+            'userId'        => $user->userId,
+            'name'          => $user->userName,
+            'email'         => $user->userEmail,
+            'profilePic'    => $user->profilePic,
+            'offsetCredit'  => $totalOffsetCredits,
+            'treeCredit'    => $treeCount, 
+        ]
+    ]);
+}
+
 
     //Facebook Login
     // public function facebookLogin(Request $request)
@@ -1086,10 +1158,12 @@ public function verifyOtp(Request $request)
     //             'userEmail'      => $email,
     //             'profilePic'     => $profilePic,
     //             'facebook_token' => $facebookToken,
+    //             'is_new_user'    => 0,
     //         ]);
     //     } else {
     //         // EXISTING USER → update facebook token without overwriting profile edits
     //         $user->facebook_token = $facebookToken;
+    //         $user->is_new_user = 0;
     //         $user->save();
     //     }
 
@@ -1111,57 +1185,74 @@ public function verifyOtp(Request $request)
     //     ]);
     // }
 
-    public function facebookLogin(Request $request)
-    {
-        // Validate incoming request
-        $request->validate([
-            'userEmail'   => 'required|email',
-            'userName'    => 'required|string',
-            'profilePic'  => 'nullable|url',
-            'token'       => 'required|string'
+    
+
+public function facebookLogin(Request $request)
+{
+    // Validate incoming request
+    $request->validate([
+        'userEmail'   => 'required|email',
+        'userName'    => 'required|string',
+        'profilePic'  => 'nullable|url',
+        'token'       => 'required|string'
+    ]);
+
+    $email = $request->userEmail;
+    $name = $request->userName;
+    $profilePic = $request->profilePic;
+    $facebookToken = $request->token;
+
+    // Check if user already exists
+    $user = User::where('userEmail', $email)->first();
+
+    if (!$user) {
+        // FIRST TIME FACEBOOK LOGIN
+        $user = User::create([
+            'userName'       => $name,
+            'userEmail'      => $email,
+            'profilePic'     => $profilePic,
+            'facebook_token' => $facebookToken,
+            'is_new_user'    => 0,
         ]);
-
-        $email = $request->userEmail;
-        $name = $request->userName;
-        $profilePic = $request->profilePic;
-        $facebookToken = $request->token;
-
-        // Check if user already exists
-        $user = User::where('userEmail', $email)->first();
-
-        if (!$user) {
-            // FIRST TIME FACEBOOK LOGIN
-            $user = User::create([
-                'userName'       => $name,
-                'userEmail'      => $email,
-                'profilePic'     => $profilePic,
-                'facebook_token' => $facebookToken,
-                'is_new_user'    => 0,
-            ]);
-        } else {
-            // EXISTING USER → update facebook token without overwriting profile edits
-            $user->facebook_token = $facebookToken;
-            $user->is_new_user = 0;
-            $user->save();
-        }
-
-        // Generate API token
-        $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
-
-        // Return response
-        return response()->json([
-            'message' => 'Facebook login successful',
-            'token'   => $token,
-            'user' => [
-                'userId'       => $user->userId,
-                'name'         => $user->userName,    // DB value
-                'email'        => $user->userEmail,
-                'profilePic'   => $user->profilePic,  // DB value
-                'offsetCredit' => $user->offsetCredit,
-                'treeCredit'   => $user->treeCredit,
-            ]
-        ]);
+    } else {
+        // EXISTING USER → update facebook token without overwriting profile edits
+        $user->facebook_token = $facebookToken;
+        $user->is_new_user = 0;
+        $user->save();
     }
+
+    // =========================
+    // CALCULATE TREE COUNT (DYNAMIC + ROUNDED)
+    // =========================
+    $treeOffsetValue = BackgroundImage::where('userId', $user->userId)
+        ->orderBy('id', 'desc')
+        ->value('treeOffsetsValue');
+
+    $totalOffsetCredits = $user->offsetCredit;
+    $treeCount = 0;
+
+    if ($treeOffsetValue > 0 && $totalOffsetCredits > 0) {
+        $treeCount = round($totalOffsetCredits / $treeOffsetValue);
+    }
+
+    // Generate API token
+    $token = $user->createToken('GreenFlyers_Token')->plainTextToken;
+
+    // Return response
+    return response()->json([
+        'message' => 'Facebook login successful',
+        'token'   => $token,
+        'user' => [
+            'userId'        => $user->userId,
+            'name'          => $user->userName,
+            'email'         => $user->userEmail,
+            'profilePic'    => $user->profilePic,
+            'offsetCredit'  => $totalOffsetCredits,
+            'treeCredit'    => $treeCount, 
+        ]
+    ]);
+}
+
 
     public function linkedinLogin(Request $request)
 {
