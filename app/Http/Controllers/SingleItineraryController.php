@@ -1389,9 +1389,9 @@ public function update(Request $request, $id)
         return response()->json(['message' => 'Unauthorized'], 401);
     }
 
-    $isAdmin = AdminData::where('id', $authUser->id)->exists();
+    $isAdmin = \App\Models\AdminData::where('id', $authUser->id)->exists();
 
-    $singleItinerary = SingleItineraryData::find($id);
+    $singleItinerary = \App\Models\SingleItineraryData::find($id);
     if (!$singleItinerary) {
         return response()->json(['message' => 'SingleItinerary not found'], 404);
     }
@@ -1419,16 +1419,15 @@ public function update(Request $request, $id)
         ]);
     }
 
-    $itinerary = ItineraryData::where('ItineraryId', $validatedData['ItineraryId'])->first();
+    $itinerary = \App\Models\ItineraryData::where('ItineraryId', $validatedData['ItineraryId'])->first();
     if (!$itinerary) {
         return response()->json(['message' => 'Itinerary not found'], 404);
     }
 
-    /**Variable to return in response */
     $offsetCreditAdded = 0;
     $userArray = [];
 
-    DB::transaction(function () use (
+    \DB::transaction(function () use (
         $validatedData,
         $singleItinerary,
         $itinerary,
@@ -1436,7 +1435,6 @@ public function update(Request $request, $id)
         &$offsetCreditAdded,
         &$userArray
     ) {
-
         /** ---------------- BASIC UPDATE ---------------- */
         $singleItinerary->approvelStatus = $validatedData['approvelStatus'];
         $singleItinerary->count = $validatedData['count'];
@@ -1445,15 +1443,17 @@ public function update(Request $request, $id)
             $singleItinerary->note = $validatedData['note'];
         }
 
-        if ($approvalStatus !== 'Completed') {
-            $singleItinerary->save();
+        // Always fetch user for consistent response (tree credits)
+        $user = \App\Models\User::where('userId', $itinerary->userId)
+            ->lockForUpdate()
+            ->first();
 
-            // Also fetch user for offsetCredit/trees even on Rejected (for consistent response)
-            $user = User::where('userId', $itinerary->userId)
-                ->lockForUpdate()
-                ->first();
-            // ✅ Calculate tree count for offsetCredit
-            $treeOffsetValue = (int) BackgroundImage::where('id', 1)->value('treeOffsetsValue');
+        if ($approvalStatus !== 'Completed') {
+            $singleItinerary->emissionOffset = 0;
+            $singleItinerary->treesPlanted = 0;
+            $singleItinerary->save();
+            
+            $treeOffsetValue = (int) \App\Models\BackgroundImage::where('id', 1)->value('treeOffsetsValue');
             $treeCount = 0;
             if ($treeOffsetValue > 0 && $user->offsetCredit > 0) {
                 $treeCount = round($user->offsetCredit / $treeOffsetValue);
@@ -1483,11 +1483,10 @@ public function update(Request $request, $id)
         $appliedOffset = min($requestedOffset, $remainingEmission);
         $extraOffset   = $requestedOffset - $appliedOffset;
 
-        /** ---------------- SAVE SINGLE ITINERARY ---------------- */
-        $singleItinerary->update([
-            'emissionOffset' => $appliedOffset,
-            'treesPlanted'   => intdiv($appliedOffset, 22)
-        ]);
+        /** ---------------- UPDATE SINGLE ITINERARY ---------------- */
+        $singleItinerary->emissionOffset = $appliedOffset;
+        $singleItinerary->treesPlanted = intdiv($appliedOffset, 22);
+        $singleItinerary->save();
 
         /** ---------------- UPDATE MASTER ITINERARY ---------------- */
         $newOffset = ($currentOffset - $oldOffset) + $appliedOffset;
@@ -1511,15 +1510,11 @@ public function update(Request $request, $id)
         ]);
 
         /** ---------------- USER OFFSET CREDIT ---------------- */
-        $user = User::where('userId', $itinerary->userId)
-            ->lockForUpdate()
-            ->first();
-
         $user->offsetCredit += $extraOffset;
         $user->save();
 
-        // ✅ Calculate tree count for offsetCredit
-        $treeOffsetValue = (int) BackgroundImage::where('id', 1)->value('treeOffsetsValue');
+        /** Calculate user offset credit as tree count for the response */
+        $treeOffsetValue = (int) \App\Models\BackgroundImage::where('id', 1)->value('treeOffsetsValue');
         $treeCount = 0;
         if ($treeOffsetValue > 0 && $user->offsetCredit > 0) {
             $treeCount = round($user->offsetCredit / $treeOffsetValue);
@@ -1527,7 +1522,7 @@ public function update(Request $request, $id)
         $userArray = $user->toArray();
         $userArray['offsetCredit'] = $treeCount;
 
-        /**store the final total credit for response */
+        /** store the final total credit for response */
         $offsetCreditAdded = $user->offsetCredit;
     });
 
