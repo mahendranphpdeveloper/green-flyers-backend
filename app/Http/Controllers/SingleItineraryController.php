@@ -429,147 +429,157 @@ class SingleItineraryController extends Controller
     // }
 
     public function store(Request $request)
-{
-    Log::info('store() called in SingleItineraryController', [
-        'request' => $request->all()
-    ]);
-
-    /** ---------------- VALIDATION ---------------- */
-    $validatedData = $request->validate([
-        'ItineraryId'            => 'required|integer|exists:itinerarydata,ItineraryId',
-        'uploadDate'             => 'nullable|date',
-        'certificateFile'        => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-        'approvelStatus'         => 'nullable|string',
-        'emissionOffset'         => 'nullable|integer|min:0',
-        'projectTypes'           => 'nullable|string|max:255',
-        'projectsContributed'    => 'nullable|string|max:255',
-        'comments'               => 'nullable|string|max:1000',
-        'count'                  => 'nullable|integer|min:0',
-        'note'                   => 'nullable|string|max:1000',
-    ]);
-
-    /** ---------------- ITINERARY ---------------- */
-    $itinerary = ItineraryData::where('ItineraryId', $validatedData['ItineraryId'])->first();
-    if (!$itinerary) {
-        return response()->json(['status' => false, 'message' => 'Itinerary not found'], 404);
-    }
-
-    /** ---------------- FILE UPLOAD ---------------- */
-    if ($request->hasFile('certificateFile')) {
-        $validatedData['certificateFile'] = $request
-            ->file('certificateFile')
-            ->store('certificates', 'public');
-    }
-
-    /** ---------------- NORMALIZE STATUS ---------------- */
-    $approvalStatus = $validatedData['approvelStatus'] ?? 'Pending Verification';
-    $validatedData['approvelStatus'] = $approvalStatus;
-    $validatedData['userId'] = $itinerary->userId;
-
-    $requestedOffset   = (int) ($validatedData['emissionOffset'] ?? 0);
-    $offsetCreditAdded = 0;
-    $updatedUser       = null;
-
-    /** ---------------- TRANSACTION ---------------- */
-    DB::transaction(function () use (
-        $validatedData,
-        $approvalStatus,
-        &$requestedOffset,
-        $itinerary,
-        &$offsetCreditAdded,
-        &$updatedUser
-    ) {
-        /** ---------------- CREATE SINGLE ITINERARY ---------------- */
-        $singleItinerary = new SingleItineraryData($validatedData);
-
-        /** ---------------- FETCH USER ---------------- */
-        $user = User::where('userId', $itinerary->userId)
-            ->lockForUpdate()
-            ->first();
-
-        if (!$user) {
-            throw new \Exception('User not found');
+    {
+        $authUser = $request->user();
+        if (!$authUser) {
+            return response()->json(['message' => 'Unauthorized'], 401);
         }
 
-        // Default offsets for Pending / Verification / Rejected
-        $appliedOffset = 0;
-        $creditUsed = 0;
-        $extraOffset = 0;
+        /** ---------------- VALIDATION ---------------- */
+        $validatedData = $request->validate([
+            'ItineraryId'         => 'required|integer|exists:itinerarydata,ItineraryId',
+            'uploadDate'          => 'nullable|date',
+            'certificateFile'     => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'approvelStatus'      => 'nullable|string',
+            'emissionOffset'      => 'nullable|integer|min:0',
+            'projectTypes'        => 'nullable|string|max:255',
+            'projectsContributed' => 'nullable|string|max:255',
+            'comments'            => 'nullable|string|max:1000',
+            'count'               => 'nullable|integer|min:0',
+            'note'                => 'nullable|string|max:1000',
+        ]);
 
-        // ---------------- CASE: Completed or Admin-added offset ----------------
-        if (strcasecmp($approvalStatus, 'Completed') === 0 || $requestedOffset > 0) {
-            $userCredit = $user->offsetCredit ?? 0;
+        $itinerary = ItineraryData::where('ItineraryId', $validatedData['ItineraryId'])->first();
+        if (!$itinerary) {
+            return response()->json(['message' => 'Itinerary not found'], 404);
+        }
 
-            // Use available user credit first
-            $creditUsed = min($requestedOffset, $userCredit);
-            $requestedOffset -= $creditUsed;
-            $user->offsetCredit -= $creditUsed;
+        if ($request->hasFile('certificateFile')) {
+            $validatedData['certificateFile'] = $request
+                ->file('certificateFile')
+                ->store('certificates', 'public');
+        }
 
-            // Calculate applied offset within itinerary emission limit
+        $approvalStatus = $validatedData['approvelStatus'] ?? 'Pending Verification';
+        $validatedData['approvelStatus'] = $approvalStatus;
+        $validatedData['userId'] = $itinerary->userId;
+
+        /**Variable to return in response */
+        $offsetCreditAdded = 0;
+        $userArray = [];
+
+        DB::transaction(function () use (
+            $validatedData,
+            $itinerary,
+            $approvalStatus,
+            &$offsetCreditAdded,
+            &$userArray
+        ) {
+            /** ---------------- CREATE SINGLE ITINERARY ---------------- */
+            $singleItinerary = new SingleItineraryData($validatedData);
+
+            /** ---------------- FETCH USER ---------------- */
+            $user = User::where('userId', $itinerary->userId)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$user) {
+                throw new \Exception('User not found');
+            }
+
+            $singleItinerary->count = $validatedData['count'] ?? 0;
+            if (isset($validatedData['note'])) {
+                $singleItinerary->note = $validatedData['note'];
+            }
+
+            if ($approvalStatus !== 'Completed') {
+                $singleItinerary->emissionOffset = 0;
+                $singleItinerary->treesPlanted = 0;
+                $singleItinerary->save();
+
+                // Also fetch user for offsetCredit/trees even on Rejected (for consistent response)
+                $treeOffsetValue = (int) BackgroundImage::where('id', 1)->value('treeOffsetsValue');
+                $treeCount = 0;
+                if ($treeOffsetValue > 0 && $user->offsetCredit > 0) {
+                    $treeCount = round($user->offsetCredit / $treeOffsetValue);
+                }
+                $userArray = $user->toArray();
+                $userArray['offsetCredit'] = $treeCount;
+                return;
+            }
+
+            /** ---------------- OLD VALUES ---------------- */
+            // Since this is store(), new, so oldOffset = 0
+            $oldOffset = 0;
+
+            /** ---------------- REQUEST ---------------- */
+            $requestedOffset = (int) ($validatedData['emissionOffset'] ?? 0);
+
+            /** ---------------- LIMITS ---------------- */
             $emissionLimit = $itinerary->emission;
             $currentOffset = $itinerary->offsetAmount ?? 0;
-            $remainingEmission = max($emissionLimit - $currentOffset, 0);
 
+            /** ---------------- REMAINING ---------------- */
+            $remainingEmission = max(
+                $emissionLimit - ($currentOffset - $oldOffset),
+                0
+            );
+
+            /** ---------------- APPLY OFFSET ---------------- */
             $appliedOffset = min($requestedOffset, $remainingEmission);
-            $extraOffset = $requestedOffset - $appliedOffset;
+            $extraOffset   = $requestedOffset - $appliedOffset;
 
-            // Update SingleItinerary offsets
-            $singleItinerary->emissionOffset = $appliedOffset + $creditUsed;
-            $singleItinerary->treesPlanted = intdiv($singleItinerary->emissionOffset, 22);
+            /** ---------------- SAVE SINGLE ITINERARY ---------------- */
+            $singleItinerary->emissionOffset = $appliedOffset;
+            $singleItinerary->treesPlanted   = intdiv($appliedOffset, 22);
+            $singleItinerary->save();
 
             /** ---------------- UPDATE MASTER ITINERARY ---------------- */
-            $newOffset = $currentOffset + $singleItinerary->emissionOffset;
+            $newOffset = ($currentOffset - $oldOffset) + $appliedOffset;
+            $newTrees  = intdiv($newOffset, 22);
+
             $offsetPercentage = $emissionLimit > 0
                 ? min(round(($newOffset / $emissionLimit) * 100, 2), 100)
                 : 0;
 
+            $status = match (true) {
+                $offsetPercentage == 0  => 'pending',
+                $offsetPercentage < 100 => 'partial',
+                default                 => 'completed',
+            };
+
             $itinerary->update([
                 'offsetAmount'     => $newOffset,
-                'numberOfTrees'    => intdiv($newOffset, 22),
+                'numberOfTrees'    => $newTrees,
                 'offsetPercentage' => $offsetPercentage,
-                'status' => match (true) {
-                    $newOffset == 0 => 'pending',
-                    $newOffset < $emissionLimit => 'partial',
-                    default => 'completed',
-                },
+                'status'           => $status
             ]);
 
-            // Return extra offset to user if any
-            if ($extraOffset > 0) {
-                $user->offsetCredit += $extraOffset;
-                $offsetCreditAdded = $extraOffset;
-            }
-
-            // Save user offset changes
+            /** ---------------- USER OFFSET CREDIT ---------------- */
+            $user->offsetCredit += $extraOffset;
             $user->save();
-        } else {
-            // ---------------- CASE: Pending / Verification / Rejected ----------------
-            $singleItinerary->emissionOffset = 0;
-            $singleItinerary->treesPlanted = 0;
-        }
 
-        /** ---------------- SAVE SINGLE ITINERARY ---------------- */
-        $singleItinerary->save();
+            // ✅ Calculate tree count for offsetCredit
+            $treeOffsetValue = (int) BackgroundImage::where('id', 1)->value('treeOffsetsValue');
+            $treeCount = 0;
+            if ($treeOffsetValue > 0 && $user->offsetCredit > 0) {
+                $treeCount = round($user->offsetCredit / $treeOffsetValue);
+            }
+            $userArray = $user->toArray();
+            $userArray['offsetCredit'] = $treeCount;
 
-        // Set updated user to return outside transaction
-        $updatedUser = $user;
-    });
+            /**store the final total credit for response */
+            $offsetCreditAdded = $user->offsetCredit;
+        });
 
-    /** ---------------- Calculate userOffsetCredit as tree count ---------------- */
-    $treeOffsetValue = (int) \App\Models\BackgroundImage::where('id', 1)->value('treeOffsetsValue');
-    $treeCount = 0;
-    $userOffsetCreditInCredits = $updatedUser->offsetCredit ?? 0;
-    if ($treeOffsetValue > 0 && $userOffsetCreditInCredits > 0) {
-        $treeCount = round($userOffsetCreditInCredits / $treeOffsetValue);
+        return response()->json([
+            'status'            => true,
+            'message'           => 'SingleItinerary created successfully',
+            'offsetCreditAdded' => $offsetCreditAdded,
+            'user'              => $userArray,
+            'info'              => 'Extra offset stored as user credit (not auto-applied)'
+        ]);
     }
-
-    return response()->json([
-        'status'            => true,
-        'message'           => 'SingleItinerary created successfully',
-        'offsetCreditAdded' => $offsetCreditAdded,
-        'userOffsetCredit'  => $treeCount,
-    ]);
-}
 
     // old 
 
