@@ -514,7 +514,7 @@ class SingleItineraryController extends Controller
 
             // Update SingleItinerary offsets
             $singleItinerary->emissionOffset = $appliedOffset + $creditUsed;
-            $singleItinerary->treesPlanted = intdiv($singleItinerary->emissionOffset, 50);
+            $singleItinerary->treesPlanted = intdiv($singleItinerary->emissionOffset, 22);
 
             /** ---------------- UPDATE MASTER ITINERARY ---------------- */
             $newOffset = $currentOffset + $singleItinerary->emissionOffset;
@@ -524,7 +524,7 @@ class SingleItineraryController extends Controller
 
             $itinerary->update([
                 'offsetAmount'     => $newOffset,
-                'numberOfTrees'    => intdiv($newOffset, 50),
+                'numberOfTrees'    => intdiv($newOffset, 22),
                 'offsetPercentage' => $offsetPercentage,
                 'status' => match (true) {
                     $newOffset == 0 => 'pending',
