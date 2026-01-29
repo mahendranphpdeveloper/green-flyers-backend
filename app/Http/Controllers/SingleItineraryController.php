@@ -1417,25 +1417,23 @@ public function update(Request $request, $id)
         return response()->json(['message' => 'Itinerary not found'], 404);
     }
 
-    /** ---------------- GET TREE OFFSET VALUE ---------------- */
-    $treeOffsetValue = BackgroundImage::value('treesOffsetsValue');
-
+    // ------------- Get dynamic tree offset value -------------
+    $treeOffsetValue = \DB::table('background_image')->value('treesOffsetsValue');
     if (!$treeOffsetValue || $treeOffsetValue <= 0) {
-        return response()->json([
-            'message' => 'Tree offset value not configured'
-        ], 500);
+        // fallback to prevent division by zero
+        $treeOffsetValue = 50;
     }
 
-    /** Value returned in response */
-    $extraTreesAdded = 0;
+    /**Variable to return in response */
+    $offsetCreditAdded = 0;
 
     DB::transaction(function () use (
         $validatedData,
         $singleItinerary,
         $itinerary,
         $approvalStatus,
-        $treeOffsetValue,
-        &$extraTreesAdded
+        &$offsetCreditAdded,
+        $treeOffsetValue
     ) {
 
         /** ---------------- BASIC UPDATE ---------------- */
@@ -1474,12 +1472,12 @@ public function update(Request $request, $id)
         /** ---------------- SAVE SINGLE ITINERARY ---------------- */
         $singleItinerary->update([
             'emissionOffset' => $appliedOffset,
-            'treesPlanted'   => intdiv($appliedOffset, $treeOffsetValue)
+            'treesPlanted'   => $treeOffsetValue > 0 ? intdiv($appliedOffset, $treeOffsetValue) : 0
         ]);
 
         /** ---------------- UPDATE MASTER ITINERARY ---------------- */
         $newOffset = ($currentOffset - $oldOffset) + $appliedOffset;
-        $newTrees  = intdiv($newOffset, $treeOffsetValue);
+        $newTrees  = $treeOffsetValue > 0 ? intdiv($newOffset, $treeOffsetValue) : 0;
 
         $offsetPercentage = $emissionLimit > 0
             ? min(round(($newOffset / $emissionLimit) * 100, 2), 100)
@@ -1498,30 +1496,25 @@ public function update(Request $request, $id)
             'status'           => $status
         ]);
 
-        /** ---------------- USER OFFSET CREDIT (TREES) ---------------- */
+        /** ---------------- USER OFFSET CREDIT ---------------- */
         $user = User::where('userId', $itinerary->userId)
             ->lockForUpdate()
             ->first();
 
-        /** Convert extra emission to trees dynamically */
-        $extraTrees = intdiv($extraOffset, $treeOffsetValue);
-
-        $user->offsetCredit += $extraTrees;
+        $user->offsetCredit += $extraOffset;
         $user->save();
 
-        /** return trees added */
-        $extraTreesAdded = $extraTrees;
+        /**store the final total credit for response */
+        $offsetCreditAdded = $user->offsetCredit;
     });
 
     return response()->json([
-        'status'          => true,
-        'message'         => 'Updated successfully',
-        'extraTreesAdded' => $extraTreesAdded,
-        'treeFactor'      => $treeOffsetValue,
-        'info'            => 'Trees calculated dynamically from background_image.treesOffsetsValue'
+        'status'            => true,
+        'message'           => 'Updated successfully',
+        'offsetCreditAdded' => $offsetCreditAdded,
+        'info'              => 'Extra offset stored as user credit (not auto-applied)'
     ]);
 }
-
 
 
 
