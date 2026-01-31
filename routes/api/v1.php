@@ -263,6 +263,13 @@ Route::prefix('admin/notification-reminder')->group(function () {
 Route::get('/admin/certificate/view/{fileName}', [\App\Http\Controllers\CertificateController::class, 'view']);
 
 
+Route::post('/emission/verify', [\App\Http\Controllers\ApiCallsController::class, 'verify']);
+Route::post('/emission/store', [\App\Http\Controllers\ApiCallsController::class, 'storeEmission']);
+
+
+
+
+
 
 
 
