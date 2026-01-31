@@ -18,5 +18,6 @@ class ApiCall extends Model
         'cabin_class',
         'co2_per_passenger',
         'source',
+        'reuse_history',
     ];
 }

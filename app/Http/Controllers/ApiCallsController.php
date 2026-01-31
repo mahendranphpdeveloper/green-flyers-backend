@@ -12,6 +12,54 @@ use Illuminate\Support\Facades\Log;
 
 class ApiCallsController extends Controller
 {
+
+    public function getEmissionDetails(Request $request)
+{
+    $validated = $request->validate([
+        'origin'      => 'required|string|size:3',
+        'destination' => 'required|string|size:3',
+        'date'        => 'required|date',
+        'class'       => 'required|string',
+    ]);
+
+    $apiCall = ApiCall::where([
+        'origin'      => $validated['origin'],
+        'destination' => $validated['destination'],
+        'travel_date' => $validated['date'],
+        'cabin_class' => $validated['class'],
+    ])->first();
+
+    if (!$apiCall) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'No emission record found'
+        ], 404);
+    }
+
+    // Decode reuse history JSON
+    $reuseHistory = $apiCall->reuse_history
+        ? json_decode($apiCall->reuse_history, true)
+        : [];
+
+    return response()->json([
+        'status' => true,
+        'data' => [
+            'api_call_id' => 'api_' . $apiCall->id,
+            'route' => "{$apiCall->origin} → {$apiCall->destination}",
+            'travel_date' => $apiCall->travel_date,
+            'cabin_class' => $apiCall->cabin_class,
+            'co2_per_passenger' => $apiCall->co2_per_passenger,
+            'co2_display' => [
+                'tonnes' => round($apiCall->co2_per_passenger / 1000, 3),
+                'kg'     => round($apiCall->co2_per_passenger, 2),
+            ],
+            'source' => $apiCall->source, // tim / db
+            'calculated_on' => $apiCall->created_at,
+            'reuse_history' => $reuseHistory,
+            'total_reuses'  => count($reuseHistory),
+        ]
+    ]);
+}
     /**
      * VERIFY API — Check if emission exists in api_calls
      * POST /api/emission/verify
