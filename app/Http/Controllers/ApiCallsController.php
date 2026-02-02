@@ -119,22 +119,22 @@ public function getApiCallDetails()
 
 public function getAllFromDb()
 {
-    // Use Eloquent model for from_db table access
-    $records = \App\Models\FromDb::all();
+    // Fetch all records from from_db table
+    $records = FromDb::orderBy('id', 'desc')->get();
 
-    // Format each record if needed
+    // Format the data without changing travel_date format
     $formatted = $records->map(function ($record) {
         return [
             'id' => $record->id,
             'api_call_id' => 'api_' . $record->api_call_id,
             'origin' => $record->origin,
             'destination' => $record->destination,
-            'travel_date' => $record->travel_date,
+            'travel_date' => $record->travel_date, 
             'cabin_class' => $record->cabin_class,
             'co2_per_passenger' => $record->co2_per_passenger,
-            'co2_tonnes' => round($record->co2_per_passenger / 1000, 3),
             'co2_kg' => round($record->co2_per_passenger, 2),
-            'used_at' => $record->used_at,
+            'co2_tonnes' => round($record->co2_per_passenger / 1000, 3),
+            'used_at' => $record->used_at,         
             'used_by_user' => $record->used_by_user,
             'passengers' => $record->passengers,
         ];
@@ -142,6 +142,7 @@ public function getAllFromDb()
 
     return response()->json([
         'status' => true,
+        'count' => $formatted->count(),
         'data' => $formatted,
     ]);
 }
