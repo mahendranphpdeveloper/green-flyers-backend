@@ -304,7 +304,7 @@ class ApiCallsController extends Controller
                 'emission'         => $totalEmission,
                 'status'           => 'pending',
                 // optionally store reference to api_call or from_db entry
-                'api_call_id'      => $apiCall->id,
+                // 'api_call_id'      => $apiCall->id,
             ]);
         });
 
