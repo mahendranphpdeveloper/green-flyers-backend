@@ -81,38 +81,39 @@ class ApiCallsController extends Controller
 //     ]);
 // }
 
-public function getApiCallDetails()
+public function getAllApiCalls()
 {
-    $apiCall = ApiCall::orderBy('created_at', 'desc')->first();
+    $apiCalls = ApiCall::orderBy('created_at', 'desc')->get();
 
-    if (!$apiCall) {
-        return response()->json([
-            'status' => false,
-            'data' => null,
-        ]);
-    }
+    $data = $apiCalls->map(function ($apiCall) {
+        return [
+            'id' => $apiCall->id,
+            'api_call_id' => 'api_' . $apiCall->id,
 
-    $reuseCount = FromDb::where('api_call_id', $apiCall->id)->count();
+            'origin' => $apiCall->origin,
+            'destination' => $apiCall->destination,
+            'route' => "{$apiCall->origin} → {$apiCall->destination}",
 
-    $data = [
-        'id' => $apiCall->id,
-        'api_call_id' => 'api_' . $apiCall->id,
-        'origin' => $apiCall->origin,
-        'destination' => $apiCall->destination,
-        'route' => "{$apiCall->origin} → {$apiCall->destination}",
-        'travel_date' => $apiCall->travel_date,
-        'cabin_class' => $apiCall->cabin_class,
-        'co2_per_passenger' => $apiCall->co2_per_passenger,
-        'co2_tonnes' => round($apiCall->co2_per_passenger / 1000, 3),
-        'co2_kg' => round($apiCall->co2_per_passenger, 2),
-        'used_at' => $apiCall->used_at ?? null,
-        'used_by_user' => $apiCall->used_by_user ?? null,
-        'passengers' => $apiCall->passengers ?? 1,
-    ];
+            'travel_date' => $apiCall->travel_date,
+            'cabin_class' => $apiCall->cabin_class,
+
+            'co2_per_passenger' => round($apiCall->co2_per_passenger, 2),
+            'co2_kg' => round($apiCall->co2_per_passenger, 2),
+            'co2_tonnes' => round($apiCall->co2_per_passenger / 1000, 3),
+
+            'source' => $apiCall->source, // db / tim
+
+            'reuse_history' => $apiCall->reuse_history, // JSON as-is
+
+            'created_at' => optional($apiCall->created_at)->toDateTimeString(),
+            'updated_at' => optional($apiCall->updated_at)->toDateTimeString(),
+        ];
+    });
 
     return response()->json([
         'status' => true,
-        'data' => $data,
+        'count'  => $data->count(),
+        'data'   => $data,
     ]);
 }
 
