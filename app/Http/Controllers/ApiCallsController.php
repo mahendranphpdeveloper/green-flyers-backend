@@ -225,7 +225,7 @@ public function getAllFromDb()
     $userIds = $records->pluck('used_by_user')->unique()->filter();
     // Fetch username indexed by userId from UserData
     $usernames = \App\Models\UserData::whereIn('userId', $userIds)
-        ->pluck('name', 'userId');
+        ->pluck('userName', 'userId');
 
     // Group records by api_call_id
     $grouped = $records->groupBy('api_call_id')->map(function ($group, $api_call_id) use ($usernames) {
