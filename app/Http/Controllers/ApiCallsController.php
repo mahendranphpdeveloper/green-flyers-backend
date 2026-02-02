@@ -83,18 +83,16 @@ class ApiCallsController extends Controller
 
 public function getApiCallDetails(Request $request)
 {
-    $validated = $request->validate([
-        'origin'      => 'required|string|size:3',
-        'destination' => 'required|string|size:3',
-        'date'        => 'required|date',
-        'class'       => 'required|string',
-    ]);
+    $origin      = $request->input('origin');
+    $destination = $request->input('destination');
+    $date        = $request->input('date');
+    $class       = $request->input('class');
 
     $apiCall = ApiCall::where([
-        'origin'      => $validated['origin'],
-        'destination' => $validated['destination'],
-        'travel_date' => $validated['date'],
-        'cabin_class' => $validated['class'],
+        'origin'      => $origin,
+        'destination' => $destination,
+        'travel_date' => $date,
+        'cabin_class' => $class,
     ])->first();
 
     if (!$apiCall) {
