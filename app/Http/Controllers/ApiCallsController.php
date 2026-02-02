@@ -180,9 +180,17 @@ public function getAllFromDb()
 
     // Group records by api_call_id
     $grouped = $records->groupBy('api_call_id')->map(function ($group, $api_call_id) {
+        // get all unique origins, destinations, and travel_dates for this group
+        $origins = $group->pluck('origin')->unique()->values();
+        $destinations = $group->pluck('destination')->unique()->values();
+        $travel_dates = $group->pluck('travel_date')->unique()->values();
+
         return [
             'api_call_id' => 'api_' . $api_call_id,
             'reusable_count' => $group->count(),
+            'origin' => $origins,      // Array of unique origins
+            'destination' => $destinations, // Array of unique destinations
+            'travel_date' => $travel_dates, // Array of unique travel_dates
             'data' => $group->map(function ($record) {
                 return [
                     'id' => $record->id,
@@ -207,6 +215,7 @@ public function getAllFromDb()
         'data' => $grouped,
     ]);
 }
+
 
 public function getFromDbByApiCallId($api_call_id)
 {
