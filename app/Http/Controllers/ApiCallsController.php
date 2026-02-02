@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ApiCall;
+use App\Models\FromDb;
 use App\Models\ItineraryData;
 use App\Models\Country;
 use App\Models\NotificationsReminder;
@@ -12,6 +13,25 @@ use Illuminate\Support\Facades\Log;
 
 class ApiCallsController extends Controller
 {
+
+    public function apiCallsDashboardStats()
+    {
+        $freshApiCalls = ApiCall::count();
+        $reusedCalls   = FromDb::count();
+    
+        $totalRequests = $freshApiCalls + $reusedCalls;
+    
+        $apiCallsSavedPercentage = $totalRequests > 0
+            ? round(($reusedCalls / $totalRequests) * 100)
+            : 0;
+    
+        return response()->json([
+            'total_requests'   => $totalRequests,
+            'fresh_api_calls'  => $freshApiCalls,
+            'reused_calls'     => $reusedCalls,
+            'api_calls_saved'  => $apiCallsSavedPercentage . '%',
+        ]);
+    }
 
 //     public function getEmissionDetails(Request $request)
 // {

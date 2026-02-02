@@ -264,7 +264,7 @@ Route::get('/admin/certificate/view/{fileName}', [\App\Http\Controllers\Certific
 
 // Route::get('/emission/details', [\App\Http\Controllers\ApiCallsController::class, 'getEmissionDetails']);
 
-
+Route::get('/emission/api-calls/stats', [\App\Http\Controllers\ApiCallsController::class, 'apiCallsDashboardStats']);
 Route::get('/emission/api-calls/details', [\App\Http\Controllers\ApiCallsController::class, 'getApiCallDetails']);
 Route::get('/emission/from-db/details', [\App\Http\Controllers\ApiCallsController::class, 'getAllFromDb']);
 Route::post('/emission/verify', [\App\Http\Controllers\ApiCallsController::class, 'verify']);
