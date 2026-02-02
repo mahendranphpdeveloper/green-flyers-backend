@@ -88,36 +88,31 @@ public function getApiCallDetails()
     if (!$apiCall) {
         return response()->json([
             'status' => false,
-            'data' => null
+            'data' => null,
         ]);
     }
 
     $reuseCount = FromDb::where('api_call_id', $apiCall->id)->count();
 
+    $data = [
+        'id' => $apiCall->id,
+        'api_call_id' => 'api_' . $apiCall->id,
+        'origin' => $apiCall->origin,
+        'destination' => $apiCall->destination,
+        'route' => "{$apiCall->origin} → {$apiCall->destination}",
+        'travel_date' => $apiCall->travel_date,
+        'cabin_class' => $apiCall->cabin_class,
+        'co2_per_passenger' => $apiCall->co2_per_passenger,
+        'co2_tonnes' => round($apiCall->co2_per_passenger / 1000, 3),
+        'co2_kg' => round($apiCall->co2_per_passenger, 2),
+        'used_at' => $apiCall->used_at ?? null,
+        'used_by_user' => $apiCall->used_by_user ?? null,
+        'passengers' => $apiCall->passengers ?? 1,
+    ];
+
     return response()->json([
         'status' => true,
-        'data' => [
-            'api_call_id' => 'api_' . $apiCall->id,
-
-            'origin' => $apiCall->origin,
-            'destination' => $apiCall->destination,
-            'route' => "{$apiCall->origin} → {$apiCall->destination}",
-
-            'travel_date' => $apiCall->travel_date,
-            'cabin_class' => $apiCall->cabin_class,
-
-            'co2_per_passenger' => round($apiCall->co2_per_passenger, 2),
-            'co2_kg' => round($apiCall->co2_per_passenger, 2),
-            'co2_tonnes' => round($apiCall->co2_per_passenger / 1000, 3),
-
-            'passengers' => $apiCall->passengers ?? 1,
-
-            'source' => 'TIM_API',
-            'reused_count' => $reuseCount,
-            'saved_api_calls' => $reuseCount,
-
-            'calculated_on' => $apiCall->created_at,
-        ]
+        'data' => $data,
     ]);
 }
 
