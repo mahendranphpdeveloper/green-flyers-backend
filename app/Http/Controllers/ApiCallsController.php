@@ -259,56 +259,52 @@ class ApiCallsController extends Controller
         DB::transaction(function () use (&$itinerary, $validated) {
 
             $co2PerPassenger = $validated['co2_per_passenger'] ?? 0;
+            $totalEmission   = $co2PerPassenger * $validated['passengers'];
 
-            /** ---------------- api_calls HANDLING ---------------- */
-            if ($co2PerPassenger > 0) {
+            /** ---------------- Check if value exists in api_calls ---------------- */
+            $apiCall = \App\Models\ApiCall::where([
+                'origin'      => $validated['origin'],
+                'destination' => $validated['destination'],
+                'travel_date' => $validated['date'],
+                'cabin_class' => $validated['class'],
+            ])->first();
 
-                $apiCall = \App\Models\ApiCall::where([
-                    'origin'      => $validated['origin'],
-                    'destination' => $validated['destination'],
-                    'travel_date' => $validated['date'],
-                    'cabin_class' => $validated['class'],
-                ])->first();
-
-                // ✅ CASE 1: REUSE EXISTING DB VALUE
-                if ($apiCall) {
-                    $reuseHistory = $apiCall->reuse_history
-                        ? json_decode($apiCall->reuse_history, true)
-                        : [];
-
-                    $reuseHistory[] = [
-                        'used_at'      => now()->toDateTimeString(),
-                        'used_by_user' => $validated['userId'],
-                        'passengers'   => $validated['passengers'],
-                        'source'       => 'db',
-                    ];
-
-                    $apiCall->update([
-                        'reuse_history' => json_encode($reuseHistory),
-                        'source'        => 'db',
-                    ]);
-                }
-                // ✅ CASE 2: FIRST TIME STORE
-                else {
-                    \App\Models\ApiCall::create([
-                        'origin'            => $validated['origin'],
-                        'destination'       => $validated['destination'],
-                        'travel_date'       => $validated['date'],
-                        'cabin_class'       => $validated['class'],
-                        'co2_per_passenger' => $co2PerPassenger,
-                        'source'            => 'tim',
-                        'reuse_history'     => json_encode([]),
-                    ]);
-                }
+            if ($apiCall) {
+                // ---------------- EXISTING DB VALUE → store in from_db ----------------
+                \App\Models\FromDb::create([
+                    'api_call_id'        => $apiCall->id,
+                    'origin'             => $validated['origin'],
+                    'destination'        => $validated['destination'],
+                    'travel_date'        => $validated['date'],
+                    'cabin_class'        => $validated['class'],
+                    'co2_per_passenger'  => $co2PerPassenger,
+                    'used_at'            => now()->toDateTimeString(),
+                    'used_by_user'       => $validated['userId'],
+                    'passengers'         => $validated['passengers'],
+                ]);
+            } else {
+                // ---------------- FIRST TIME TIM API → store in api_calls ----------------
+                $apiCall = \App\Models\ApiCall::create([
+                    'origin'              => $validated['origin'],
+                    'destination'         => $validated['destination'],
+                    'travel_date'         => $validated['date'],
+                    'cabin_class'         => $validated['class'],
+                    'co2_per_passenger'   => $co2PerPassenger,
+                    'source'              => 'tim',
+                    'reuse_history'       => json_encode([]),
+                ]);
             }
 
-            /** ---------------- itinerarydata ---------------- */
+            // ---------------- Always store in itinerarydata ----------------
             $itinerary = ItineraryData::create([
                 ...$validated,
                 'offsetAmount'     => 0,
                 'numberOfTrees'    => 0,
                 'offsetPercentage' => 0,
-                // emission and status now come from frontend, so do not override
+                'emission'         => $totalEmission,
+                'status'           => 'pending',
+                // optionally store reference to api_call or from_db entry
+                'api_call_id'      => $apiCall->id,
             ]);
         });
 
@@ -318,4 +314,6 @@ class ApiCallsController extends Controller
             'data'    => ItineraryData::where('userId', $validated['userId'])->get()
         ], 201);
     }
+
+    
 }
