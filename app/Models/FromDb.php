@@ -34,8 +34,8 @@ class FromDb extends Model
     public $timestamps = false; // since you use 'used_at' manually
 
     protected $casts = [
-        'travel_date' => 'date',
-        'used_at' => 'datetime',
+        'travel_date' => 'string',
+        'used_at' => 'string',
         'co2_per_passenger' => 'decimal:2',
         'passengers' => 'integer',
         'used_by_user' => 'integer',
