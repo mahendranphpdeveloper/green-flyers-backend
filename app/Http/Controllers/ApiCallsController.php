@@ -173,14 +173,62 @@ public function getApiCallById($api_call_id)
 }
 
 
+// public function getAllFromDb()
+// {
+//     // Fetch all records from from_db table
+//     $records = FromDb::orderBy('id', 'desc')->get();   
+
+//     // Group records by api_call_id
+//     $grouped = $records->groupBy('api_call_id')->map(function ($group, $api_call_id) {
+//         // get all unique origins, destinations, and travel_dates for this group
+//         $origins = $group->pluck('origin')->unique()->values();
+//         $destinations = $group->pluck('destination')->unique()->values();
+//         $travel_dates = $group->pluck('travel_date')->unique()->values();
+
+//         return [
+//             'api_call_id' => 'api_' . $api_call_id,
+//             'reusable_count' => $group->count(),
+//             'origin' => $origins,      // Array of unique origins
+//             'destination' => $destinations, // Array of unique destinations
+//             'travel_date' => $travel_dates, // Array of unique travel_dates
+//             'data' => $group->map(function ($record) {
+//                 return [
+//                     'id' => $record->id,
+//                     'origin' => $record->origin,
+//                     'destination' => $record->destination,
+//                     'travel_date' => $record->travel_date,
+//                     'cabin_class' => $record->cabin_class,
+//                     'co2_per_passenger' => $record->co2_per_passenger,
+//                     'co2_kg' => round($record->co2_per_passenger, 2),
+//                     'co2_tonnes' => round($record->co2_per_passenger / 1000, 3),
+//                     'used_at' => $record->used_at,
+//                     'used_by_user' => $record->used_by_user,
+//                     'passengers' => $record->passengers,
+//                 ];
+//             })->values(), // reset keys
+//         ];
+//     })->values(); // reset keys
+
+//     return response()->json([
+//         'status' => true,
+//         'count' => $grouped->count(),
+//         'data' => $grouped,
+//     ]);
+// }
+
 public function getAllFromDb()
 {
-    // Fetch all records from from_db table
-    $records = FromDb::orderBy('id', 'desc')->get();
+    // Fetch all records WITH user relation
+    $records = FromDb::with('user')
+        ->orderBy('id', 'desc')
+        ->get();
 
     // Group records by api_call_id
     $grouped = $records->groupBy('api_call_id')->map(function ($group, $api_call_id) {
-        // get all unique origins, destinations, and travel_dates for this group
+
+        // Unique values for group-level info
+        $originCities = $group->pluck('originCity')->unique()->values();
+        $destinationCities = $group->pluck('destinationCity')->unique()->values();
         $origins = $group->pluck('origin')->unique()->values();
         $destinations = $group->pluck('destination')->unique()->values();
         $travel_dates = $group->pluck('travel_date')->unique()->values();
@@ -188,33 +236,50 @@ public function getAllFromDb()
         return [
             'api_call_id' => 'api_' . $api_call_id,
             'reusable_count' => $group->count(),
-            'origin' => $origins,      // Array of unique origins
-            'destination' => $destinations, // Array of unique destinations
-            'travel_date' => $travel_dates, // Array of unique travel_dates
+
+            // City names, and separately IATA/ICAO codes
+            'originCity' => $originCities,
+            'destinationCity' => $destinationCities,
+            'origin' => $origins,
+            'destination' => $destinations,
+
+            'travel_date' => $travel_dates,
+
             'data' => $group->map(function ($record) {
                 return [
                     'id' => $record->id,
+
+                    // city names
+                    'originCity' => $record->originCity,
+                    'destinationCity' => $record->destinationCity,
+
+                    // IATA or ICAO codes (or raw code value)
                     'origin' => $record->origin,
                     'destination' => $record->destination,
+
                     'travel_date' => $record->travel_date,
                     'cabin_class' => $record->cabin_class,
-                    'co2_per_passenger' => $record->co2_per_passenger,
+
+                    'co2_per_passenger' => round($record->co2_per_passenger, 2),
                     'co2_kg' => round($record->co2_per_passenger, 2),
                     'co2_tonnes' => round($record->co2_per_passenger / 1000, 3),
+
                     'used_at' => $record->used_at,
-                    'used_by_user' => $record->used_by_user,
                     'passengers' => $record->passengers,
+
+                    'username' => $record->user ? $record->user->name : null,
                 ];
-            })->values(), // reset keys
+            })->values(),
         ];
-    })->values(); // reset keys
+    })->values();
 
     return response()->json([
         'status' => true,
-        'count' => $grouped->count(),
-        'data' => $grouped,
+        'count'  => $grouped->count(),
+        'data'   => $grouped,
     ]);
 }
+
 
 
 public function getFromDbByApiCallId($api_call_id)
