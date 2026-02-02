@@ -486,20 +486,20 @@ public function getFromDbByApiCallId($api_call_id)
         Log::info('storeEmission called', $request->all());
 
         $validated = $request->validate([
-            'userId'       => 'required|integer',
-            'date'         => 'required|date',
-            'airline'      => 'required|string|max:255',
-            'origin'       => 'required|string|max:255',
-            'destination'  => 'required|string|max:255',
-            'class'        => 'required|string|max:255',
-            'passengers'   => 'required|integer|min:1',
-            'tripType'     => 'required|string|max:255',
-            'distance'     => 'required|string|max:255',
-            'flightcode'      => 'nullable|string|max:255',
-            'originCity'      => 'nullable|string|max:255',
-            'destinationCity' => 'nullable|string|max:255',
-            'emission'        => 'required|numeric|min:0',
-            'totalTrees'      => 'nullable|integer|min:0',
+            'userId'           => 'required|integer',
+            'date'             => 'required|date',
+            'airline'          => 'required|string|max:255',
+            'origin'           => 'required|string|max:255',
+            'destination'      => 'required|string|max:255',
+            'class'            => 'required|string|max:255',
+            'passengers'       => 'required|integer|min:1',
+            'tripType'         => 'required|string|max:255',
+            'distance'         => 'required|string|max:255',
+            'flightcode'       => 'nullable|string|max:255',
+            'originCity'       => 'nullable|string|max:255',
+            'destinationCity'  => 'nullable|string|max:255',
+            'emission'         => 'required|numeric|min:0',
+            'totalTrees'       => 'nullable|integer|min:0',
             'co2_per_passenger'=> 'nullable|numeric|min:0',
             'country' => [
                 'nullable', 'string', 'max:255',
@@ -514,7 +514,7 @@ public function getFromDbByApiCallId($api_call_id)
                     }
                 }
             ],
-            'status' => 'required|string|max:255',
+            'status'           => 'required|string|max:255',
         ]);
 
         // Check pending itineraries against limit
@@ -553,6 +553,8 @@ public function getFromDbByApiCallId($api_call_id)
                 'destination' => $validated['destination'],
                 'travel_date' => $validated['date'],
                 'cabin_class' => $validated['class'],
+                'originCity'  => $validated['originCity'] ?? null,
+                'destinationCity' => $validated['destinationCity'] ?? null,
             ])->first();
 
             if ($apiCall) {
@@ -560,7 +562,9 @@ public function getFromDbByApiCallId($api_call_id)
                 \App\Models\FromDb::create([
                     'api_call_id'        => $apiCall->id,
                     'origin'             => $validated['origin'],
+                    'originCity'         => $validated['originCity'] ?? null,
                     'destination'        => $validated['destination'],
+                    'destinationCity'    => $validated['destinationCity'] ?? null,
                     'travel_date'        => $validated['date'],
                     'cabin_class'        => $validated['class'],
                     'co2_per_passenger'  => $co2PerPassenger,
@@ -571,13 +575,15 @@ public function getFromDbByApiCallId($api_call_id)
             } else {
                 // ---------------- FIRST TIME TIM API → store in api_calls ----------------
                 $apiCall = \App\Models\ApiCall::create([
-                    'origin'              => $validated['origin'],
-                    'destination'         => $validated['destination'],
-                    'travel_date'         => $validated['date'],
-                    'cabin_class'         => $validated['class'],
-                    'co2_per_passenger'   => $co2PerPassenger,
-                    'source'              => 'tim',
-                    'reuse_history'       => json_encode([]),
+                    'origin'            => $validated['origin'],
+                    'originCity'        => $validated['originCity'] ?? null,
+                    'destination'       => $validated['destination'],
+                    'destinationCity'   => $validated['destinationCity'] ?? null,
+                    'travel_date'       => $validated['date'],
+                    'cabin_class'       => $validated['class'],
+                    'co2_per_passenger' => $co2PerPassenger,
+                    'source'            => 'tim',
+                    'reuse_history'     => json_encode([]),
                 ]);
             }
 
@@ -589,8 +595,6 @@ public function getFromDbByApiCallId($api_call_id)
                 'offsetPercentage' => 0,
                 'emission'         => $totalEmission,
                 'status'           => 'pending',
-                // optionally store reference to api_call or from_db entry
-                // 'api_call_id'      => $apiCall->id,
             ]);
         });
 
