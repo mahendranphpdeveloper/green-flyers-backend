@@ -81,7 +81,7 @@ class ApiCallsController extends Controller
 //     ]);
 // }
 
-public function getAllApiCalls()
+public function getApiCallDetails()
 {
     $apiCalls = ApiCall::orderBy('created_at', 'desc')->get();
 
