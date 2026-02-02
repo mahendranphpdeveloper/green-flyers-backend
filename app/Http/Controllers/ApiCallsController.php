@@ -218,26 +218,22 @@ public function getApiCallById($api_call_id)
 
 public function getAllFromDb()
 {
-    // Fetch all records
     $records = FromDb::orderBy('id', 'desc')->get();
 
-    // Collect all user IDs
     $userIds = $records->pluck('used_by_user')->unique()->filter();
 
-    // Fetch usernames indexed by userId
     $usernames = \App\Models\UserData::whereIn('userId', $userIds)
         ->pluck('userName', 'userId');
 
-    // Group records by api_call_id
     $grouped = $records->groupBy('api_call_id')->map(function ($group, $api_call_id) use ($usernames) {
 
         return [
             'api_call_id' => 'api_' . $api_call_id,
             'reusable_count' => $group->count(),
 
-            // ✅ GROUP LEVEL (unique values)
-            'originCity' => $group->pluck('origin_city')->unique()->values(),
-            'destinationCity' => $group->pluck('destination_city')->unique()->values(),
+            // ✅ GROUP LEVEL
+            'originCity' => $group->pluck('originCity')->unique()->values(),
+            'destinationCity' => $group->pluck('destinationCity')->unique()->values(),
 
             'origin' => $group->pluck('origin')->unique()->values(),
             'destination' => $group->pluck('destination')->unique()->values(),
@@ -249,11 +245,10 @@ public function getAllFromDb()
                 return [
                     'id' => $record->id,
 
-                    // city names
-                    'originCity' => $record->origin_city,
-                    'destinationCity' => $record->destination_city,
+                    // ✅ FIXED
+                    'originCity' => $record->originCity,
+                    'destinationCity' => $record->destinationCity,
 
-                    // codes
                     'origin' => $record->origin,
                     'destination' => $record->destination,
 
@@ -267,7 +262,6 @@ public function getAllFromDb()
                     'used_at' => $record->used_at,
                     'passengers' => $record->passengers,
 
-                    // username mapping
                     'username' => $record->used_by_user && isset($usernames[$record->used_by_user])
                         ? $usernames[$record->used_by_user]
                         : null,
@@ -282,6 +276,7 @@ public function getAllFromDb()
         'data'   => $grouped,
     ]);
 }
+
 
 
 
