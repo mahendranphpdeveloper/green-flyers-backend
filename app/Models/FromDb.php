@@ -21,7 +21,9 @@ class FromDb extends Model
     protected $fillable = [
         'api_call_id',
         'origin',
+        'originCity',          // Added for new column
         'destination',
+        'destinationCity',     // Added for new column
         'travel_date',
         'cabin_class',
         'co2_per_passenger',
@@ -40,6 +42,8 @@ class FromDb extends Model
         'passengers' => 'integer',
         'used_by_user' => 'integer',
         'api_call_id' => 'integer',
+        'originCity' => 'string',         // Added for new column
+        'destinationCity' => 'string',    // Added for new column
     ];
 
     /**

@@ -117,35 +117,158 @@ public function getApiCallDetails()
     ]);
 }
 
+public function getApiCallById($api_call_id)
+{
+    // Extract numeric ID from api_x format
+    if (!preg_match('/^api_(\d+)$/', $api_call_id, $matches)) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Invalid API Call ID format'
+        ], 400);
+    }
+
+    $id = $matches[1];
+
+    // Fetch the API call with user relationship
+    $apiCall = \App\Models\ApiCall::with('user')->find($id);
+
+    if (!$apiCall) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'API Call not found'
+        ], 404);
+    }
+
+    // Format response: include origin and destination
+    $data = [
+        'id' => $apiCall->id,
+        'api_call_id' => 'api_' . $apiCall->id,
+
+        'origin' => $apiCall->origin,
+        'destination' => $apiCall->destination,
+        'originCity' => $apiCall->originCity ?? $apiCall->origin,        
+        'destinationCity' => $apiCall->destinationCity ?? $apiCall->destination,  
+        'route' => "{$apiCall->origin} → {$apiCall->destination}",
+
+        'travel_date' => $apiCall->travel_date,
+        'cabin_class' => $apiCall->cabin_class,
+
+        'co2_per_passenger' => round($apiCall->co2_per_passenger, 2),
+        'co2_kg' => round($apiCall->co2_per_passenger, 2),
+        'co2_tonnes' => round($apiCall->co2_per_passenger / 1000, 3),
+
+        'source' => $apiCall->source, // db / tim
+        'reuse_history' => $apiCall->reuse_history, // JSON as-is
+
+        'username' => $apiCall->user ? $apiCall->user->name : null, // from user table
+
+        'created_at' => optional($apiCall->created_at)->toDateTimeString(),
+        'updated_at' => optional($apiCall->updated_at)->toDateTimeString(),
+    ];
+
+    return response()->json([
+        'status' => true,
+        'data'   => $data,
+    ]);
+}
+
+
 public function getAllFromDb()
 {
     // Fetch all records from from_db table
     $records = FromDb::orderBy('id', 'desc')->get();
 
-    // Format the data without changing travel_date format
-    $formatted = $records->map(function ($record) {
+    // Group records by api_call_id
+    $grouped = $records->groupBy('api_call_id')->map(function ($group, $api_call_id) {
         return [
-            'id' => $record->id,
-            'api_call_id' => 'api_' . $record->api_call_id,
-            'origin' => $record->origin,
-            'destination' => $record->destination,
-            'travel_date' => $record->travel_date, 
-            'cabin_class' => $record->cabin_class,
-            'co2_per_passenger' => $record->co2_per_passenger,
-            'co2_kg' => round($record->co2_per_passenger, 2),
-            'co2_tonnes' => round($record->co2_per_passenger / 1000, 3),
-            'used_at' => $record->used_at,         
-            'used_by_user' => $record->used_by_user,
-            'passengers' => $record->passengers,
+            'api_call_id' => 'api_' . $api_call_id,
+            'reusable_count' => $group->count(),
+            'data' => $group->map(function ($record) {
+                return [
+                    'id' => $record->id,
+                    'origin' => $record->origin,
+                    'destination' => $record->destination,
+                    'travel_date' => $record->travel_date,
+                    'cabin_class' => $record->cabin_class,
+                    'co2_per_passenger' => $record->co2_per_passenger,
+                    'co2_kg' => round($record->co2_per_passenger, 2),
+                    'co2_tonnes' => round($record->co2_per_passenger / 1000, 3),
+                    'used_at' => $record->used_at,
+                    'used_by_user' => $record->used_by_user,
+                    'passengers' => $record->passengers,
+                ];
+            })->values(), // reset keys
         ];
-    });
+    })->values(); // reset keys
 
     return response()->json([
         'status' => true,
-        'count' => $formatted->count(),
-        'data' => $formatted,
+        'count' => $grouped->count(),
+        'data' => $grouped,
     ]);
 }
+
+public function getFromDbByApiCallId($api_call_id)
+{
+    // Extract numeric ID from api_x format
+    if (!preg_match('/^api_(\d+)$/', $api_call_id, $matches)) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Invalid API Call ID format'
+        ], 400);
+    }
+
+    $id = $matches[1];
+
+    // Fetch all records from from_db table with user relation
+    $records = \App\Models\FromDb::with('user')
+        ->where('api_call_id', $id)
+        ->orderBy('id', 'desc')
+        ->get();
+
+    if ($records->isEmpty()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'No records found for this API call'
+        ], 404);
+    }
+
+    // Use the first record for global origin/destination values
+    $firstRecord = $records->first();
+    $globalOrigin = $firstRecord ? $firstRecord->origin : null;
+    $globalDestination = $firstRecord ? $firstRecord->destination : null;
+
+    // Format the grouped response
+    $data = [
+        'api_call_id' => 'api_' . $id,
+        'origin' => $globalOrigin,
+        'destination' => $globalDestination,
+        'reusable_count' => $records->count(),
+        'data' => $records->map(function ($record) {
+            return [
+                'id' => $record->id,
+                'originCity' => $record->origin,
+                'destinationCity' => $record->destination,
+                'origin' => $record->origin,           // Added as per instruction
+                'destination' => $record->destination, // Added as per instruction
+                'travel_date' => $record->travel_date,
+                'cabin_class' => $record->cabin_class,
+                'co2_per_passenger' => round($record->co2_per_passenger, 2),
+                'co2_kg' => round($record->co2_per_passenger, 2),
+                'co2_tonnes' => round($record->co2_per_passenger / 1000, 3),
+                'used_at' => $record->used_at,
+                'passengers' => $record->passengers,
+                'username' => $record->user ? $record->user->name : null,
+            ];
+        })->values(), // reset keys
+    ];
+
+    return response()->json([
+        'status' => true,
+        'data'   => $data,
+    ]);
+}
+
     /**
      * VERIFY API — Check if emission exists in api_calls
      * POST /api/emission/verify
