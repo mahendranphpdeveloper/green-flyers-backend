@@ -218,13 +218,17 @@ public function getApiCallById($api_call_id)
 
 public function getAllFromDb()
 {
-    // Fetch all records WITH user relation
-    $records = FromDb::with('user')
-        ->orderBy('id', 'desc')
-        ->get();
+    // Fetch all records and eager load username (from UserData) via used_by_user
+    $records = FromDb::orderBy('id', 'desc')->get();
+
+    // Collect all user ids from used_by_user to minimize DB queries
+    $userIds = $records->pluck('used_by_user')->unique()->filter();
+    // Fetch username indexed by userId from UserData
+    $usernames = \App\Models\UserData::whereIn('userId', $userIds)
+        ->pluck('name', 'userId');
 
     // Group records by api_call_id
-    $grouped = $records->groupBy('api_call_id')->map(function ($group, $api_call_id) {
+    $grouped = $records->groupBy('api_call_id')->map(function ($group, $api_call_id) use ($usernames) {
 
         // Unique values for group-level info
         $originCities = $group->pluck('originCity')->unique()->values();
@@ -245,7 +249,7 @@ public function getAllFromDb()
 
             'travel_date' => $travel_dates,
 
-            'data' => $group->map(function ($record) {
+            'data' => $group->map(function ($record) use ($usernames) {
                 return [
                     'id' => $record->id,
 
@@ -267,7 +271,10 @@ public function getAllFromDb()
                     'used_at' => $record->used_at,
                     'passengers' => $record->passengers,
 
-                    'username' => $record->user ? $record->user->name : null,
+                    // The user ID is stored in used_by_user, so get username from cache
+                    'username' => $record->used_by_user && isset($usernames[$record->used_by_user])
+                        ? $usernames[$record->used_by_user]
+                        : null,
                 ];
             })->values(),
         ];
