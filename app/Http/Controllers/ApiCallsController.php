@@ -96,6 +96,105 @@ class ApiCallsController extends Controller
     /**
      * STORE ITINERARY AND EMISSION
      */
+    // public function storeEmission(Request $request)
+    // {
+    //     Log::info('storeEmission called', $request->all());
+
+    //     $validated = $request->validate([
+    //         'userId'       => 'required|integer',
+    //         'date'         => 'required|date',
+    //         'airline'      => 'required|string|max:255',
+    //         'origin'       => 'required|string|max:255',
+    //         'destination'  => 'required|string|max:255',
+    //         'class'        => 'required|string|max:255',
+    //         'passengers'   => 'required|integer|min:1',
+    //         'tripType'     => 'required|string|max:255',
+    //         'distance'     => 'required|string|max:255',
+    //         'flightcode'      => 'nullable|string|max:255',
+    //         'originCity'      => 'nullable|string|max:255',
+    //         'destinationCity' => 'nullable|string|max:255',
+    //         'emission'        => 'nullable|numeric|min:0',
+    //         'totalTrees'      => 'nullable|integer|min:0',
+    //         'co2_per_passenger'=> 'nullable|numeric|min:0',
+    //         'country' => [
+    //             'nullable', 'string', 'max:255',
+    //             function ($attribute, $value, $fail) {
+    //                 if (
+    //                     $value &&
+    //                     !Country::where('country_name', $value)
+    //                         ->orWhere('country_id', $value)
+    //                         ->exists()
+    //                 ) {
+    //                     $fail('The selected country is invalid.');
+    //                 }
+    //             }
+    //         ],
+    //     ]);
+
+    //     // Check pending itineraries against limit
+    //     $reminderSettings = NotificationsReminder::first();
+    //     if ($reminderSettings) {
+    //         $pendingCount = ItineraryData::where('userId', $validated['userId'])
+    //             ->where('status', 'pending')
+    //             ->count();
+
+    //         if ($pendingCount >= $reminderSettings->limite_itineraries) {
+    //             return response()->json([
+    //                 'status'       => false,
+    //                 'message'      => 'Please complete previous pending offsets before adding a new itinerary.',
+    //                 'pendingCount' => $pendingCount,
+    //                 'limit'        => $reminderSettings->limite_itineraries
+    //             ], 400);
+    //         }
+    //     }
+
+    //     // Normalize country to country_id
+    //     if (!empty($validated['country'])) {
+    //         $country = Country::where('country_name', $validated['country'])
+    //             ->orWhere('country_id', $validated['country'])
+    //             ->first();
+    //         $validated['country'] = $country?->country_id;
+    //     }
+
+    //     DB::transaction(function () use (&$itinerary, $validated) {
+
+    //         $co2PerPassenger = $validated['co2_per_passenger'] ?? 0;
+    //         $totalEmission = $co2PerPassenger * $validated['passengers'];
+
+    //         /** ---------------- STORE OR UPDATE IN api_calls ---------------- */
+    //         if ($co2PerPassenger > 0) {
+    //             ApiCall::updateOrCreate(
+    //                 [
+    //                     'origin'      => $validated['origin'],
+    //                     'destination' => $validated['destination'],
+    //                     'travel_date' => $validated['date'],
+    //                     'cabin_class' => $validated['class'],
+    //                 ],
+    //                 [
+    //                     'co2_per_passenger' => $co2PerPassenger,
+    //                     'source'            => 'db',
+    //                 ]
+    //             );
+    //         }
+
+    //         /** ---------------- STORE IN itinerarydata ---------------- */
+    //         $itinerary = ItineraryData::create([
+    //             ...$validated,
+    //             'offsetAmount'     => 0,
+    //             'numberOfTrees'    => 0,
+    //             'offsetPercentage' => 0,
+    //             'emission'         => $totalEmission,
+    //             'status'           => 'pending',
+    //         ]);
+    //     });
+
+    //     return response()->json([
+    //         'status'  => true,
+    //         'message' => 'Itinerary created successfully. Offset credit is not auto-applied.',
+    //         'data'    => ItineraryData::where('userId', $validated['userId'])->get()
+    //     ], 201);
+    // }
+
     public function storeEmission(Request $request)
     {
         Log::info('storeEmission called', $request->all());
@@ -113,7 +212,7 @@ class ApiCallsController extends Controller
             'flightcode'      => 'nullable|string|max:255',
             'originCity'      => 'nullable|string|max:255',
             'destinationCity' => 'nullable|string|max:255',
-            'emission'        => 'nullable|numeric|min:0',
+            'emission'        => 'required|numeric|min:0',
             'totalTrees'      => 'nullable|integer|min:0',
             'co2_per_passenger'=> 'nullable|numeric|min:0',
             'country' => [
@@ -129,6 +228,7 @@ class ApiCallsController extends Controller
                     }
                 }
             ],
+            'status' => 'required|string|max:255',
         ]);
 
         // Check pending itineraries against limit
@@ -159,32 +259,56 @@ class ApiCallsController extends Controller
         DB::transaction(function () use (&$itinerary, $validated) {
 
             $co2PerPassenger = $validated['co2_per_passenger'] ?? 0;
-            $totalEmission = $co2PerPassenger * $validated['passengers'];
 
-            /** ---------------- STORE OR UPDATE IN api_calls ---------------- */
+            /** ---------------- api_calls HANDLING ---------------- */
             if ($co2PerPassenger > 0) {
-                ApiCall::updateOrCreate(
-                    [
-                        'origin'      => $validated['origin'],
-                        'destination' => $validated['destination'],
-                        'travel_date' => $validated['date'],
-                        'cabin_class' => $validated['class'],
-                    ],
-                    [
+
+                $apiCall = \App\Models\ApiCall::where([
+                    'origin'      => $validated['origin'],
+                    'destination' => $validated['destination'],
+                    'travel_date' => $validated['date'],
+                    'cabin_class' => $validated['class'],
+                ])->first();
+
+                // ✅ CASE 1: REUSE EXISTING DB VALUE
+                if ($apiCall) {
+                    $reuseHistory = $apiCall->reuse_history
+                        ? json_decode($apiCall->reuse_history, true)
+                        : [];
+
+                    $reuseHistory[] = [
+                        'used_at'      => now()->toDateTimeString(),
+                        'used_by_user' => $validated['userId'],
+                        'passengers'   => $validated['passengers'],
+                        'source'       => 'db',
+                    ];
+
+                    $apiCall->update([
+                        'reuse_history' => json_encode($reuseHistory),
+                        'source'        => 'db',
+                    ]);
+                }
+                // ✅ CASE 2: FIRST TIME STORE
+                else {
+                    \App\Models\ApiCall::create([
+                        'origin'            => $validated['origin'],
+                        'destination'       => $validated['destination'],
+                        'travel_date'       => $validated['date'],
+                        'cabin_class'       => $validated['class'],
                         'co2_per_passenger' => $co2PerPassenger,
-                        'source'            => 'db',
-                    ]
-                );
+                        'source'            => 'tim',
+                        'reuse_history'     => json_encode([]),
+                    ]);
+                }
             }
 
-            /** ---------------- STORE IN itinerarydata ---------------- */
+            /** ---------------- itinerarydata ---------------- */
             $itinerary = ItineraryData::create([
                 ...$validated,
                 'offsetAmount'     => 0,
                 'numberOfTrees'    => 0,
                 'offsetPercentage' => 0,
-                'emission'         => $totalEmission,
-                'status'           => 'pending',
+                // emission and status now come from frontend, so do not override
             ]);
         });
 
