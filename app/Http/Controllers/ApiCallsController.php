@@ -218,46 +218,42 @@ public function getApiCallById($api_call_id)
 
 public function getAllFromDb()
 {
-    // Fetch all records and eager load username (from UserData) via used_by_user
+    // Fetch all records
     $records = FromDb::orderBy('id', 'desc')->get();
 
-    // Collect all user ids from used_by_user to minimize DB queries
+    // Collect all user IDs
     $userIds = $records->pluck('used_by_user')->unique()->filter();
-    // Fetch username indexed by userId from UserData
+
+    // Fetch usernames indexed by userId
     $usernames = \App\Models\UserData::whereIn('userId', $userIds)
         ->pluck('userName', 'userId');
 
     // Group records by api_call_id
     $grouped = $records->groupBy('api_call_id')->map(function ($group, $api_call_id) use ($usernames) {
 
-        // Unique values for group-level info
-        $originCities = $group->pluck('originCity')->unique()->values();
-        $destinationCities = $group->pluck('destinationCity')->unique()->values();
-        $origins = $group->pluck('origin')->unique()->values();
-        $destinations = $group->pluck('destination')->unique()->values();
-        $travel_dates = $group->pluck('travel_date')->unique()->values();
-
         return [
             'api_call_id' => 'api_' . $api_call_id,
             'reusable_count' => $group->count(),
 
-            // City names, and separately IATA/ICAO codes
-            'originCity' => $originCities,
-            'destinationCity' => $destinationCities,
-            'origin' => $origins,
-            'destination' => $destinations,
+            // ✅ GROUP LEVEL (unique values)
+            'originCity' => $group->pluck('origin_city')->unique()->values(),
+            'destinationCity' => $group->pluck('destination_city')->unique()->values(),
 
-            'travel_date' => $travel_dates,
+            'origin' => $group->pluck('origin')->unique()->values(),
+            'destination' => $group->pluck('destination')->unique()->values(),
 
+            'travel_date' => $group->pluck('travel_date')->unique()->values(),
+
+            // ✅ RECORD LEVEL
             'data' => $group->map(function ($record) use ($usernames) {
                 return [
                     'id' => $record->id,
 
                     // city names
-                    'originCity' => $record->originCity,
-                    'destinationCity' => $record->destinationCity,
+                    'originCity' => $record->origin_city,
+                    'destinationCity' => $record->destination_city,
 
-                    // IATA or ICAO codes (or raw code value)
+                    // codes
                     'origin' => $record->origin,
                     'destination' => $record->destination,
 
@@ -271,7 +267,7 @@ public function getAllFromDb()
                     'used_at' => $record->used_at,
                     'passengers' => $record->passengers,
 
-                    // The user ID is stored in used_by_user, so get username from cache
+                    // username mapping
                     'username' => $record->used_by_user && isset($usernames[$record->used_by_user])
                         ? $usernames[$record->used_by_user]
                         : null,
