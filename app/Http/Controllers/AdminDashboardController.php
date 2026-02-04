@@ -255,130 +255,130 @@ class AdminDashboardController extends Controller
         ]);
     }
     // User distribution chart 
+    // public function getUserDistributionCharts(Request $request)
+    // {
+    //     // Authenticate admin before proceeding
+    //     if ($response = $this->checkAdmin($request)) {
+    //         Log::warning('Admin check failed for getUserDistributionCharts');
+    //         return $response;
+    //     }
+
+    //     // Year from frontend (default current year)
+    //     $year = $request->get('year', now()->year);
+
+    //     // Base query filtered by year
+    //     $query = ItineraryData::whereYear('created_at', $year);
+
+    //     // Total itineraries for the year
+    //     $totalItineraries = $query->count();
+
+    //     // Prepare default response if there are no itineraries
+    //     if ($totalItineraries === 0) {
+    //         return response()->json([
+    //             'year' => (int) $year,
+    //             'data' => [
+    //                 ["name" => "Fully Offset", "value" => 0],
+    //                 ["name" => "Partial Offset", "value" => 0],
+    //                 ["name" => "No Offset", "value" => 0],
+    //             ],
+    //         ]);
+    //     }
+
+    //     // Fully Offset → completed
+    //     $completedCount = ItineraryData::whereYear('created_at', $year)
+    //         ->where('status', 'completed')
+    //         ->count();
+
+    //     // Partial Offset → partial 
+    //     $partialOffsetCount = ItineraryData::whereYear('created_at', $year)
+    //         ->where('status', 'partial')
+    //         ->count();
+
+
+
+    //     // No Offset → pending 
+    //     $noOffsetCount = ItineraryData::whereYear('created_at', $year)
+    //         ->where('status', 'pending')
+    //         ->count();
+
+    //     // Percentage calculations
+    //     $fullyOffsetPercentage    = round(($completedCount / $totalItineraries) * 100, 2);
+    //     $partialOffsetPercentage  = round(($partialOffsetCount / $totalItineraries) * 100, 2);
+    //     $noOffsetPercentage       = round(($noOffsetCount / $totalItineraries) * 100, 2);
+
+    //     return response()->json([
+    //         'year' => (int) $year,
+    //         'data' => [
+    //             ["name" => "Fully Offset",   "value" => $fullyOffsetPercentage],
+    //             ["name" => "Partial Offset", "value" => $partialOffsetPercentage],
+    //             ["name" => "No Offset",      "value" => $noOffsetPercentage],
+    //         ],
+    //     ]);
+    // }
+
     public function getUserDistributionCharts(Request $request)
-    {
-        // Authenticate admin before proceeding
-        if ($response = $this->checkAdmin($request)) {
-            Log::warning('Admin check failed for getUserDistributionCharts');
-            return $response;
-        }
+{
+    // Authenticate admin before proceeding
+    if ($response = $this->checkAdmin($request)) {
+        Log::warning('Admin check failed for getUserDistributionCharts');
+        return $response;
+    }
 
-        // Year from frontend (default current year)
-        $year = $request->get('year', now()->year);
+    // Year from frontend (default current year)
+    $year  = $request->get('year', now()->year);
+    $today = now()->toDateString();
 
-        // Base query filtered by year
-        $query = ItineraryData::whereYear('created_at', $year);
+    // Base query filtered by BUSINESS DATE + TILL TODAY
+    $query = ItineraryData::whereYear('date', $year)
+        ->whereDate('date', '<=', $today);
 
-        // Total itineraries for the year
-        $totalItineraries = $query->count();
+    // Total itineraries for the year (till today)
+    $totalItineraries = $query->count();
 
-        // Prepare default response if there are no itineraries
-        if ($totalItineraries === 0) {
-            return response()->json([
-                'year' => (int) $year,
-                'data' => [
-                    ["name" => "Fully Offset", "value" => 0],
-                    ["name" => "Partial Offset", "value" => 0],
-                    ["name" => "No Offset", "value" => 0],
-                ],
-            ]);
-        }
-
-        // Fully Offset → completed
-        $completedCount = ItineraryData::whereYear('created_at', $year)
-            ->where('status', 'completed')
-            ->count();
-
-        // Partial Offset → partial 
-        $partialOffsetCount = ItineraryData::whereYear('created_at', $year)
-            ->where('status', 'partial')
-            ->count();
-
-
-
-        // No Offset → pending 
-        $noOffsetCount = ItineraryData::whereYear('created_at', $year)
-            ->where('status', 'pending')
-            ->count();
-
-        // Percentage calculations
-        $fullyOffsetPercentage    = round(($completedCount / $totalItineraries) * 100, 2);
-        $partialOffsetPercentage  = round(($partialOffsetCount / $totalItineraries) * 100, 2);
-        $noOffsetPercentage       = round(($noOffsetCount / $totalItineraries) * 100, 2);
-
+    // Prepare default response if there are no itineraries
+    if ($totalItineraries === 0) {
         return response()->json([
             'year' => (int) $year,
             'data' => [
-                ["name" => "Fully Offset",   "value" => $fullyOffsetPercentage],
-                ["name" => "Partial Offset", "value" => $partialOffsetPercentage],
-                ["name" => "No Offset",      "value" => $noOffsetPercentage],
+                ["name" => "Fully Offset", "value" => 0],
+                ["name" => "Partial Offset", "value" => 0],
+                ["name" => "No Offset", "value" => 0],
             ],
         ]);
     }
 
-//     public function getUserDistributionCharts(Request $request)
-// {
-//     // Authenticate admin before proceeding
-//     if ($response = $this->checkAdmin($request)) {
-//         Log::warning('Admin check failed for getUserDistributionCharts');
-//         return $response;
-//     }
+    // Fully Offset → completed
+    $completedCount = ItineraryData::whereYear('date', $year)
+        ->whereDate('date', '<=', $today)
+        ->where('status', 'completed')
+        ->count();
 
-//     // Year from frontend (default current year)
-//     $year  = $request->get('year', now()->year);
-//     $today = now()->toDateString();
+    // Partial Offset → partial
+    $partialOffsetCount = ItineraryData::whereYear('date', $year)
+        ->whereDate('date', '<=', $today)
+        ->where('status', 'partial')
+        ->count();
 
-//     // Base query filtered by BUSINESS DATE + TILL TODAY
-//     $query = ItineraryData::whereYear('date', $year)
-//         ->whereDate('date', '<=', $today);
+    // No Offset → pending
+    $noOffsetCount = ItineraryData::whereYear('date', $year)
+        ->whereDate('date', '<=', $today)
+        ->where('status', 'pending')
+        ->count();
 
-//     // Total itineraries for the year (till today)
-//     $totalItineraries = $query->count();
+    // Percentage calculations
+    $fullyOffsetPercentage   = round(($completedCount / $totalItineraries) * 100, 2);
+    $partialOffsetPercentage = round(($partialOffsetCount / $totalItineraries) * 100, 2);
+    $noOffsetPercentage      = round(($noOffsetCount / $totalItineraries) * 100, 2);
 
-//     // Prepare default response if there are no itineraries
-//     if ($totalItineraries === 0) {
-//         return response()->json([
-//             'year' => (int) $year,
-//             'data' => [
-//                 ["name" => "Fully Offset", "value" => 0],
-//                 ["name" => "Partial Offset", "value" => 0],
-//                 ["name" => "No Offset", "value" => 0],
-//             ],
-//         ]);
-//     }
-
-//     // Fully Offset → completed
-//     $completedCount = ItineraryData::whereYear('date', $year)
-//         ->whereDate('date', '<=', $today)
-//         ->where('status', 'completed')
-//         ->count();
-
-//     // Partial Offset → partial
-//     $partialOffsetCount = ItineraryData::whereYear('date', $year)
-//         ->whereDate('date', '<=', $today)
-//         ->where('status', 'partial')
-//         ->count();
-
-//     // No Offset → pending
-//     $noOffsetCount = ItineraryData::whereYear('date', $year)
-//         ->whereDate('date', '<=', $today)
-//         ->where('status', 'pending')
-//         ->count();
-
-//     // Percentage calculations
-//     $fullyOffsetPercentage   = round(($completedCount / $totalItineraries) * 100, 2);
-//     $partialOffsetPercentage = round(($partialOffsetCount / $totalItineraries) * 100, 2);
-//     $noOffsetPercentage      = round(($noOffsetCount / $totalItineraries) * 100, 2);
-
-//     return response()->json([
-//         'year' => (int) $year,
-//         'data' => [
-//             ["name" => "Fully Offset",   "value" => $fullyOffsetPercentage],
-//             ["name" => "Partial Offset", "value" => $partialOffsetPercentage],
-//             ["name" => "No Offset",      "value" => $noOffsetPercentage],
-//         ],
-//     ]);
-// }
+    return response()->json([
+        'year' => (int) $year,
+        'data' => [
+            ["name" => "Fully Offset",   "value" => $fullyOffsetPercentage],
+            ["name" => "Partial Offset", "value" => $partialOffsetPercentage],
+            ["name" => "No Offset",      "value" => $noOffsetPercentage],
+        ],
+    ]);
+}
 
     // chart for project types
     public function getProjectTypesChart(Request $request)
