@@ -44,49 +44,49 @@ class ItineraryController extends Controller
     // }
 
     public function index(Request $request)
-{
-    $userId = $request->userId ?? $request->user()->userId;
-
-    // Load single itinerary together (prevents N+1)
-    $itineraries = ItineraryData::where('userId', $userId)
-        ->with('singleItinerary')
-        ->get();
-
-    $itineraries->transform(function ($itinerary) {
-
-        /** -----------------
-         * COUNTRY (unchanged logic)
-         * ----------------- */
-        if (!empty($itinerary->country_id)) {
-
-            $country = Country::where('country_id', $itinerary->country_id)
-                ->orWhere('country_name', $itinerary->country_id)
-                ->first();
-
-            $itinerary->country_name = $country?->country_name;
-            $itinerary->country_id   = $country?->country_id;
-
-        } else {
-            $itinerary->country_name = null;
-            $itinerary->country_id   = null;
-        }
-
-        /** -----------------
-         * SINGLE ITINERARY
-         * ----------------- */
-        $itinerary->offset_history = $itinerary->singleItinerary ?? null;
-
-        // cleanup
-        unset($itinerary->singleItinerary);
-
-        return $itinerary;
-    });
-
-    return response()->json([
-        'data' => $itineraries
-    ]);
-}
-
+    {
+        $userId = $request->userId ?? $request->user()->userId;
+    
+        // Load single itinerary (only to check existence)
+        $itineraries = ItineraryData::where('userId', $userId)
+            ->with('singleItinerary')
+            ->get();
+    
+        $itineraries->transform(function ($itinerary) {
+    
+            /** -----------------
+             * COUNTRY (keep same logic)
+             * ----------------- */
+            if (!empty($itinerary->country_id)) {
+    
+                $country = Country::where('country_id', $itinerary->country_id)
+                    ->orWhere('country_name', $itinerary->country_id)
+                    ->first();
+    
+                $itinerary->country_name = $country?->country_name;
+                $itinerary->country_id   = $country?->country_id;
+    
+            } else {
+                $itinerary->country_name = null;
+                $itinerary->country_id   = null;
+            }
+    
+            /** -----------------
+             * OFFSET HISTORY FLAG ONLY
+             * ----------------- */
+            $itinerary->offset_history = $itinerary->singleItinerary !== null;
+    
+            // remove relationship from response
+            unset($itinerary->singleItinerary);
+    
+            return $itinerary;
+        });
+    
+        return response()->json([
+            'data' => $itineraries
+        ]);
+    }
+    
 
    
 
