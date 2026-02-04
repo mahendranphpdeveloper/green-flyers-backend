@@ -399,6 +399,73 @@ public function destroy(Request $request, string $id)
 //     ]);
 // }
 
+// public function getEmissionOffsetChart(Request $request, $id)
+// {
+//     $authUser = $request->user();
+
+//     if (!$authUser) {
+//         return response()->json([
+//             'status' => false,
+//             'message' => 'User not authenticated.'
+//         ], 401);
+//     }
+
+//     $userId = $id;
+//     $year   = now()->year;
+//     $today  = now()->toDateString(); // important
+
+//     // ------------------ Monthly defaults ------------------
+//     $emissionsData = array_fill(1, 12, 0);
+//     $offsetsData   = array_fill(1, 12, 0);
+
+//     // ------------------ Itinerary monthly sums (PAST + CURRENT ONLY) ------------------
+//     $itineraries = ItineraryData::selectRaw('
+//             MONTH(`date`) as month,
+//             SUM(emission) as total_emission,
+//             SUM(offsetAmount) as total_offset
+//         ')
+//         ->where('userId', $userId)
+//         ->whereYear('date', $year)              
+//         ->whereDate('date', '<=', $today)       
+//         ->groupBy('month')
+//         ->get();
+
+//     foreach ($itineraries as $row) {
+//         $emissionsData[$row->month] = (float) $row->total_emission;
+//         $offsetsData[$row->month]   = (float) $row->total_offset;
+//     }
+
+//     // ------------------ Offset credit (OPTIONAL RULE) ------------------
+//     // If offsetCredit is NOT tied to itinerary.date, keep updated_at
+//     $user = User::where('userId', $userId)->first();
+
+//     if ($user && $user->offsetCredit > 0) {
+
+//         $creditDate = \Carbon\Carbon::parse($user->updated_at)->toDateString();
+
+//         // block future credit
+//         if ($creditDate <= $today) {
+
+//             $creditMonth = \Carbon\Carbon::parse($creditDate)->month;
+
+//             if (isset($offsetsData[$creditMonth])) {
+//                 $offsetsData[$creditMonth] += (float) $user->offsetCredit;
+//             }
+//         }
+//     }
+
+//     return response()->json([
+//         'year' => $year,
+//         'user_id' => (int) $userId,
+//         'months' => [
+//             'Jan','Feb','Mar','Apr','May','Jun',
+//             'Jul','Aug','Sep','Oct','Nov','Dec'
+//         ],
+//         'emissions' => array_values($emissionsData),
+//         'offsets'   => array_values($offsetsData),
+//     ]);
+// }
+
 public function getEmissionOffsetChart(Request $request, $id)
 {
     $authUser = $request->user();
@@ -412,7 +479,7 @@ public function getEmissionOffsetChart(Request $request, $id)
 
     $userId = $id;
     $year   = now()->year;
-    $today  = now()->toDateString(); // important
+    $today  = now()->toDateString();
 
     // ------------------ Monthly defaults ------------------
     $emissionsData = array_fill(1, 12, 0);
@@ -425,8 +492,8 @@ public function getEmissionOffsetChart(Request $request, $id)
             SUM(offsetAmount) as total_offset
         ')
         ->where('userId', $userId)
-        ->whereYear('date', $year)              
-        ->whereDate('date', '<=', $today)       
+        ->whereYear('date', $year)
+        ->whereDate('date', '<=', $today)
         ->groupBy('month')
         ->get();
 
@@ -435,17 +502,18 @@ public function getEmissionOffsetChart(Request $request, $id)
         $offsetsData[$row->month]   = (float) $row->total_offset;
     }
 
-    // ------------------ Offset credit (OPTIONAL RULE) ------------------
-    // If offsetCredit is NOT tied to itinerary.date, keep updated_at
+    // ------------------ TOTAL EMISSION TILL DATE (KG + TONNES) ------------------
+    $totalEmissionKg     = array_sum($emissionsData);
+    $totalEmissionTonnes = round($totalEmissionKg / 1000, 3);
+
+    // ------------------ Offset credit (UNCHANGED) ------------------
     $user = User::where('userId', $userId)->first();
 
     if ($user && $user->offsetCredit > 0) {
 
         $creditDate = \Carbon\Carbon::parse($user->updated_at)->toDateString();
 
-        // block future credit
         if ($creditDate <= $today) {
-
             $creditMonth = \Carbon\Carbon::parse($creditDate)->month;
 
             if (isset($offsetsData[$creditMonth])) {
@@ -463,8 +531,12 @@ public function getEmissionOffsetChart(Request $request, $id)
         ],
         'emissions' => array_values($emissionsData),
         'offsets'   => array_values($offsetsData),
+
+        'total_emission_kg_till_date'     => $totalEmissionKg,
+        'total_emission_tonnes_till_date' => $totalEmissionTonnes
     ]);
 }
+
 
 
 
