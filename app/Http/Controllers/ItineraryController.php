@@ -17,31 +17,62 @@ class ItineraryController extends Controller
     /**
      * Display a listing of the resource.
      */
+    // public function index(Request $request)
+    // {
+    //     // Get itineraries only for the authenticated user
+    //     $userId = $request->userId ?? $request->user()->userId;
+    //     $itineraries = ItineraryData::where('userId', $userId)->get();
+
+    //     // Attach country names from country table if country_id exists
+    //     $itineraries->transform(function ($itinerary) {
+    //         if ($itinerary->country) {
+    //             $country = Country::where('country_id', $itinerary->country)
+    //                 ->orWhere('country_name', $itinerary->country)
+    //                 ->first();
+    //             $itinerary->country_name = $country ? $country->country_name : null;
+    //             $itinerary->country_id = $country ? $country->country_id : null;
+    //         } else {
+    //             $itinerary->country_name = null;
+    //             $itinerary->country_id = null;
+    //         }
+    //         return $itinerary;
+    //     });
+
+    //     return response()->json([
+    //         'data' => $itineraries
+    //     ]);
+    // }
+
     public function index(Request $request)
-    {
-        // Get itineraries only for the authenticated user
-        $userId = $request->userId ?? $request->user()->userId;
-        $itineraries = ItineraryData::where('userId', $userId)->get();
+{
+    $userId = $request->userId ?? $request->user()->userId;
 
-        // Attach country names from country table if country_id exists
-        $itineraries->transform(function ($itinerary) {
-            if ($itinerary->country) {
-                $country = Country::where('country_id', $itinerary->country)
-                    ->orWhere('country_name', $itinerary->country)
-                    ->first();
-                $itinerary->country_name = $country ? $country->country_name : null;
-                $itinerary->country_id = $country ? $country->country_id : null;
-            } else {
-                $itinerary->country_name = null;
-                $itinerary->country_id = null;
-            }
-            return $itinerary;
-        });
+    $itineraries = ItineraryData::where('userId', $userId)
+        ->with(['singleItinerary', 'country'])
+        ->get();
 
-        return response()->json([
-            'data' => $itineraries
-        ]);
-    }
+    $itineraries->transform(function ($itinerary) {
+
+        // Country details (safe)
+        $itinerary->country_name = $itinerary->country?->country_name;
+        $itinerary->country_id   = $itinerary->country?->country_id;
+
+        // Put single itinerary inside offset_history
+        $itinerary->offset_history = $itinerary->singleItinerary;
+
+        // Clean response
+        unset(
+            $itinerary->singleItinerary,
+            $itinerary->country
+        );
+
+        return $itinerary;
+    });
+
+    return response()->json([
+        'data' => $itineraries
+    ]);
+}
 
     /**
      * Store a newly created resource in storage.

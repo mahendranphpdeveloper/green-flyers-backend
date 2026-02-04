@@ -24,6 +24,14 @@ class ItineraryData extends Model
         return $this->belongsTo(UserData::class, 'userId', 'userId');
     }
     
+    public function singleItinerary()
+    {
+        return $this->hasOne(
+            SingleItineraryData::class,
+            'ItineraryId',   // FK in singleitinerarydata
+            'ItineraryId'    // PK in itinerarydata
+        );
+    }
     
 
     public function offsets()
