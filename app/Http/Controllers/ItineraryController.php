@@ -47,24 +47,37 @@ class ItineraryController extends Controller
 {
     $userId = $request->userId ?? $request->user()->userId;
 
+    // Load single itinerary together (prevents N+1)
     $itineraries = ItineraryData::where('userId', $userId)
-        ->with(['singleItinerary', 'country'])
+        ->with('singleItinerary')
         ->get();
 
     $itineraries->transform(function ($itinerary) {
 
-        // Country details (safe)
-        $itinerary->country_name = $itinerary->country?->country_name;
-        $itinerary->country_id   = $itinerary->country?->country_id;
+        /** -----------------
+         * COUNTRY (unchanged logic)
+         * ----------------- */
+        if (!empty($itinerary->country_id)) {
 
-        // Put single itinerary inside offset_history
-        $itinerary->offset_history = $itinerary->singleItinerary;
+            $country = Country::where('country_id', $itinerary->country_id)
+                ->orWhere('country_name', $itinerary->country_id)
+                ->first();
 
-        // Clean response
-        unset(
-            $itinerary->singleItinerary,
-            $itinerary->country
-        );
+            $itinerary->country_name = $country?->country_name;
+            $itinerary->country_id   = $country?->country_id;
+
+        } else {
+            $itinerary->country_name = null;
+            $itinerary->country_id   = null;
+        }
+
+        /** -----------------
+         * SINGLE ITINERARY
+         * ----------------- */
+        $itinerary->offset_history = $itinerary->singleItinerary ?? null;
+
+        // cleanup
+        unset($itinerary->singleItinerary);
 
         return $itinerary;
     });
@@ -73,6 +86,9 @@ class ItineraryController extends Controller
         'data' => $itineraries
     ]);
 }
+
+
+   
 
     /**
      * Store a newly created resource in storage.
