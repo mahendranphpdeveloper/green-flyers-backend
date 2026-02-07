@@ -29,7 +29,7 @@ Route::get('/test', function () {
 Route::post('/auth/send-otp', [\App\Http\Controllers\AuthController::class, 'sendOtp']);
 Route::post('/auth/verify-otp', [\App\Http\Controllers\AuthController::class, 'verifyOtp']);
 
-Route::post('/auth/login', [\App\Http\Controllers\AuthController::class, 'login'])->name('login');
+// Route::post('/auth/login', [\App\Http\Controllers\AuthController::class, 'login'])->name('login');
 Route::post('/auth/register', [\App\Http\Controllers\AuthController::class, 'register']);
 
 // Google OAuth login endpoint for exchanging Google accessToken/profile for user login/registration
@@ -39,14 +39,22 @@ Route::post('/auth/google-login', [\App\Http\Controllers\AuthController::class, 
 Route::post('/auth/facebook-login', [\App\Http\Controllers\AuthController::class, 'facebookLogin']);
 Route::post('/auth/linkedin-login', [\App\Http\Controllers\AuthController::class, 'linkedinLogin']);
 
+Route::middleware('auth:sanctum')->get('/auth/me', function (Request $request) {
+    return response()->json([
+        'user' => $request->user()
+    ]);
+});
+
+Route::middleware('auth:sanctum')->post('/auth/logout', [\App\Http\Controllers\AuthController::class, 'logout']);
+
 Route::middleware('auth:sanctum')->group(function () {
 
-    
- /*
-    |--------------------------------------------------------------------------
-    | USERS MODULE
-    |--------------------------------------------------------------------------
-    */
+
+    /*
+       |--------------------------------------------------------------------------
+       | USERS MODULE
+       |--------------------------------------------------------------------------
+       */
     // Change from 'profile' to '/profile' to ensure correct route registration
     Route::get('/profile', [\App\Http\Controllers\UserController::class, 'profile']);
 
@@ -60,7 +68,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
 
-   
+
 
     /*
 |--------------------------------------------------------------------------
@@ -68,33 +76,33 @@ Route::middleware('auth:sanctum')->group(function () {
 |--------------------------------------------------------------------------
 */
 
-Route::prefix('itineraries')->group(function () {
-    // Get itineraries belonging to the authenticated user
-    Route::get('/', [\App\Http\Controllers\ItineraryController::class, 'index']);
-    Route::post('/store/', [\App\Http\Controllers\ItineraryController::class, 'store']);
-    Route::get('/{id}', [\App\Http\Controllers\ItineraryController::class, 'show']);
-    Route::put('/{id}', [\App\Http\Controllers\ItineraryController::class, 'update']);
-    Route::delete('/{userId}/{itineraryId}', [\App\Http\Controllers\ItineraryController::class, 'destroy']);
-});
+    Route::prefix('itineraries')->group(function () {
+        // Get itineraries belonging to the authenticated user
+        Route::get('/', [\App\Http\Controllers\ItineraryController::class, 'index']);
+        Route::post('/store/', [\App\Http\Controllers\ItineraryController::class, 'store']);
+        Route::get('/{id}', [\App\Http\Controllers\ItineraryController::class, 'show']);
+        Route::put('/{id}', [\App\Http\Controllers\ItineraryController::class, 'update']);
+        Route::delete('/{userId}/{itineraryId}', [\App\Http\Controllers\ItineraryController::class, 'destroy']);
+    });
 
 
 
-//SingleItinerary 
-Route::prefix('singleItinerary')->group(function () {
-    Route::get('/', [\App\Http\Controllers\SingleItineraryController::class, 'index']);
-    // Route::post('/store', [\App\Http\Controllers\SingleItineraryController::class, 'store']);
-    Route::get('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'show']);
-    Route::get('/{userId}/itinerary/{ItineraryId}', [\App\Http\Controllers\SingleItineraryController::class, 'getByUserAndItinerary']);
-    Route::put('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'update']);
-    Route::delete('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'destroy']);
-});
+    //SingleItinerary 
+    Route::prefix('singleItinerary')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SingleItineraryController::class, 'index']);
+        // Route::post('/store', [\App\Http\Controllers\SingleItineraryController::class, 'store']);
+        Route::get('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'show']);
+        Route::get('/{userId}/itinerary/{ItineraryId}', [\App\Http\Controllers\SingleItineraryController::class, 'getByUserAndItinerary']);
+        Route::put('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'update']);
+        Route::delete('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'destroy']);
+    });
 
-// Route::get('/admin/certificate/download/{path}', [\App\Http\Controllers\AdminCertificateController::class, 'download'])->where('path', '.*');
+    // Route::get('/admin/certificate/download/{path}', [\App\Http\Controllers\AdminCertificateController::class, 'download'])->where('path', '.*');
 
-// Route::get('/admin/certificate/view/{fileName}', [\App\Http\Controllers\CertificateController::class, 'view']);
+    // Route::get('/admin/certificate/view/{fileName}', [\App\Http\Controllers\CertificateController::class, 'view']);
 
-// tree offset value
-Route::put('/treeoffsetvalue', [\App\Http\Controllers\HomeManageController::class, 'updateTreeOffsetValue']);
+    // tree offset value
+    Route::put('/treeoffsetvalue', [\App\Http\Controllers\HomeManageController::class, 'updateTreeOffsetValue']);
 
 
 
@@ -113,91 +121,91 @@ Route::put('/treeoffsetvalue', [\App\Http\Controllers\HomeManageController::clas
     //     Route::delete('/{id}', [\App\Http\Controllers\OffsetController::class, 'destroy']);
     // });
 
-    
- /*
-|--------------------------------------------------------------------------
-| VENDORS MODULE
-|--------------------------------------------------------------------------
-*/
 
-Route::prefix('vendors')->group(function () {
-    Route::get('/', [\App\Http\Controllers\VendorController::class, 'index']);
-    Route::get('/projects_contributed', [\App\Http\Controllers\VendorController::class, 'getProjectContributors']);
-    Route::post('/', [\App\Http\Controllers\VendorController::class, 'store']);
-    Route::get('/{id}', [\App\Http\Controllers\VendorController::class, 'show']);
-    Route::put('/{id}', [\App\Http\Controllers\VendorController::class, 'update']);
-    Route::delete('/{id}', [\App\Http\Controllers\VendorController::class, 'destroy']);
-    
-});
+    /*
+   |--------------------------------------------------------------------------
+   | VENDORS MODULE
+   |--------------------------------------------------------------------------
+   */
 
-//admin to check the old password & update the password
-Route::post('/admin/password', [\App\Http\Controllers\AdminController::class, 'verifyOldPassword']);
-Route::put('/admin/passwordChange', [\App\Http\Controllers\AdminController::class, 'NewPasswordChange']);
+    Route::prefix('vendors')->group(function () {
+        Route::get('/', [\App\Http\Controllers\VendorController::class, 'index']);
+        Route::get('/projects_contributed', [\App\Http\Controllers\VendorController::class, 'getProjectContributors']);
+        Route::post('/', [\App\Http\Controllers\VendorController::class, 'store']);
+        Route::get('/{id}', [\App\Http\Controllers\VendorController::class, 'show']);
+        Route::put('/{id}', [\App\Http\Controllers\VendorController::class, 'update']);
+        Route::delete('/{id}', [\App\Http\Controllers\VendorController::class, 'destroy']);
 
-Route::get('/admin/email-templates/offset-reminder', [\App\Http\Controllers\EmailController::class, 'getOffsetReminderTemplate']);
-Route::get('/admin/email-templates/deletion-notification', [\App\Http\Controllers\EmailController::class, 'getDeletionNotificationTemplate']);
-Route::put('/admin/email-templates/offset-reminder', [\App\Http\Controllers\EmailController::class, 'updateOffsetReminderTemplate']);
-Route::put('/admin/email-templates/deletion-notification', [\App\Http\Controllers\EmailController::class, 'updateDeletionNotificationTemplate']);
+    });
+
+    //admin to check the old password & update the password
+    Route::post('/admin/password', [\App\Http\Controllers\AdminController::class, 'verifyOldPassword']);
+    Route::put('/admin/passwordChange', [\App\Http\Controllers\AdminController::class, 'NewPasswordChange']);
+
+    Route::get('/admin/email-templates/offset-reminder', [\App\Http\Controllers\EmailController::class, 'getOffsetReminderTemplate']);
+    Route::get('/admin/email-templates/deletion-notification', [\App\Http\Controllers\EmailController::class, 'getDeletionNotificationTemplate']);
+    Route::put('/admin/email-templates/offset-reminder', [\App\Http\Controllers\EmailController::class, 'updateOffsetReminderTemplate']);
+    Route::put('/admin/email-templates/deletion-notification', [\App\Http\Controllers\EmailController::class, 'updateDeletionNotificationTemplate']);
 
 
-//admin side manage homepage content
-Route::prefix('/admin/home-manage')->group(function () {
-    //carousel
-    // Route::get('/carousel', [\App\Http\Controllers\HomeManageController::class, 'getHomeCarousel']);
-    Route::post('/carousel', [\App\Http\Controllers\HomeManageController::class, 'addHomeCarousel']);
-    Route::put('/carousel/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCarousel']);
-    Route::delete('/carousel/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeCarousel']);
+    //admin side manage homepage content
+    Route::prefix('/admin/home-manage')->group(function () {
+        //carousel
+        // Route::get('/carousel', [\App\Http\Controllers\HomeManageController::class, 'getHomeCarousel']);
+        Route::post('/carousel', [\App\Http\Controllers\HomeManageController::class, 'addHomeCarousel']);
+        Route::put('/carousel/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCarousel']);
+        Route::delete('/carousel/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeCarousel']);
 
-    //cards
-    // Route::get('/cards', [\App\Http\Controllers\HomeManageController::class, 'getHomeCards']);
-    Route::post('/cards', [\App\Http\Controllers\HomeManageController::class, 'addHomeCards']);
-    Route::put('/cards/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCards']);
-    Route::delete('/cards/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeCards']);
+        //cards
+        // Route::get('/cards', [\App\Http\Controllers\HomeManageController::class, 'getHomeCards']);
+        Route::post('/cards', [\App\Http\Controllers\HomeManageController::class, 'addHomeCards']);
+        Route::put('/cards/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCards']);
+        Route::delete('/cards/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeCards']);
 
-   //call to action
+        //call to action
 //    Route::get('/call-to-action1', [\App\Http\Controllers\HomeManageController::class, 'getHomeCallToAction1']);
-   Route::put('/call-to-action1', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCallToAction1']);
-//    Route::get('/call-to-action2', [\App\Http\Controllers\HomeManageController::class, 'getHomeCallToAction2']);
-   Route::put('/call-to-action2', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCallToAction2']);
+        Route::put('/call-to-action1', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCallToAction1']);
+        //    Route::get('/call-to-action2', [\App\Http\Controllers\HomeManageController::class, 'getHomeCallToAction2']);
+        Route::put('/call-to-action2', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCallToAction2']);
 
-   //FAQ
+        //FAQ
 //    Route::get('/faq', [\App\Http\Controllers\HomeManageController::class, 'getHomeFAQ']);
-   Route::post('/faq', [\App\Http\Controllers\HomeManageController::class, 'storeHomeFAQ']);
-   Route::put('/faq/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeFAQ']);
-   Route::delete('/faq/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeFAQ']);
+        Route::post('/faq', [\App\Http\Controllers\HomeManageController::class, 'storeHomeFAQ']);
+        Route::put('/faq/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeFAQ']);
+        Route::delete('/faq/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeFAQ']);
 
-   //visual section 
+        //visual section 
 //    Route::get('/faq/visual-section', [\App\Http\Controllers\HomeManageController::class, 'getHomeVisualSection']);
-   Route::put('/faq/visual-section/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeVisualSection']);
+        Route::put('/faq/visual-section/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeVisualSection']);
 
-   //admin login background image
+        //admin login background image
 //    Route::get('/bgimage', [\App\Http\Controllers\HomeManageController::class, 'getLoginBackgroundImage']);
-   Route::put('/bgimage', [\App\Http\Controllers\HomeManageController::class, 'updateLoginBackgroundImage']);
+        Route::put('/bgimage', [\App\Http\Controllers\HomeManageController::class, 'updateLoginBackgroundImage']);
 
-// terms and conditions
+        // terms and conditions
 // Route::get('/terms', [\App\Http\Controllers\HomeManageController::class, 'getHomeTerms']);
-Route::post('/terms', [\App\Http\Controllers\HomeManageController::class, 'storeHomeTerms']);
-Route::put('/terms/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeTerms']);
-Route::delete('/terms/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeTerms']);
+        Route::post('/terms', [\App\Http\Controllers\HomeManageController::class, 'storeHomeTerms']);
+        Route::put('/terms/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeTerms']);
+        Route::delete('/terms/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeTerms']);
 
-//Privacy Policy
+        //Privacy Policy
 // Route::get('/privacy-policy', [\App\Http\Controllers\HomeManageController::class, 'getHomePrivacyPolicy']);
-Route::post('/privacy-policy', [\App\Http\Controllers\HomeManageController::class, 'storeHomePrivacyPolicy']);
-Route::put('/privacy-policy/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomePrivacyPolicy']);
-Route::delete('/privacy-policy/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomePrivacyPolicy']);
+        Route::post('/privacy-policy', [\App\Http\Controllers\HomeManageController::class, 'storeHomePrivacyPolicy']);
+        Route::put('/privacy-policy/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomePrivacyPolicy']);
+        Route::delete('/privacy-policy/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomePrivacyPolicy']);
 
-//Services and Privacy 
-Route::put('/terms-privacy-top-content/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeTermsPolicyTopContent']);
+        //Services and Privacy 
+        Route::put('/terms-privacy-top-content/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeTermsPolicyTopContent']);
 
-});
+    });
 
-// for bulk upload
-Route::post('/admin/vendors/bulk', [\App\Http\Controllers\VendorBulkController::class, 'bulkUpload']);
+    // for bulk upload
+    Route::post('/admin/vendors/bulk', [\App\Http\Controllers\VendorBulkController::class, 'bulkUpload']);
 
 
-Route::prefix('admin/dashboard')->group(function () {
-     // Chart data routes
-        Route::get('/stats', [App\Http\Controllers\AdminDashboardController::class, 'getAdminDashboardStats']); 
+    Route::prefix('admin/dashboard')->group(function () {
+        // Chart data routes
+        Route::get('/stats', [App\Http\Controllers\AdminDashboardController::class, 'getAdminDashboardStats']);
         Route::get('/user-distribution-chart', [App\Http\Controllers\AdminDashboardController::class, 'getUserDistributionCharts']);
         Route::get('/total-users-chart', [App\Http\Controllers\AdminDashboardController::class, 'getMonthlyUsersChart']);
         Route::get('/project-types-chart', [App\Http\Controllers\AdminDashboardController::class, 'getProjectTypesChart']);
@@ -209,11 +217,11 @@ Route::prefix('admin/dashboard')->group(function () {
     });
 
 
-      
+
 });
 
 
- /*
+/*
 |--------------------------------------------------------------------------
 | ADMIN LOGIN MODULE
 |--------------------------------------------------------------------------
@@ -234,7 +242,7 @@ Route::prefix('/admin/home-manage')->group(function () {
     Route::get('/privacy-policy', [\App\Http\Controllers\HomeManageController::class, 'getHomePrivacyPolicy']);
     Route::get('/terms-privacy-top-content/{id}', [\App\Http\Controllers\HomeManageController::class, 'getHomeTermsPolicyTopContent']);
 
-    
+
 });
 
 // tree offset value
@@ -242,23 +250,23 @@ Route::get('/treeoffsetvalue', [\App\Http\Controllers\HomeManageController::clas
 
 //admin notification remainder send to user 
 Route::prefix('admin/notification-reminder')->group(function () {
-   
+
     Route::post('/store', [\App\Http\Controllers\AdminNotificationController::class, 'store']);
 
-   
+
     Route::get('/{userId}', [\App\Http\Controllers\AdminNotificationController::class, 'getUserNotifications']);
     // get and update admin side notification remainders
     Route::get('/', [\App\Http\Controllers\AdminNotificationController::class, 'getNotificationRemainders']);
     Route::put('/', [\App\Http\Controllers\AdminNotificationController::class, 'updateNotificationRemainders']);
-    });
-    
-    //user view the notification 
+});
 
-    Route::put('/users/notifications/{id}', [\App\Http\Controllers\AdminNotificationController::class, 'markAsRead']);
+//user view the notification 
 
-    Route::post('singleItinerary/store', [\App\Http\Controllers\SingleItineraryController::class, 'store']);
+Route::put('/users/notifications/{id}', [\App\Http\Controllers\AdminNotificationController::class, 'markAsRead']);
 
-    Route::get('/admin/certificate/download/{path}', [\App\Http\Controllers\AdminCertificateController::class, 'download'])->where('path', '.*');
+Route::post('singleItinerary/store', [\App\Http\Controllers\SingleItineraryController::class, 'store']);
+
+Route::get('/admin/certificate/download/{path}', [\App\Http\Controllers\AdminCertificateController::class, 'download'])->where('path', '.*');
 
 Route::get('/admin/certificate/view/{fileName}', [\App\Http\Controllers\CertificateController::class, 'view']);
 

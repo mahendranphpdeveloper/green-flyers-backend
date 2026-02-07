@@ -50,7 +50,7 @@ class NotificationService
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Carbon Offset Reminder</title>
+    <title>Offset Reminder</title>
     <style>
         body { font-family: Arial, sans-serif; background-color: #f7f7f7; color: #333333; line-height: 1.6; margin: 0; padding: 0; }
         .container { max-width: 600px; background-color: #ffffff; margin: 30px auto; padding: 20px 30px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
@@ -92,7 +92,7 @@ HTML;
         $template = EmailTemplate::find(1);
         $title = $template && !empty($template->subject)
             ? $template->subject
-            : "Carbon Offset Reminder";
+            : "Offset Reminder";
 
         foreach ($itineraries as $itinerary) {
             $itineraryId = $itinerary->ItineraryId;
@@ -142,6 +142,11 @@ HTML;
                 $htmlTemplate
             );
 
+            // Store only trip details (itinerary details) in the message column
+            $itineraryDetails = "Trip ID: {$itineraryId}\n"
+                . "Date: " . Carbon::parse($itinerary->date)->toDateString() . "\n"
+                . "Emissions: " . number_format((float)($itinerary->emission ?? 0), 2) . " kg CO₂\n";
+
             try {
                 Mail::html($htmlMessage, function ($mail) use ($user, $title) {
                     $mail->to($user->userEmail)
@@ -151,8 +156,8 @@ HTML;
                 UserNotification::create([
                     'singleitinerary_id' => $itineraryId,
                     'user_id'            => $user->userId,
-                    'title'              => $title,
-                    'message'            => strip_tags($htmlMessage),
+                    'title'              => 'Offset Reminder',
+                    'message'            => $itineraryDetails,
                     'status'             => 'unread',
                     'sent_at'            => now()
                 ]);
