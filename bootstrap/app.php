@@ -3,7 +3,6 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use App\Http\Middleware\CorsMiddleware;
 
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -17,8 +16,12 @@ return Application::configure(basePath: dirname(__DIR__))
     )
 
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->web([
+            \Illuminate\Http\Middleware\HandleCors::class,
+        ]);
 
-        $middleware->group('api', [
+        $middleware->api([
+            \Illuminate\Http\Middleware\HandleCors::class,
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
 
