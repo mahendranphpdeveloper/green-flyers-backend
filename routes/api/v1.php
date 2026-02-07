@@ -2,7 +2,6 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,29 +25,27 @@ Route::get('/test', function () {
 | AUTH ROUTES
 |--------------------------------------------------------------------------
 */
-Route::prefix('v1')->group(function () {
+//Generate, Send and Verify OTP
+Route::post('/auth/send-otp', [\App\Http\Controllers\AuthController::class, 'sendOtp']);
+Route::post('/auth/verify-otp', [\App\Http\Controllers\AuthController::class, 'verifyOtp']);
 
-    // Generate, Send and Verify OTP
-    Route::post('/auth/send-otp', [AuthController::class, 'sendOtp']);
-    Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtp']);
+// Route::post('/auth/login', [\App\Http\Controllers\AuthController::class, 'login'])->name('login');
+Route::post('/auth/register', [\App\Http\Controllers\AuthController::class, 'register']);
 
-    Route::post('/auth/register', [AuthController::class, 'register']);
+// Google OAuth login endpoint for exchanging Google accessToken/profile for user login/registration
+Route::post('/auth/google-login', [\App\Http\Controllers\AuthController::class, 'googleLogin']);
 
-    // OAuth logins
-    Route::post('/auth/google-login', [AuthController::class, 'googleLogin']);
-    Route::post('/auth/facebook-login', [AuthController::class, 'facebookLogin']);
-    Route::post('/auth/linkedin-login', [AuthController::class, 'linkedinLogin']);
+// Facebook OAuth login 
+Route::post('/auth/facebook-login', [\App\Http\Controllers\AuthController::class, 'facebookLogin']);
+Route::post('/auth/linkedin-login', [\App\Http\Controllers\AuthController::class, 'linkedinLogin']);
 
-    // Authenticated routes
-    Route::middleware('auth:sanctum')->get('/auth/me', function (Request $request) {
-        return response()->json([
-            'user' => $request->user()
-        ]);
-    });
-
-    Route::middleware('auth:sanctum')->post('/auth/logout', [AuthController::class, 'logout']);
-
+Route::middleware('auth:sanctum')->get('/auth/me', function (Request $request) {
+    return response()->json([
+        'user' => $request->user()
+    ]);
 });
+
+Route::middleware('auth:sanctum')->post('/auth/logout', [\App\Http\Controllers\AuthController::class, 'logout']);
 
 Route::middleware('auth:sanctum')->group(function () {
 
