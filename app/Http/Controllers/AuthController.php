@@ -1391,11 +1391,19 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        Auth::logout();
+        // Logout user from web guard (session-based)
+        Auth::guard('web')->logout();
+    
+        // Invalidate the session
         $request->session()->invalidate();
+    
+        // Regenerate CSRF token to prevent fixation
         $request->session()->regenerateToken();
-
-        return response()->json(['message' => 'Logged out successfully']);
+    
+        return response()->json([
+            'status' => true,
+            'message' => 'Logged out successfully',
+        ]);
     }
 
 }
