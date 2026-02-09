@@ -6,121 +6,106 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\AdminData;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class AdminController extends Controller
 {
-    // public function adminLogin(Request $request)
-    // {
-    //     $request->validate([
-    //         'adminname' => 'required|string',
-    //         'password' => 'required|string',
-    //     ]);
-
-    //     $admin = AdminData::where('adminname', $request->adminname)->first();
-
-    //     if (!$admin || !Hash::check($request->password, $admin->password)) {
-    //         return response()->json(['message' => 'Invalid credentials'], 401);
-    //     }
-
-    //     // Issue Sanctum token for admin
-    //     $token = $admin->createToken('AdminToken')->plainTextToken;
-
-    //     return response()->json([
-    //         'message' => 'Admin login successful',
-    //         'token' => $token,
-    //         'admin' => [
-    //             'id' => $admin->id,
-    //             'adminname' => $admin->adminname,
-    //             'email' => $admin->email,
-    //         ],
-    //     ]);
-    // }
-
     public function adminLogin(Request $request)
-{
-    $request->validate([
-        'adminname' => 'required|string',
-        'password' => 'required|string',
-    ]);
+    {
+        $request->validate([
+            'adminname' => 'required|string',
+            'password' => 'required|string',
+        ]);
 
-    $admin = AdminData::where('adminname', $request->adminname)->first();
+        $admin = AdminData::where('adminname', $request->adminname)->first();
 
-    if (!$admin || !Hash::check($request->password, $admin->password)) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Invalid credentials'
-        ], 401);
-    }
+        if (!$admin || !Hash::check($request->password, $admin->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid credentials'
+            ], 401);
+        }
 
-    // Issue Sanctum token for admin
-    $token = $admin->createToken('AdminToken')->plainTextToken;
+        // Login the admin using the 'admin' guard and regenerate session
+        Auth::guard('admin')->login($admin);
+        $request->session()->regenerate();
 
-    return response()->json([
-        'success' => true,
-        'message' => 'Admin login successful',
-        'token' => $token,
-        'admin' => [
-            'id' => $admin->id,
-            'adminname' => $admin->adminname,
-            'email' => $admin->email,
-        ],
-    ]);
-}
-
-public function verifyOldPassword(Request $request)
-{
-    $request->validate([
-        'old_password' => 'required|string',
-    ]);
-
-    $admin = $request->user(); // Logged-in admin via Sanctum
-
-    Log::info('Verify old password called', [
-        'admin_id' => $admin->id
-    ]);
-
-    if (Hash::check($request->old_password, $admin->password)) {
         return response()->json([
             'success' => true,
-            'message' => 'Old password matched'
+            'message' => 'Admin login successful',
+            'admin' => [
+                'id' => $admin->id,
+                'adminname' => $admin->adminname,
+                'email' => $admin->email,
+            ],
         ]);
     }
 
-    return response()->json([
-        'success' => false,
-        'message' => 'Old password does not match'
-    ], 401);
-}
+    public function verifyOldPassword(Request $request)
+    {
+        $request->validate([
+            'old_password' => 'required|string',
+        ]);
 
+        $admin = $request->user(); // Logged-in admin via Sanctum
 
-public function NewPasswordChange(Request $request)
-{
-    $request->validate([
-        'password' => 'required|string|min:6', // changed field name
-    ]);
+        Log::info('Verify old password called', [
+            'admin_id' => $admin->id
+        ]);
 
-    // Get the logged-in admin via Sanctum
-    $admin = $request->user();
+        if (Hash::check($request->old_password, $admin->password)) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Old password matched'
+            ]);
+        }
 
-    if (!$admin) {
         return response()->json([
             'success' => false,
-            'message' => 'Unauthorized user'
+            'message' => 'Old password does not match'
         ], 401);
     }
 
-    // Update the password field in the admins table
-    $admin->password = Hash::make($request->password); // changed field name
-    $admin->save();
 
-    Log::info('Password updated', ['admin_id' => $admin->id]);
+    public function NewPasswordChange(Request $request)
+    {
+        $request->validate([
+            'password' => 'required|string|min:6', // changed field name
+        ]);
 
-    return response()->json([
-        'success' => true,
-        'message' => 'Password updated successfully'
-    ]);
-}
+        // Get the logged-in admin via Sanctum
+        $admin = $request->user();
+
+        if (!$admin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized user'
+            ], 401);
+        }
+
+        // Update the password field in the admins table
+        $admin->password = Hash::make($request->password); // changed field name
+        $admin->save();
+
+        Log::info('Password updated', ['admin_id' => $admin->id]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password updated successfully'
+        ]);
+    }
 
 
 
+    public function logout(Request $request)
+    {
+        Auth::guard('admin')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Successfully logged out'
+        ]);
+    }
 }

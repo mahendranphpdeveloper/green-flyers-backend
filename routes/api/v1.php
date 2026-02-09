@@ -138,82 +138,80 @@ Route::middleware('auth:sanctum')->group(function () {
 
     });
 
-    //admin to check the old password & update the password
-    Route::post('/admin/password', [\App\Http\Controllers\AdminController::class, 'verifyOldPassword']);
-    Route::put('/admin/passwordChange', [\App\Http\Controllers\AdminController::class, 'NewPasswordChange']);
+    // Admin Routes
+    Route::middleware('admin')->group(function () {
+        Route::get('/admin/me', function (Request $request) {
+            return response()->json([
+                'admin' => $request->user()
+            ]);
+        });
+        Route::post('/admin/logout', [\App\Http\Controllers\AdminController::class, 'logout']);
 
-    Route::get('/admin/email-templates/offset-reminder', [\App\Http\Controllers\EmailController::class, 'getOffsetReminderTemplate']);
-    Route::get('/admin/email-templates/deletion-notification', [\App\Http\Controllers\EmailController::class, 'getDeletionNotificationTemplate']);
-    Route::put('/admin/email-templates/offset-reminder', [\App\Http\Controllers\EmailController::class, 'updateOffsetReminderTemplate']);
-    Route::put('/admin/email-templates/deletion-notification', [\App\Http\Controllers\EmailController::class, 'updateDeletionNotificationTemplate']);
+        // admin to check the old password & update the password
+        Route::post('/admin/password', [\App\Http\Controllers\AdminController::class, 'verifyOldPassword']);
+        Route::put('/admin/passwordChange', [\App\Http\Controllers\AdminController::class, 'NewPasswordChange']);
 
+        Route::get('/admin/email-templates/offset-reminder', [\App\Http\Controllers\EmailController::class, 'getOffsetReminderTemplate']);
+        Route::get('/admin/email-templates/deletion-notification', [\App\Http\Controllers\EmailController::class, 'getDeletionNotificationTemplate']);
+        Route::put('/admin/email-templates/offset-reminder', [\App\Http\Controllers\EmailController::class, 'updateOffsetReminderTemplate']);
+        Route::put('/admin/email-templates/deletion-notification', [\App\Http\Controllers\EmailController::class, 'updateDeletionNotificationTemplate']);
 
-    //admin side manage homepage content
-    Route::prefix('/admin/home-manage')->group(function () {
-        //carousel
-        // Route::get('/carousel', [\App\Http\Controllers\HomeManageController::class, 'getHomeCarousel']);
-        Route::post('/carousel', [\App\Http\Controllers\HomeManageController::class, 'addHomeCarousel']);
-        Route::put('/carousel/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCarousel']);
-        Route::delete('/carousel/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeCarousel']);
+        // admin side manage homepage content
+        Route::prefix('/admin/home-manage')->group(function () {
+            Route::post('/carousel', [\App\Http\Controllers\HomeManageController::class, 'addHomeCarousel']);
+            Route::put('/carousel/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCarousel']);
+            Route::delete('/carousel/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeCarousel']);
 
-        //cards
-        // Route::get('/cards', [\App\Http\Controllers\HomeManageController::class, 'getHomeCards']);
-        Route::post('/cards', [\App\Http\Controllers\HomeManageController::class, 'addHomeCards']);
-        Route::put('/cards/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCards']);
-        Route::delete('/cards/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeCards']);
+            Route::post('/cards', [\App\Http\Controllers\HomeManageController::class, 'addHomeCards']);
+            Route::put('/cards/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCards']);
+            Route::delete('/cards/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeCards']);
 
-        //call to action
-//    Route::get('/call-to-action1', [\App\Http\Controllers\HomeManageController::class, 'getHomeCallToAction1']);
-        Route::put('/call-to-action1', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCallToAction1']);
-        //    Route::get('/call-to-action2', [\App\Http\Controllers\HomeManageController::class, 'getHomeCallToAction2']);
-        Route::put('/call-to-action2', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCallToAction2']);
+            Route::put('/call-to-action1', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCallToAction1']);
+            Route::put('/call-to-action2', [\App\Http\Controllers\HomeManageController::class, 'updateHomeCallToAction2']);
 
-        //FAQ
-//    Route::get('/faq', [\App\Http\Controllers\HomeManageController::class, 'getHomeFAQ']);
-        Route::post('/faq', [\App\Http\Controllers\HomeManageController::class, 'storeHomeFAQ']);
-        Route::put('/faq/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeFAQ']);
-        Route::delete('/faq/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeFAQ']);
+            Route::post('/faq', [\App\Http\Controllers\HomeManageController::class, 'storeHomeFAQ']);
+            Route::put('/faq/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeFAQ']);
+            Route::delete('/faq/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeFAQ']);
 
-        //visual section 
-//    Route::get('/faq/visual-section', [\App\Http\Controllers\HomeManageController::class, 'getHomeVisualSection']);
-        Route::put('/faq/visual-section/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeVisualSection']);
+            Route::put('/faq/visual-section/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeVisualSection']);
 
-        //admin login background image
-//    Route::get('/bgimage', [\App\Http\Controllers\HomeManageController::class, 'getLoginBackgroundImage']);
-        Route::put('/bgimage', [\App\Http\Controllers\HomeManageController::class, 'updateLoginBackgroundImage']);
+            Route::put('/bgimage', [\App\Http\Controllers\HomeManageController::class, 'updateLoginBackgroundImage']);
 
-        // terms and conditions
-// Route::get('/terms', [\App\Http\Controllers\HomeManageController::class, 'getHomeTerms']);
-        Route::post('/terms', [\App\Http\Controllers\HomeManageController::class, 'storeHomeTerms']);
-        Route::put('/terms/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeTerms']);
-        Route::delete('/terms/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeTerms']);
+            Route::post('/terms', [\App\Http\Controllers\HomeManageController::class, 'storeHomeTerms']);
+            Route::put('/terms/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeTerms']);
+            Route::delete('/terms/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomeTerms']);
 
-        //Privacy Policy
-// Route::get('/privacy-policy', [\App\Http\Controllers\HomeManageController::class, 'getHomePrivacyPolicy']);
-        Route::post('/privacy-policy', [\App\Http\Controllers\HomeManageController::class, 'storeHomePrivacyPolicy']);
-        Route::put('/privacy-policy/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomePrivacyPolicy']);
-        Route::delete('/privacy-policy/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomePrivacyPolicy']);
+            Route::post('/privacy-policy', [\App\Http\Controllers\HomeManageController::class, 'storeHomePrivacyPolicy']);
+            Route::put('/privacy-policy/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomePrivacyPolicy']);
+            Route::delete('/privacy-policy/{id}', [\App\Http\Controllers\HomeManageController::class, 'deleteHomePrivacyPolicy']);
 
-        //Services and Privacy 
-        Route::put('/terms-privacy-top-content/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeTermsPolicyTopContent']);
+            Route::put('/terms-privacy-top-content/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeTermsPolicyTopContent']);
+        });
 
-    });
+        // for bulk upload
+        Route::post('/admin/vendors/bulk', [\App\Http\Controllers\VendorBulkController::class, 'bulkUpload']);
 
-    // for bulk upload
-    Route::post('/admin/vendors/bulk', [\App\Http\Controllers\VendorBulkController::class, 'bulkUpload']);
+        Route::prefix('admin/dashboard')->group(function () {
+            Route::get('/stats', [App\Http\Controllers\AdminDashboardController::class, 'getAdminDashboardStats']);
+            Route::get('/user-distribution-chart', [App\Http\Controllers\AdminDashboardController::class, 'getUserDistributionCharts']);
+            Route::get('/total-users-chart', [App\Http\Controllers\AdminDashboardController::class, 'getMonthlyUsersChart']);
+            Route::get('/project-types-chart', [App\Http\Controllers\AdminDashboardController::class, 'getProjectTypesChart']);
+            Route::get('/total-trees-chart', [App\Http\Controllers\AdminDashboardController::class, 'getMonthlyTreesPlantedChart']);
+            Route::get('/carbon-offset-progress-chart', [App\Http\Controllers\AdminDashboardController::class, 'getMonthlyCarbonOffsetChart']);
+            Route::get('/emissions-offset-chart', [App\Http\Controllers\AdminDashboardController::class, 'getAdminEmissionOffsetChart']);
+            Route::get('/pending-verfication-offsets', [App\Http\Controllers\AdminDashboardController::class, 'getPendingVerificationOffsets']);
+        });
 
+        // admin notification reminder send to user
+        Route::prefix('admin/notification-reminder')->group(function () {
+            Route::post('/store', [\App\Http\Controllers\AdminNotificationController::class, 'store']);
+            Route::get('/{userId}', [\App\Http\Controllers\AdminNotificationController::class, 'getUserNotifications']);
+            Route::get('/', [\App\Http\Controllers\AdminNotificationController::class, 'getNotificationRemainders']);
+            Route::put('/', [\App\Http\Controllers\AdminNotificationController::class, 'updateNotificationRemainders']);
+        });
 
-    Route::prefix('admin/dashboard')->group(function () {
-        // Chart data routes
-        Route::get('/stats', [App\Http\Controllers\AdminDashboardController::class, 'getAdminDashboardStats']);
-        Route::get('/user-distribution-chart', [App\Http\Controllers\AdminDashboardController::class, 'getUserDistributionCharts']);
-        Route::get('/total-users-chart', [App\Http\Controllers\AdminDashboardController::class, 'getMonthlyUsersChart']);
-        Route::get('/project-types-chart', [App\Http\Controllers\AdminDashboardController::class, 'getProjectTypesChart']);
-        Route::get('/total-trees-chart', [App\Http\Controllers\AdminDashboardController::class, 'getMonthlyTreesPlantedChart']);
-        Route::get('/carbon-offset-progress-chart', [App\Http\Controllers\AdminDashboardController::class, 'getMonthlyCarbonOffsetChart']);
-        Route::get('/emissions-offset-chart', [App\Http\Controllers\AdminDashboardController::class, 'getAdminEmissionOffsetChart']);
-        Route::get('/pending-verfication-offsets', [App\Http\Controllers\AdminDashboardController::class, 'getPendingVerificationOffsets']);
-
+        Route::get('/admin/certificate/download/{path}', [\App\Http\Controllers\AdminCertificateController::class, 'download'])->where('path', '.*');
+        Route::get('/admin/certificate/view/{fileName}', [\App\Http\Controllers\CertificateController::class, 'view']);
     });
 
 
@@ -248,27 +246,10 @@ Route::prefix('/admin/home-manage')->group(function () {
 // tree offset value
 Route::get('/treeoffsetvalue', [\App\Http\Controllers\HomeManageController::class, 'getTreeOffsetValue']);
 
-//admin notification remainder send to user 
-Route::prefix('admin/notification-reminder')->group(function () {
-
-    Route::post('/store', [\App\Http\Controllers\AdminNotificationController::class, 'store']);
-
-
-    Route::get('/{userId}', [\App\Http\Controllers\AdminNotificationController::class, 'getUserNotifications']);
-    // get and update admin side notification remainders
-    Route::get('/', [\App\Http\Controllers\AdminNotificationController::class, 'getNotificationRemainders']);
-    Route::put('/', [\App\Http\Controllers\AdminNotificationController::class, 'updateNotificationRemainders']);
-});
-
-//user view the notification 
-
+// Mark notification as read
 Route::put('/users/notifications/{id}', [\App\Http\Controllers\AdminNotificationController::class, 'markAsRead']);
 
 Route::post('singleItinerary/store', [\App\Http\Controllers\SingleItineraryController::class, 'store']);
-
-Route::get('/admin/certificate/download/{path}', [\App\Http\Controllers\AdminCertificateController::class, 'download'])->where('path', '.*');
-
-Route::get('/admin/certificate/view/{fileName}', [\App\Http\Controllers\CertificateController::class, 'view']);
 
 // Route::get('/emission/details', [\App\Http\Controllers\ApiCallsController::class, 'getEmissionDetails']);
 
