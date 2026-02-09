@@ -47,7 +47,8 @@ Route::middleware('auth:sanctum')->get('/auth/me', function (Request $request) {
 
 Route::middleware('auth:sanctum')->post('/auth/logout', [\App\Http\Controllers\AuthController::class, 'logout']);
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('auth:sanctum')->group(function ()
+ {
 
 
     /*
@@ -70,8 +71,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 
-    /*
-|--------------------------------------------------------------------------
+    /*|--------------------------------------------------------------------------
 | ITINERARY MODULE
 |--------------------------------------------------------------------------
 */
@@ -202,16 +202,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/pending-verfication-offsets', [App\Http\Controllers\AdminDashboardController::class, 'getPendingVerificationOffsets']);
         });
 
-        // admin notification reminder send to user
-        Route::prefix('admin/notification-reminder')->group(function () {
-            Route::post('/store', [\App\Http\Controllers\AdminNotificationController::class, 'store']);
-            Route::get('/{userId}', [\App\Http\Controllers\AdminNotificationController::class, 'getUserNotifications']);
-            Route::get('/', [\App\Http\Controllers\AdminNotificationController::class, 'getNotificationRemainders']);
-            Route::put('/', [\App\Http\Controllers\AdminNotificationController::class, 'updateNotificationRemainders']);
-        });
-
-        Route::get('/admin/certificate/download/{path}', [\App\Http\Controllers\AdminCertificateController::class, 'download'])->where('path', '.*');
-        Route::get('/admin/certificate/view/{fileName}', [\App\Http\Controllers\CertificateController::class, 'view']);
+       
     });
 
 
@@ -242,6 +233,17 @@ Route::prefix('/admin/home-manage')->group(function () {
 
 
 });
+
+ // admin notification reminder send to user
+ Route::prefix('admin/notification-reminder')->group(function () {
+    Route::post('/store', [\App\Http\Controllers\AdminNotificationController::class, 'store']);
+    Route::get('/{userId}', [\App\Http\Controllers\AdminNotificationController::class, 'getUserNotifications']);
+    Route::get('/', [\App\Http\Controllers\AdminNotificationController::class, 'getNotificationRemainders']);
+    Route::put('/', [\App\Http\Controllers\AdminNotificationController::class, 'updateNotificationRemainders']);
+});
+
+Route::get('/admin/certificate/download/{path}', [\App\Http\Controllers\AdminCertificateController::class, 'download'])->where('path', '.*');
+Route::get('/admin/certificate/view/{fileName}', [\App\Http\Controllers\CertificateController::class, 'view']);
 
 // tree offset value
 Route::get('/treeoffsetvalue', [\App\Http\Controllers\HomeManageController::class, 'getTreeOffsetValue']);
