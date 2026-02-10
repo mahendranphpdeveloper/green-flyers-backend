@@ -93,7 +93,12 @@ class AdminController extends Controller
         // Logout other devices
         // 1. Handle Sanctum tokens
         if (method_exists($admin, 'currentAccessToken') && $admin->currentAccessToken()) {
-            $admin->tokens()->where('id', '!=', $admin->currentAccessToken()->id)->delete();
+            $currentToken = $admin->currentAccessToken();
+            if ($currentToken instanceof \Laravel\Sanctum\TransientToken) {
+                $admin->tokens()->delete();
+            } else {
+                $admin->tokens()->where('id', '!=', $currentToken->id)->delete();
+            }
         }
 
         // 2. Handle Session based auth (if applicable)
