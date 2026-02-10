@@ -65,7 +65,7 @@ Route::middleware('auth:user')->group(function ()
         Route::post('/', [\App\Http\Controllers\UserController::class, 'store']);
         Route::get('/{id}', [\App\Http\Controllers\UserController::class, 'show']);
         Route::put('/{id}', [\App\Http\Controllers\UserController::class, 'update']);
-        Route::delete('/{id}', [\App\Http\Controllers\UserController::class, 'destroy']);
+        // Route::delete('/{id}', [\App\Http\Controllers\UserController::class, 'destroy']);
     });
 
 
@@ -104,24 +104,6 @@ Route::middleware('auth:user')->group(function ()
     // tree offset value
     Route::put('/treeoffsetvalue', [\App\Http\Controllers\HomeManageController::class, 'updateTreeOffsetValue']);
 
-
-
-
-    /*
-|--------------------------------------------------------------------------
-| OFFSET MODULE
-|--------------------------------------------------------------------------
-*/
-
-    // Route::prefix('offsets')->group(function () {
-    //     Route::get('/', [\App\Http\Controllers\OffsetController::class, 'index']);
-    //     Route::post('/', [\App\Http\Controllers\OffsetController::class, 'store']);
-    //     Route::get('/{id}', [\App\Http\Controllers\OffsetController::class, 'show']);
-    //     Route::put('/{id}', [\App\Http\Controllers\OffsetController::class, 'update']);
-    //     Route::delete('/{id}', [\App\Http\Controllers\OffsetController::class, 'destroy']);
-    // });
-
-
     /*
    |--------------------------------------------------------------------------
    | VENDORS MODULE
@@ -131,16 +113,9 @@ Route::middleware('auth:user')->group(function ()
     Route::prefix('vendors')->group(function () {
         Route::get('/', [\App\Http\Controllers\VendorController::class, 'index']);
         Route::get('/projects_contributed', [\App\Http\Controllers\VendorController::class, 'getProjectContributors']);
-        Route::post('/', [\App\Http\Controllers\VendorController::class, 'store']);
-        Route::get('/{id}', [\App\Http\Controllers\VendorController::class, 'show']);
-        Route::put('/{id}', [\App\Http\Controllers\VendorController::class, 'update']);
-        Route::delete('/{id}', [\App\Http\Controllers\VendorController::class, 'destroy']);
+        
 
     });
-
-    
-
-
 
 });
 
@@ -208,11 +183,21 @@ Route::middleware('auth:user')->group(function ()
             Route::get('/pending-verfication-offsets', [App\Http\Controllers\AdminDashboardController::class, 'getPendingVerificationOffsets']);
         });
 
-         Route::get('/users/', [\App\Http\Controllers\UserController::class, 'index']);
+
+        Route::prefix('users')->group(function () {
+         Route::get('/', [\App\Http\Controllers\UserController::class, 'index']);
+         Route::delete('/{id}', [\App\Http\Controllers\UserController::class, 'destroy']);
+          });
+         
          Route::get('/singleItinerary/', [\App\Http\Controllers\SingleItineraryController::class, 'index']);
 
-       
-    });
+         Route::prefix('vendors')->group(function () {
+            Route::post('/', [\App\Http\Controllers\VendorController::class, 'store']);
+            Route::get('/{id}', [\App\Http\Controllers\VendorController::class, 'show']);
+            Route::put('/{id}', [\App\Http\Controllers\VendorController::class, 'update']);
+            Route::delete('/{id}', [\App\Http\Controllers\VendorController::class, 'destroy']);
+         });
+   });
 
 
 /*
