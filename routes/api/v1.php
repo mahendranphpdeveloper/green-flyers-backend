@@ -138,7 +138,13 @@ Route::middleware('auth:user')->group(function ()
 
     });
 
-    // Admin Routes
+    
+
+
+
+});
+
+// Admin Routes
     Route::middleware(['auth:admin', 'admin'])->group(function () {
         Route::get('/admin/me', function (Request $request) {
             return response()->json([
@@ -204,10 +210,6 @@ Route::middleware('auth:user')->group(function ()
 
        
     });
-
-
-
-});
 
 
 /*
