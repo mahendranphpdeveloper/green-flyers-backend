@@ -18,15 +18,18 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user() && $request->user() instanceof AdminData) {
+        $admin = Auth::guard('admin')->user();
+
+        if ($admin && $admin instanceof AdminData) {
             // Check if session has the current password hash (for session invalidation on password change)
             $sessionHash = $request->session()->get('admin_password_hash');
-            $userHash = $request->user()->password;
+            $userHash = $admin->password;
 
             Log::info('AdminMiddleware Check', [
                 'session_hash' => $sessionHash,
                 'user_hash' => $userHash,
-                'match' => $sessionHash === $userHash
+                'match' => $sessionHash === $userHash,
+                'admin_id' => $admin->id
             ]);
 
             if ($sessionHash !== $userHash) {

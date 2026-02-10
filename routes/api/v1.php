@@ -39,15 +39,15 @@ Route::post('/auth/google-login', [\App\Http\Controllers\AuthController::class, 
 Route::post('/auth/facebook-login', [\App\Http\Controllers\AuthController::class, 'facebookLogin']);
 Route::post('/auth/linkedin-login', [\App\Http\Controllers\AuthController::class, 'linkedinLogin']);
 
-Route::middleware('auth:sanctum')->get('/auth/me', function (Request $request) {
+Route::middleware('auth:user')->get('/auth/me', function (Request $request) {
     return response()->json([
         'user' => $request->user()
     ]);
 });
 
-Route::middleware('auth:sanctum')->post('/auth/logout', [\App\Http\Controllers\AuthController::class, 'logout']);
+Route::middleware('auth:user')->post('/auth/logout', [\App\Http\Controllers\AuthController::class, 'logout']);
 
-Route::middleware('auth:sanctum')->group(function ()
+Route::middleware('auth:user')->group(function ()
  {
 
 
@@ -139,7 +139,7 @@ Route::middleware('auth:sanctum')->group(function ()
     });
 
     // Admin Routes
-    Route::middleware('admin')->group(function () {
+    Route::middleware(['auth:admin', 'admin'])->group(function () {
         Route::get('/admin/me', function (Request $request) {
             return response()->json([
                 'admin' => $request->user()

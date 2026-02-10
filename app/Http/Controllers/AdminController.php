@@ -51,7 +51,7 @@ class AdminController extends Controller
             'old_password' => 'required|string',
         ]);
 
-        $admin = $request->user(); // Logged-in admin via Sanctum
+        $admin = Auth::guard('admin')->user(); // Logged-in admin via admin guard
 
         Log::info('Verify old password called', [
             'admin_id' => $admin->id
@@ -77,8 +77,8 @@ class AdminController extends Controller
             'password' => 'required|string|min:6',
         ]);
 
-        // Get the logged-in admin via Sanctum
-        $admin = $request->user();
+        // Get the logged-in admin via admin guard
+        $admin = Auth::guard('admin')->user();
 
         if (!$admin) {
             return response()->json([
