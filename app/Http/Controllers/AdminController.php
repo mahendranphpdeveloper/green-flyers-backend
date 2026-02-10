@@ -95,8 +95,12 @@ class AdminController extends Controller
         }
 
         // Revoke all other tokens (if using Sanctum)
-        if ($admin->currentAccessToken()) {
-            $admin->tokens()->where('id', '!=', $admin->currentAccessToken()->id)->delete();
+        $currentToken = $admin->currentAccessToken();
+        if ($currentToken instanceof \Laravel\Sanctum\PersonalAccessToken) {
+            $admin->tokens()->where('id', '!=', $currentToken->id)->delete();
+        } elseif ($currentToken) {
+            // If using session auth (TransientToken), revoke all API tokens
+            $admin->tokens()->delete();
         }
 
         // Send email notification with HTML content
