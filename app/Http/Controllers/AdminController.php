@@ -60,6 +60,7 @@ class AdminController extends Controller
                 'message' => 'Old password matched'
             ]);
         }
+        
 
         return response()->json([
             'success' => false,
