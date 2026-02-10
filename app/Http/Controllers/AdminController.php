@@ -29,6 +29,9 @@ class AdminController extends Controller
         // Login the admin using the 'admin' guard and regenerate session
         Auth::guard('admin')->login($admin);
         $request->session()->regenerate();
+        
+        // Store password hash in session for AdminMiddleware check
+        $request->session()->put('admin_password_hash', $admin->password);
 
         return response()->json([
             'success' => true,
@@ -87,12 +90,12 @@ class AdminController extends Controller
         $admin->password = Hash::make($request->password);
         $admin->save();
 
-        // Logout other devices
-        $guard = Auth::guard('admin');
-        if (method_exists($guard, 'logoutOtherDevices')) {
-            $guard->setUser($admin);
-            $guard->logoutOtherDevices($request->password);
-        }
+        // Update session hash to prevent logging out the current device
+        $request->session()->put('admin_password_hash', $admin->password);
+
+        // Logout other devices logic is now handled by AdminMiddleware checking the hash match
+        // We can still keep the token revocation for Sanctum
+
 
         // Revoke all other tokens (if using Sanctum)
         $currentToken = $admin->currentAccessToken();
