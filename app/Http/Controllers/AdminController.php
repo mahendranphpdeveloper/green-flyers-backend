@@ -109,14 +109,24 @@ class AdminController extends Controller
         }
 
         // Send email notification with HTML content
+        $time = now()->format('Y-m-d H:i:s');
+        $device = $request->header('User-Agent');
+
         try {
             \Illuminate\Support\Facades\Mail::html(
                 "<html>
-                    <body>
-                        <h1>Password Changed Successfully</h1>
-                        <p>Hello {$admin->adminname},</p>
-                        <p>Your password was changed recently. If you did not perform this action, please contact support immediately.</p>
-                        <p>Thank you.</p>
+                    <body style='font-family: Arial, sans-serif; color: #333;'>
+                        <h1 style='color: #2E8B57;'>Password Changed Successfully</h1>
+                        <p>Hello <strong>{$admin->adminname}</strong>,</p>
+                        <p>Your password was changed recently. Here are the details:</p>
+                        <ul>
+                            <li><strong>Time:</strong> {$time}</li>
+                            <li><strong>Device:</strong> {$device}</li>
+                        </ul>
+                        <p>If you did not perform this action, please contact support immediately.</p>
+                        <br>
+                        <p>Best Regards,</p>
+                        <p style='color: #2E8B57; font-weight: bold;'>Green Flyers Club</p>
                     </body>
                 </html>",
                 function ($message) use ($admin) {
