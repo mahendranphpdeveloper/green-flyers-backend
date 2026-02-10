@@ -60,7 +60,7 @@ Route::middleware('auth:user')->group(function ()
     Route::get('/profile', [\App\Http\Controllers\UserController::class, 'profile']);
 
     Route::prefix('users')->group(function () {
-        Route::get('/', [\App\Http\Controllers\UserController::class, 'index']);
+        // Route::get('/', [\App\Http\Controllers\UserController::class, 'index']);
         Route::get('/emission-offset-chart/{id}', [\App\Http\Controllers\UserController::class, 'getEmissionOffsetChart']);
         Route::post('/', [\App\Http\Controllers\UserController::class, 'store']);
         Route::get('/{id}', [\App\Http\Controllers\UserController::class, 'show']);
@@ -207,6 +207,9 @@ Route::middleware('auth:user')->group(function ()
             Route::get('/emissions-offset-chart', [App\Http\Controllers\AdminDashboardController::class, 'getAdminEmissionOffsetChart']);
             Route::get('/pending-verfication-offsets', [App\Http\Controllers\AdminDashboardController::class, 'getPendingVerificationOffsets']);
         });
+
+         Route::get('/users/', [\App\Http\Controllers\UserController::class, 'index']);
+         Route::get('/singleItinerary/', [\App\Http\Controllers\SingleItineraryController::class, 'index']);
 
        
     });
