@@ -32,6 +32,7 @@ class AdminController extends Controller
         
         // Store password hash in session for AdminMiddleware check
         $request->session()->put('admin_password_hash', $admin->password);
+        Log::info('Admin Login: Session Hash set', ['hash' => $admin->password, 'admin_id' => $admin->id]);
 
         return response()->json([
             'success' => true,
@@ -92,6 +93,7 @@ class AdminController extends Controller
 
         // Update session hash to prevent logging out the current device
         $request->session()->put('admin_password_hash', $admin->password);
+        Log::info('Password Change: Session Hash updated', ['hash' => $admin->password, 'admin_id' => $admin->id]);
 
         // Logout other devices logic is now handled by AdminMiddleware checking the hash match
         // We can still keep the token revocation for Sanctum

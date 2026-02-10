@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use App\Models\AdminData;
 
 class AdminMiddleware
@@ -21,6 +22,12 @@ class AdminMiddleware
             // Check if session has the current password hash (for session invalidation on password change)
             $sessionHash = $request->session()->get('admin_password_hash');
             $userHash = $request->user()->password;
+
+            Log::info('AdminMiddleware Check', [
+                'session_hash' => $sessionHash,
+                'user_hash' => $userHash,
+                'match' => $sessionHash === $userHash
+            ]);
 
             if ($sessionHash !== $userHash) {
                 Auth::guard('admin')->logout();
