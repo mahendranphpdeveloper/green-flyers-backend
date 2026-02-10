@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\AdminData;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 
 class AdminController extends Controller
 {
@@ -83,9 +84,67 @@ class AdminController extends Controller
             ], 401);
         }
 
+        $plainPassword = $request->password;
+
         // Update the password field in the admins table
-        $admin->password = Hash::make($request->password); // changed field name
+        $admin->password = Hash::make($plainPassword); // changed field name
         $admin->save();
+
+        // Logout other devices
+        // 1. Handle Sanctum tokens
+        if (method_exists($admin, 'currentAccessToken') && $admin->currentAccessToken()) {
+            $admin->tokens()->where('id', '!=', $admin->currentAccessToken()->id)->delete();
+        }
+
+        // 2. Handle Session based auth (if applicable)
+        // This requires the 'web' middleware group or similar to be applying 'AuthenticateSession'
+        // We use the 'admin' guard as seen in other methods
+        try {
+             // Re-login the current user to ensure session stays valid if using session driver
+             // And invalidate others.
+             // Note: logoutOtherDevices() expects the current password to verify.
+             // Since we just updated the password, we pass the new one.
+             $guard = Auth::guard('admin');
+             
+             // Check if session is active and method exists (to avoid errors in API-only context)
+             if ($request->hasSession() && method_exists($guard, 'logoutOtherDevices')) {
+                 $guard->logoutOtherDevices($plainPassword);
+             }
+        } catch (\Exception $e) {
+            // Ignore if session guard is not active or configured differently
+            Log::info('Session logout failed or not applicable: ' . $e->getMessage());
+        }
+
+
+        // Send Email Notification
+        try {
+            $details = [
+                'time' => now()->toDateTimeString(),
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ];
+
+            Mail::send([], [], function ($message) use ($admin, $details) {
+                $message->to($admin->email)
+                    ->subject('Security Alert: Password Changed')
+                    ->html("
+                        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
+                            <h2 style='color: #333;'>Password Changed Successfully</h2>
+                            <p>Hello {$admin->adminname},</p>
+                            <p>This is a notification that the password for your admin account was recently changed.</p>
+                            <div style='background-color: #f9f9f9; padding: 15px; border-radius: 4px; margin: 15px 0;'>
+                                <p style='margin: 5px 0;'><strong>Time:</strong> {$details['time']}</p>
+                                <p style='margin: 5px 0;'><strong>IP Address:</strong> {$details['ip']}</p>
+                                <p style='margin: 5px 0;'><strong>Device:</strong> {$details['user_agent']}</p>
+                            </div>
+                            <p>If you did not make this change, please contact support immediately.</p>
+                            <p style='color: #888; font-size: 12px; margin-top: 20px;'>Green Flyers Backend Security</p>
+                        </div>
+                    ");
+            });
+        } catch (\Exception $e) {
+            Log::error('Failed to send password change email', ['error' => $e->getMessage()]);
+        }
 
         Log::info('Password updated', ['admin_id' => $admin->id]);
 
