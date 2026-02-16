@@ -82,11 +82,14 @@ Route::middleware('auth:user')->group(function () {
 
 
     //SingleItinerary 
-    Route::prefix('singleItinerary')->group(function () {
+    // Route::prefix('singleItinerary')->group(function () {
 
-        // Route::post('/store', [\App\Http\Controllers\SingleItineraryController::class, 'store']);
-        Route::get('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'show']);
-    });
+    //     // Route::post('/store', [\App\Http\Controllers\SingleItineraryController::class, 'store']);
+    //     Route::get('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'show']);
+    // });
+
+    Route::get('/singleItinerary/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'show']);
+
 
     // tree offset value
     Route::put('/treeoffsetvalue', [\App\Http\Controllers\HomeManageController::class, 'updateTreeOffsetValue']);
