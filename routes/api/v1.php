@@ -195,7 +195,7 @@ Route::middleware(['auth:admin', 'admin'])->group(function () {
 
     Route::prefix('singleItinerary')->group(function () {
         Route::get('/', [\App\Http\Controllers\SingleItineraryController::class, 'index']);
-
+        // Route::get('/{userId}/itinerary/{ItineraryId}', [\App\Http\Controllers\SingleItineraryController::class, 'getByUserAndItinerary']);
         Route::put('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'update']);
         Route::delete('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'destroy']);
     });
