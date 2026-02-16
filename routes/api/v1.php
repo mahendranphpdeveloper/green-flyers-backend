@@ -67,10 +67,10 @@ Route::middleware('auth:user')->group(function () {
         // Route::delete('/{id}', [\App\Http\Controllers\UserController::class, 'destroy']);
     });
 
-/*--------------------------------------------------------------------------
-| ITINERARY MODULE
-|--------------------------------------------------------------------------
-*/
+    /*--------------------------------------------------------------------------
+    | ITINERARY MODULE
+    |--------------------------------------------------------------------------
+    */
 
     Route::prefix('itineraries')->group(function () {
         // Get itineraries belonging to the authenticated user
@@ -107,6 +107,15 @@ Route::middleware('auth:user')->group(function () {
 
     });
 
+});
+
+/*
+|--------------------------------------------------------------------------
+| SHARED ROUTES (User & Admin)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:user,admin'])->group(function () {
+    Route::get('/singleItinerary/{userId}/itinerary/{ItineraryId}', [\App\Http\Controllers\SingleItineraryController::class, 'getByUserAndItinerary']);
 });
 
 // Admin Routes
@@ -186,7 +195,7 @@ Route::middleware(['auth:admin', 'admin'])->group(function () {
 
     Route::prefix('singleItinerary')->group(function () {
         Route::get('/', [\App\Http\Controllers\SingleItineraryController::class, 'index']);
-        Route::get('/{userId}/itinerary/{ItineraryId}', [\App\Http\Controllers\SingleItineraryController::class, 'getByUserAndItinerary']);
+
         Route::put('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'update']);
         Route::delete('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'destroy']);
     });
