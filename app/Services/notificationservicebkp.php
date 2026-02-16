@@ -43,16 +43,56 @@ class NotificationService
             'count' => $itineraries->count()
         ]);
 
-        // Fetch template from database
+        // Instead of using the message column, use the provided $htmlTemplate
+        $htmlTemplate = <<<HTML
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Offset Reminder</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f7f7f7; color: #333333; line-height: 1.6; margin: 0; padding: 0; }
+        .container { max-width: 600px; background-color: #ffffff; margin: 30px auto; padding: 20px 30px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+        h2 { color: #2E8B57; }
+        p { margin: 12px 0; }
+        .trip-details { background-color: #f0f0f0; padding: 15px; border-radius: 6px; margin: 15px 0; }
+        .trip-details strong { display: inline-block; width: 120px; }
+        a.button { display: inline-block; padding: 12px 20px; margin: 20px 0; background-color: #2E8B57; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        .footer { font-size: 12px; color: #888888; margin-top: 25px; border-top: 1px solid #eeeeee; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Offset Reminder</h2>
+        <p>Hi {{name}},</p>
+        <p>We noticed that your recent trip is not fully carbon-offset yet. Offsetting your emissions helps reduce your environmental impact and brings you closer to your sustainability goals.</p>
+        
+        <div class="trip-details">
+            <p><strong>Trip ID:</strong> {{tripId}}</p>
+            <p><strong>Date:</strong> {{tripDate}}</p>
+            <p><strong>Emissions:</strong> {{emissionValue}} kg CO₂</p>
+        </div>
+        <p>You can complete your offset quickly using the link below:</p>
+        <p><a href="{{offsetLink}}" class="button">Complete Your Offset</a></p>
+        <p>If you’ve already taken action, thank you! You may ignore this message.</p>
+        <p>Need help? Just reply to this email, and we’ll assist you.</p>
+        <p>Thank you for choosing to make a positive impact.</p>
+        <p>Regards,<br>Green Flyers Club Team</p>
+        <div class="footer">
+            &copy; 2026 Green Flyers Club. All rights reserved.
+        </div>
+    </div>
+</body>
+</html>
+
+HTML;
+
+        // Subject hardcoded or optional fallback if subject not present
         $template = EmailTemplate::find(1);
-
-        if (!$template) {
-            Log::error('NotificationService: Email template (ID: 1) not found.');
-            return;
-        }
-
-        $htmlTemplate = $template->message;
-        $title = $template->subject ?? "Offset Reminder";
+        $title = $template && !empty($template->subject)
+            ? $template->subject
+            : "Offset Reminder";
 
         foreach ($itineraries as $itinerary) {
             $itineraryId = $itinerary->ItineraryId;
@@ -92,8 +132,6 @@ class NotificationService
                 '{{name}}' => $user->userName ?? '',
                 '{{tripId}}' => $itineraryId,
                 '{{tripDate}}' => Carbon::parse($itinerary->date)->toDateString(),
-                '{{origin}}' => $itinerary->origin ?? 'N/A',
-                '{{destination}}' => $itinerary->destination ?? 'N/A',
                 '{{emissionValue}}' => number_format((float) ($itinerary->emission ?? 0), 2),
                 '{{offsetLink}}' => 'https://jayamdesigners.co.in/green-flyers11/'
             ];
@@ -107,8 +145,6 @@ class NotificationService
             // Store only trip details (itinerary details) in the message column
             $itineraryDetails = "Trip ID: {$itineraryId}\n"
                 . "Date: " . Carbon::parse($itinerary->date)->toDateString() . "\n"
-                . "Origin: " . ($itinerary->origin ?? 'N/A') . "\n"
-                . "Destination: " . ($itinerary->destination ?? 'N/A') . "\n"
                 . "Emissions: " . number_format((float) ($itinerary->emission ?? 0), 2) . " kg CO₂\n";
 
             try {
