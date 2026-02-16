@@ -114,7 +114,7 @@ Route::middleware('auth:user')->group(function () {
 | SHARED ROUTES (User & Admin)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:user,admin'])->group(function () {
+Route::middleware(['auth:admin,user'])->group(function () {
     Route::get('/singleItinerary/{userId}/itinerary/{ItineraryId}', [\App\Http\Controllers\SingleItineraryController::class, 'getByUserAndItinerary']);
 });
 

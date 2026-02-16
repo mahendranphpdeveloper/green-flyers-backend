@@ -928,7 +928,8 @@ class SingleItineraryController extends Controller
         }
 
         /** CHECK ADMIN */
-        $isAdmin = AdminData::where('id', $authUser->id)->exists();
+        // $isAdmin = AdminData::where('id', $authUser->id)->exists();
+         $isAdmin = $authUser instanceof AdminData;
 
         /** AUTHORIZATION */
         if (!$isAdmin && $authUser->userId != $userId) {
