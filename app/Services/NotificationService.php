@@ -95,7 +95,7 @@ class NotificationService
                 '{{origin}}' => $itinerary->origin ?? 'N/A',
                 '{{destination}}' => $itinerary->destination ?? 'N/A',
                 '{{emissionValue}}' => number_format((float) ($itinerary->emission ?? 0), 2),
-                '{{offsetLink}}' => 'https://jayamdesigners.co.in/green-flyers11/'
+                '{{offsetLink}}' => 'https://jayamdesigners.co.in/green-flyers13/'
             ];
 
             $htmlMessage = str_replace(
@@ -122,7 +122,7 @@ class NotificationService
                     'user_id' => $user->userId,
                     'title' => 'Offset Reminder',
                     'message' => $itineraryDetails,
-                    'status' => 'unread',
+                    'status' => 'reminder',
                     'sent_at' => now()
                 ]);
 
