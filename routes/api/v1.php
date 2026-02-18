@@ -41,6 +41,7 @@ Route::post('/auth/linkedin-login', [\App\Http\Controllers\AuthController::class
 
 Route::middleware('auth:user')->get('/auth/me', function (Request $request) {
     return response()->json([
+        'status' => true,
         'user' => $request->user()
     ]);
 });
@@ -122,6 +123,7 @@ Route::middleware(['auth:admin,user'])->group(function () {
 Route::middleware(['auth:admin', 'admin'])->group(function () {
     Route::get('/admin/me', function (Request $request) {
         return response()->json([
+            'status' => true,
             'admin' => $request->user()
         ]);
     });
