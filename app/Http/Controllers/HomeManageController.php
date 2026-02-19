@@ -44,10 +44,18 @@ class HomeManageController extends Controller
     public function getLandingContent()
     {
         return Cache::rememberForever('landing_page_content', function () {
-            $carousel = HomeCarouselData::orderBy('order')->get();
-            $cards = HomeCardData::orderBy('order')->get();
-            $faqs = HomeFaqData::orderBy('order')->get()->map(function ($faq) {
-                $faq->isActive = $faq->isActive === 'true';
+            $carousel = HomeCarouselData::where('isActive', 'true')->orderBy('order')->get()->map(function ($item) {
+                $item->isActive = true;
+                return $item;
+            });
+
+            $cards = HomeCardData::where('isActive', 'true')->orderBy('order')->get()->map(function ($item) {
+                $item->isActive = true;
+                return $item;
+            });
+
+            $faqs = HomeFaqData::where('isActive', 'true')->orderBy('order')->get()->map(function ($faq) {
+                $faq->isActive = true;
                 return $faq;
             });
 
@@ -67,8 +75,14 @@ class HomeManageController extends Controller
             $cta2 = CallToAction::find(2);
 
             $bgImage = BackgroundImage::find(1);
-            $terms = TeamofServices::orderBy('order')->get();
-            $privacyPolicy = PrivacyPolicy::orderBy('order')->get();
+            $terms = TeamofServices::where('isActive', true)->orderBy('order')->get()->map(function ($item) {
+                $item->isActive = (bool) $item->isActive;
+                return $item;
+            });
+            $privacyPolicy = PrivacyPolicy::where('isActive', true)->orderBy('order')->get()->map(function ($item) {
+                $item->isActive = (bool) $item->isActive;
+                return $item;
+            });
 
             // Fetch top content (usually id 1 and 2 for terms/privacy)
             $topContent = ServicesPolicyContent::all();
