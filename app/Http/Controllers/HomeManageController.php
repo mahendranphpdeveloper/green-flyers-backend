@@ -43,7 +43,7 @@ class HomeManageController extends Controller
      */
     public function getLandingContent()
     {
-        return Cache::remember('landing_page_content', 86400, function () {
+        return Cache::rememberForever('landing_page_content', function () {
             $carousel = HomeCarouselData::orderBy('order')->get();
             $cards = HomeCardData::orderBy('order')->get();
             $faqs = HomeFaqData::orderBy('order')->get()->map(function ($faq) {
@@ -66,16 +66,28 @@ class HomeManageController extends Controller
             $cta1 = CallToAction::find(1);
             $cta2 = CallToAction::find(2);
 
+            $bgImage = BackgroundImage::find(1);
+            $terms = TeamofServices::orderBy('order')->get();
+            $privacyPolicy = PrivacyPolicy::orderBy('order')->get();
+
+            // Fetch top content (usually id 1 and 2 for terms/privacy)
+            $topContent = ServicesPolicyContent::all();
+
             return [
                 'carousel' => $carousel,
                 'cards' => $cards,
                 'faq' => $faqs,
                 'visualSection' => $visualData,
                 'cta1' => $cta1,
-                'cta2' => $cta2
+                'cta2' => $cta2,
+                'backgroundImage' => $bgImage,
+                'terms' => $terms,
+                'privacyPolicy' => $privacyPolicy,
+                'topContent' => $topContent
             ];
         });
     }
+
 
 
     /**
@@ -133,8 +145,6 @@ class HomeManageController extends Controller
             'carousel_id' => $carousel->id,
             'title' => $request->title
         ]);
-
-        Cache::forget('landing_page_content');
 
         return response()->json([
             'status' => true,
@@ -205,8 +215,6 @@ class HomeManageController extends Controller
             'carousel_id' => $carousel->id
         ]);
 
-        Cache::forget('landing_page_content');
-
         return response()->json([
             'status' => true,
             'message' => 'Carousel item updated successfully',
@@ -247,8 +255,6 @@ class HomeManageController extends Controller
             'admin_id' => $request->user()->id ?? null,
             'carousel_id' => $id
         ]);
-
-        Cache::forget('landing_page_content');
 
         return response()->json([
             'status' => true,
@@ -306,8 +312,6 @@ class HomeManageController extends Controller
             'card_id' => $card->id
         ]);
 
-        Cache::forget('landing_page_content');
-
         return response()->json([
             'status' => true,
             'message' => 'Card added successfully',
@@ -362,8 +366,6 @@ class HomeManageController extends Controller
             'card_id' => $card->id
         ]);
 
-        Cache::forget('landing_page_content');
-
         return response()->json([
             'status' => true,
             'message' => 'Card updated successfully',
@@ -395,8 +397,6 @@ class HomeManageController extends Controller
         Log::info('Home card deleted', [
             'card_id' => $id
         ]);
-
-        Cache::forget('landing_page_content');
 
         return response()->json([
             'status' => true,
@@ -464,8 +464,6 @@ class HomeManageController extends Controller
             'faq_id' => $faq->id
         ]);
 
-        Cache::forget('landing_page_content');
-
         return response()->json([
             'status' => true,
             'message' => 'FAQ created successfully',
@@ -530,8 +528,6 @@ class HomeManageController extends Controller
             'faq_id' => $faq->id
         ]);
 
-        Cache::forget('landing_page_content');
-
         return response()->json([
             'status' => true,
             'message' => 'FAQ updated successfully',
@@ -562,8 +558,6 @@ class HomeManageController extends Controller
         Log::info('FAQ deleted', [
             'faq_id' => $id
         ]);
-
-        Cache::forget('landing_page_content');
 
         return response()->json([
             'status' => true,
@@ -652,8 +646,6 @@ class HomeManageController extends Controller
             ]
         );
 
-        Cache::forget('landing_page_content');
-
         return response()->json([
             'status' => true,
             'message' => 'FAQ visual section updated successfully',
@@ -700,8 +692,6 @@ class HomeManageController extends Controller
 
         Log::info('CTA 1 updated', ['id' => 1]);
 
-        Cache::forget('landing_page_content');
-
         return response()->json([
             'status' => true,
             'message' => 'Call To Action 1 updated successfully',
@@ -747,8 +737,6 @@ class HomeManageController extends Controller
         );
 
         Log::info('CTA 2 updated', ['id' => 2]);
-
-        Cache::forget('landing_page_content');
 
         return response()->json([
             'status' => true,
@@ -1204,6 +1192,8 @@ class HomeManageController extends Controller
         Log::info('Terms / Privacy top content updated', [
             'content_id' => $id
         ]);
+
+        Cache::forget('landing_page_content');
 
         return response()->json([
             'status' => true,
