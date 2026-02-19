@@ -20,6 +20,9 @@ Route::get('/test', function () {
     ]);
 });
 
+Route::get('/landing-content', [\App\Http\Controllers\HomeManageController::class, 'getLandingContent']);
+
+
 /*
 |--------------------------------------------------------------------------
 | AUTH ROUTES

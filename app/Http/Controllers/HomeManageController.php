@@ -15,6 +15,8 @@ use App\Models\BackgroundImage;
 use App\Models\PrivacyPolicy;
 use App\Models\TeamofServices;
 use App\Models\ServicesPolicyContent;
+use Illuminate\Support\Facades\Cache;
+
 
 class HomeManageController extends Controller
 {
@@ -35,6 +37,46 @@ class HomeManageController extends Controller
 
         return null;
     }
+
+    /**
+     * Unified endpoint for all landing page content with caching.
+     */
+    public function getLandingContent()
+    {
+        return Cache::remember('landing_page_content', 86400, function () {
+            $carousel = HomeCarouselData::orderBy('order')->get();
+            $cards = HomeCardData::orderBy('order')->get();
+            $faqs = HomeFaqData::orderBy('order')->get()->map(function ($faq) {
+                $faq->isActive = $faq->isActive === 'true';
+                return $faq;
+            });
+
+            $section = FaqVisualSection::first();
+            $visualData = null;
+            if ($section) {
+                $visualData = $section->toArray();
+                if (isset($visualData['floating_cards']) && is_string($visualData['floating_cards'])) {
+                    $visualData['floating_cards'] = json_decode($visualData['floating_cards'], true);
+                }
+                if (isset($visualData['quick_stats']) && is_string($visualData['quick_stats'])) {
+                    $visualData['quick_stats'] = json_decode($visualData['quick_stats'], true);
+                }
+            }
+
+            $cta1 = CallToAction::find(1);
+            $cta2 = CallToAction::find(2);
+
+            return [
+                'carousel' => $carousel,
+                'cards' => $cards,
+                'faq' => $faqs,
+                'visualSection' => $visualData,
+                'cta1' => $cta1,
+                'cta2' => $cta2
+            ];
+        });
+    }
+
 
     /**
      * GET /api/admin/carousel
@@ -82,7 +124,7 @@ class HomeManageController extends Controller
             'image' => $imagePath,
             'order' => $request->order ?? 0,
             'isActive' => $request->has('isActive')
-                ? (string)$request->isActive
+                ? (string) $request->isActive
                 : 'true',
         ]);
 
@@ -91,6 +133,8 @@ class HomeManageController extends Controller
             'carousel_id' => $carousel->id,
             'title' => $request->title
         ]);
+
+        Cache::forget('landing_page_content');
 
         return response()->json([
             'status' => true,
@@ -152,7 +196,7 @@ class HomeManageController extends Controller
 
         // Handle isActive update - now as string
         if ($request->has('isActive')) {
-            $carousel->isActive = (string)$request->isActive;
+            $carousel->isActive = (string) $request->isActive;
             $carousel->save();
         }
 
@@ -160,6 +204,8 @@ class HomeManageController extends Controller
             'admin_id' => $request->user()->id ?? null,
             'carousel_id' => $carousel->id
         ]);
+
+        Cache::forget('landing_page_content');
 
         return response()->json([
             'status' => true,
@@ -202,6 +248,8 @@ class HomeManageController extends Controller
             'carousel_id' => $id
         ]);
 
+        Cache::forget('landing_page_content');
+
         return response()->json([
             'status' => true,
             'message' => 'Carousel item deleted successfully'
@@ -243,7 +291,7 @@ class HomeManageController extends Controller
         $iconValue = $request->icon ?? null;
 
         // isActive as string, fallback to 'true' if not provided
-        $isActive = $request->has('isActive') ? (string)$request->isActive : 'true';
+        $isActive = $request->has('isActive') ? (string) $request->isActive : 'true';
 
         $card = HomeCardData::create([
             'icon' => $iconValue,
@@ -257,6 +305,8 @@ class HomeManageController extends Controller
         Log::info('Home card created', [
             'card_id' => $card->id
         ]);
+
+        Cache::forget('landing_page_content');
 
         return response()->json([
             'status' => true,
@@ -300,7 +350,7 @@ class HomeManageController extends Controller
         ]);
 
         if ($request->has('isActive')) {
-            $updateData['isActive'] = (string)$request->isActive;
+            $updateData['isActive'] = (string) $request->isActive;
         }
         if ($request->has('icon')) {
             $updateData['icon'] = $request->icon;
@@ -311,6 +361,8 @@ class HomeManageController extends Controller
         Log::info('Home card updated', [
             'card_id' => $card->id
         ]);
+
+        Cache::forget('landing_page_content');
 
         return response()->json([
             'status' => true,
@@ -343,6 +395,8 @@ class HomeManageController extends Controller
         Log::info('Home card deleted', [
             'card_id' => $id
         ]);
+
+        Cache::forget('landing_page_content');
 
         return response()->json([
             'status' => true,
@@ -377,14 +431,14 @@ class HomeManageController extends Controller
 
         $request->validate([
             'question' => 'required|string',
-            'answer'   => 'required|string',
-            'order'    => 'nullable|integer',
+            'answer' => 'required|string',
+            'order' => 'nullable|integer',
             'isActive' => 'nullable|boolean'
         ]);
 
         $storeData = [
             'question' => $request->question,
-            'answer'   => $request->answer,
+            'answer' => $request->answer,
         ];
 
         if ($request->has('order')) {
@@ -410,10 +464,12 @@ class HomeManageController extends Controller
             'faq_id' => $faq->id
         ]);
 
+        Cache::forget('landing_page_content');
+
         return response()->json([
-            'status'  => true,
+            'status' => true,
             'message' => 'FAQ created successfully',
-            'data'    => $faq
+            'data' => $faq
         ], 201);
     }
 
@@ -474,6 +530,8 @@ class HomeManageController extends Controller
             'faq_id' => $faq->id
         ]);
 
+        Cache::forget('landing_page_content');
+
         return response()->json([
             'status' => true,
             'message' => 'FAQ updated successfully',
@@ -504,6 +562,8 @@ class HomeManageController extends Controller
         Log::info('FAQ deleted', [
             'faq_id' => $id
         ]);
+
+        Cache::forget('landing_page_content');
 
         return response()->json([
             'status' => true,
@@ -592,6 +652,8 @@ class HomeManageController extends Controller
             ]
         );
 
+        Cache::forget('landing_page_content');
+
         return response()->json([
             'status' => true,
             'message' => 'FAQ visual section updated successfully',
@@ -638,6 +700,8 @@ class HomeManageController extends Controller
 
         Log::info('CTA 1 updated', ['id' => 1]);
 
+        Cache::forget('landing_page_content');
+
         return response()->json([
             'status' => true,
             'message' => 'Call To Action 1 updated successfully',
@@ -683,6 +747,8 @@ class HomeManageController extends Controller
         );
 
         Log::info('CTA 2 updated', ['id' => 2]);
+
+        Cache::forget('landing_page_content');
 
         return response()->json([
             'status' => true,
@@ -853,7 +919,7 @@ class HomeManageController extends Controller
 
         return response()->json([
             'status' => true,
-            'data'   => $services
+            'data' => $services
         ]);
     }
 
@@ -866,17 +932,17 @@ class HomeManageController extends Controller
         }
 
         $validated = $request->validate([
-            'title'       => 'required|string|max:255',
-            'content'     => 'required|array',
-            'content.*'   => 'required|string',
-            'order'       => 'nullable|integer',
-            'isActive'    => 'nullable|boolean',
+            'title' => 'required|string|max:255',
+            'content' => 'required|array',
+            'content.*' => 'required|string',
+            'order' => 'nullable|integer',
+            'isActive' => 'nullable|boolean',
         ]);
 
         $service = TeamOfServices::create([
-            'title'    => $validated['title'],
-            'content'  => $validated['content'],
-            'order'    => $validated['order'] ?? 0,
+            'title' => $validated['title'],
+            'content' => $validated['content'],
+            'order' => $validated['order'] ?? 0,
             'isActive' => $request->boolean('isActive'),
         ]);
 
@@ -885,9 +951,9 @@ class HomeManageController extends Controller
         ]);
 
         return response()->json([
-            'status'  => true,
+            'status' => true,
             'message' => 'Team of service created successfully',
-            'data'    => $service
+            'data' => $service
         ], 201);
     }
 
@@ -904,23 +970,23 @@ class HomeManageController extends Controller
             Log::warning('Team of service update failed - not found', ['id' => $id]);
 
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Team of service not found'
             ], 404);
         }
 
         $validated = $request->validate([
-            'title'       => 'nullable|string|max:255',
-            'content'     => 'nullable|array',
-            'content.*'   => 'required|string',
-            'order'       => 'nullable|integer',
-            'isActive'    => 'nullable|boolean',
+            'title' => 'nullable|string|max:255',
+            'content' => 'nullable|array',
+            'content.*' => 'required|string',
+            'order' => 'nullable|integer',
+            'isActive' => 'nullable|boolean',
         ]);
 
         $service->update([
-            'title'    => $validated['title']   ?? $service->title,
-            'content'  => $validated['content'] ?? $service->content,
-            'order'    => $validated['order']   ?? $service->order,
+            'title' => $validated['title'] ?? $service->title,
+            'content' => $validated['content'] ?? $service->content,
+            'order' => $validated['order'] ?? $service->order,
             'isActive' => $request->has('isActive')
                 ? $request->boolean('isActive')
                 : $service->isActive,
@@ -931,9 +997,9 @@ class HomeManageController extends Controller
         ]);
 
         return response()->json([
-            'status'  => true,
+            'status' => true,
             'message' => 'Team of service updated successfully',
-            'data'    => $service
+            'data' => $service
         ]);
     }
 
@@ -950,7 +1016,7 @@ class HomeManageController extends Controller
             Log::warning('Team of service delete failed - not found', ['id' => $id]);
 
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Team of service not found'
             ], 404);
         }
@@ -962,7 +1028,7 @@ class HomeManageController extends Controller
         ]);
 
         return response()->json([
-            'status'  => true,
+            'status' => true,
             'message' => 'Team of service deleted successfully'
         ]);
     }
@@ -978,7 +1044,7 @@ class HomeManageController extends Controller
 
         return response()->json([
             'status' => true,
-            'data'   => $policies
+            'data' => $policies
         ]);
     }
 
@@ -991,17 +1057,17 @@ class HomeManageController extends Controller
         }
 
         $validated = $request->validate([
-            'title'       => 'required|string|max:255',
-            'content'     => 'required|array',
-            'content.*'   => 'required|string',
-            'order'       => 'nullable|integer',
-            'isActive'    => 'nullable|boolean',
+            'title' => 'required|string|max:255',
+            'content' => 'required|array',
+            'content.*' => 'required|string',
+            'order' => 'nullable|integer',
+            'isActive' => 'nullable|boolean',
         ]);
 
         $policy = PrivacyPolicy::create([
-            'title'    => $validated['title'],
-            'content'  => $validated['content'],
-            'order'    => $validated['order'] ?? 0,
+            'title' => $validated['title'],
+            'content' => $validated['content'],
+            'order' => $validated['order'] ?? 0,
             'isActive' => $request->boolean('isActive'),
         ]);
 
@@ -1010,9 +1076,9 @@ class HomeManageController extends Controller
         ]);
 
         return response()->json([
-            'status'  => true,
+            'status' => true,
             'message' => 'Privacy policy created successfully',
-            'data'    => $policy
+            'data' => $policy
         ], 201);
     }
 
@@ -1029,23 +1095,23 @@ class HomeManageController extends Controller
             Log::warning('Privacy policy update failed - not found', ['id' => $id]);
 
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Privacy policy not found'
             ], 404);
         }
 
         $validated = $request->validate([
-            'title'       => 'nullable|string|max:255',
-            'content'     => 'nullable|array',
-            'content.*'   => 'required|string',
-            'order'       => 'nullable|integer',
-            'isActive'    => 'nullable|boolean',
+            'title' => 'nullable|string|max:255',
+            'content' => 'nullable|array',
+            'content.*' => 'required|string',
+            'order' => 'nullable|integer',
+            'isActive' => 'nullable|boolean',
         ]);
 
         $policy->update([
-            'title'    => $validated['title']   ?? $policy->title,
-            'content'  => $validated['content'] ?? $policy->content,
-            'order'    => $validated['order']   ?? $policy->order,
+            'title' => $validated['title'] ?? $policy->title,
+            'content' => $validated['content'] ?? $policy->content,
+            'order' => $validated['order'] ?? $policy->order,
             'isActive' => $request->has('isActive')
                 ? $request->boolean('isActive')
                 : $policy->isActive,
@@ -1056,9 +1122,9 @@ class HomeManageController extends Controller
         ]);
 
         return response()->json([
-            'status'  => true,
+            'status' => true,
             'message' => 'Privacy policy updated successfully',
-            'data'    => $policy
+            'data' => $policy
         ]);
     }
 
@@ -1075,7 +1141,7 @@ class HomeManageController extends Controller
             Log::warning('Privacy policy delete failed - not found', ['id' => $id]);
 
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Privacy policy not found'
             ], 404);
         }
@@ -1087,63 +1153,63 @@ class HomeManageController extends Controller
         ]);
 
         return response()->json([
-            'status'  => true,
+            'status' => true,
             'message' => 'Privacy policy deleted successfully'
         ]);
     }
 
     //get services and policy top content
     public function getHomeTermsPolicyTopContent($id)
-{
-    $content = ServicesPolicyContent::find($id);
+    {
+        $content = ServicesPolicyContent::find($id);
 
-    if (!$content) {
+        if (!$content) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Content not found'
+            ], 404);
+        }
+
         return response()->json([
-            'status'  => false,
-            'message' => 'Content not found'
-        ], 404);
+            'status' => true,
+            'data' => $content
+        ]);
     }
 
-    return response()->json([
-        'status' => true,
-        'data'   => $content
-    ]);
-}
+    //update services and policy top content 
+    public function updateHomeTermsPolicyTopContent(Request $request, $id)
+    {
 
-//update services and policy top content 
-public function updateHomeTermsPolicyTopContent(Request $request, $id)
-{
-    
-    if ($response = $this->checkAdmin($request)) {
-        return $response;
-    }
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
 
-    $content = ServicesPolicyContent::find($id);
+        $content = ServicesPolicyContent::find($id);
 
-    if (!$content) {
+        if (!$content) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Content not found'
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'content' => 'required|string',
+        ]);
+
+        $content->update([
+            'content' => $validated['content'],
+        ]);
+
+        Log::info('Terms / Privacy top content updated', [
+            'content_id' => $id
+        ]);
+
         return response()->json([
-            'status'  => false,
-            'message' => 'Content not found'
-        ], 404);
+            'status' => true,
+            'message' => 'Content updated successfully',
+            'data' => $content
+        ]);
     }
-
-    $validated = $request->validate([
-        'content' => 'required|string',
-    ]);
-
-    $content->update([
-        'content' => $validated['content'],
-    ]);
-
-    Log::info('Terms / Privacy top content updated', [
-        'content_id' => $id
-    ]);
-
-    return response()->json([
-        'status'  => true,
-        'message' => 'Content updated successfully',
-        'data'    => $content
-    ]);
-}
 
 }
