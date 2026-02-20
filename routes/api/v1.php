@@ -42,9 +42,17 @@ Route::post('/auth/google-login', [\App\Http\Controllers\AuthController::class, 
 Route::post('/auth/facebook-login', [\App\Http\Controllers\AuthController::class, 'facebookLogin']);
 Route::post('/auth/linkedin-login', [\App\Http\Controllers\AuthController::class, 'linkedinLogin']);
 
-Route::middleware('auth:user')->get('/auth/me', function (Request $request) {
+// Route::middleware('auth:user')->get('/auth/me', function (Request $request) {
+//     return response()->json([
+//         'status' => true,
+//         'user' => $request->user()
+//     ]);
+// });
+
+Route::middleware('auth:sanctum')->get('/auth/me', function (Request $request) {
     return response()->json([
-        'status' => true,
+        'success' => true,
+        'status' => 'authenticated',
         'user' => $request->user()
     ]);
 });
