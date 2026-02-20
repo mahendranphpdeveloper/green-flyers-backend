@@ -49,7 +49,7 @@ Route::post('/auth/linkedin-login', [\App\Http\Controllers\AuthController::class
 //     ]);
 // });
 
-Route::middleware('auth:user')->get('/auth/me', function (Request $request) {
+Route::get('/auth/me', function (Request $request) {
 
     if (!$request->user()) {
         return response()->json([
