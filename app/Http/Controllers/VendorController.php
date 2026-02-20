@@ -13,66 +13,98 @@ class VendorController extends Controller
      * GET /api/vendors
      * List all vendors
      */
+    // public function index(Request $request)
+    // {
+    //     $authUser = $request->user(); // Sanctum resolves automatically
+
+    //     Log::info('Auth check for vendors index', [
+    //         'authUser' => $authUser,
+    //         'model' => $authUser ? get_class($authUser) : null
+    //     ]);
+
+    //     if (!$authUser) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Unauthorized access'
+    //         ], 401);
+    //     }
+
+    //     $isAdmin = $authUser instanceof \App\Models\AdminData;
+    //     $isUser  = $authUser instanceof \App\Models\User;
+
+    //     Log::info('Role resolved', [
+    //         'isAdmin' => $isAdmin,
+    //         'isUser' => $isUser
+    //     ]);
+
+    //     if (!$isAdmin && !$isUser) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Unauthorized access'
+    //         ], 403);
+    //     }
+
+    //     // Fetch vendors
+    //     $vendors = VendorsData::all();
+
+    //     $transformed = $vendors->map(function ($vendor) {
+    //         $vendorArr = $vendor->toArray();
+
+    //         if (isset($vendorArr['projects']) && is_string($vendorArr['projects'])) {
+    //             $decoded = json_decode($vendorArr['projects'], true);
+    //             $vendorArr['projects'] = is_array($decoded) ? $decoded : [];
+    //         }
+
+    //         // Attach logo URL if exists
+    //         if (!empty($vendorArr['logo'])) {
+    //             // Return a storage URL or null if empty
+    //             $vendorArr['logo_url'] = Storage::disk('public')->exists($vendorArr['logo'])
+    //                 ? Storage::url($vendorArr['logo'])
+    //                 : null;
+    //         } else {
+    //             $vendorArr['logo_url'] = null;
+    //         }
+
+    //         return $vendorArr;
+    //     });
+
+    //     return response()->json([
+    //         'status' => true,
+    //         'data' => $transformed
+    //     ]);
+    // }
+
     public function index(Request $request)
-    {
-        $authUser = $request->user(); // Sanctum resolves automatically
+{
+    // Fetch vendors
+    $vendors = VendorsData::all();
 
-        Log::info('Auth check for vendors index', [
-            'authUser' => $authUser,
-            'model' => $authUser ? get_class($authUser) : null
-        ]);
+    $transformed = $vendors->map(function ($vendor) {
+        $vendorArr = $vendor->toArray();
 
-        if (!$authUser) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Unauthorized access'
-            ], 401);
+        // Decode projects JSON if stored as string
+        if (isset($vendorArr['projects']) && is_string($vendorArr['projects'])) {
+            $decoded = json_decode($vendorArr['projects'], true);
+            $vendorArr['projects'] = is_array($decoded) ? $decoded : [];
         }
 
-        $isAdmin = $authUser instanceof \App\Models\AdminData;
-        $isUser  = $authUser instanceof \App\Models\User;
-
-        Log::info('Role resolved', [
-            'isAdmin' => $isAdmin,
-            'isUser' => $isUser
-        ]);
-
-        if (!$isAdmin && !$isUser) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Unauthorized access'
-            ], 403);
+        // Attach logo URL if exists
+        if (!empty($vendorArr['logo'])) {
+            $vendorArr['logo_url'] = Storage::disk('public')->exists($vendorArr['logo'])
+                ? Storage::url($vendorArr['logo'])
+                : null;
+        } else {
+            $vendorArr['logo_url'] = null;
         }
 
-        // Fetch vendors
-        $vendors = VendorsData::all();
+        return $vendorArr;
+    });
 
-        $transformed = $vendors->map(function ($vendor) {
-            $vendorArr = $vendor->toArray();
-
-            if (isset($vendorArr['projects']) && is_string($vendorArr['projects'])) {
-                $decoded = json_decode($vendorArr['projects'], true);
-                $vendorArr['projects'] = is_array($decoded) ? $decoded : [];
-            }
-
-            // Attach logo URL if exists
-            if (!empty($vendorArr['logo'])) {
-                // Return a storage URL or null if empty
-                $vendorArr['logo_url'] = Storage::disk('public')->exists($vendorArr['logo'])
-                    ? Storage::url($vendorArr['logo'])
-                    : null;
-            } else {
-                $vendorArr['logo_url'] = null;
-            }
-
-            return $vendorArr;
-        });
-
-        return response()->json([
-            'status' => true,
-            'data' => $transformed
-        ]);
-    }
+    return response()->json([
+        'status' => true,
+        'data' => $transformed
+    ]);
+}
 
     /**
      * POST /api/vendors
