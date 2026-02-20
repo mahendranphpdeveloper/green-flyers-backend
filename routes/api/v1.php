@@ -120,7 +120,7 @@ Route::middleware('auth:user')->group(function () {
    */
 
     Route::prefix('vendors')->group(function () {
-        Route::get('/', [\App\Http\Controllers\VendorController::class, 'index']);
+        // Route::get('/', [\App\Http\Controllers\VendorController::class, 'index']);
         Route::get('/projects_contributed', [\App\Http\Controllers\VendorController::class, 'getProjectContributors']);
 
 
@@ -237,6 +237,10 @@ Route::middleware(['auth:admin', 'admin'])->group(function () {
 Route::post('/admin/login', [\App\Http\Controllers\AdminController::class, 'adminLogin']);
 //email controller
 Route::post('/email', [\App\Http\Controllers\EmailController::class, 'send']);
+
+Route::prefix('vendors')->group(function () {
+      Route::get('/', [\App\Http\Controllers\VendorController::class, 'index']);
+  });
 
 Route::prefix('/admin/home-manage')->group(function () {
     Route::get('/carousel', [\App\Http\Controllers\HomeManageController::class, 'getHomeCarousel']);
