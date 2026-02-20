@@ -49,10 +49,17 @@ Route::post('/auth/linkedin-login', [\App\Http\Controllers\AuthController::class
 //     ]);
 // });
 
-Route::middleware('auth:sanctum')->get('/auth/me', function (Request $request) {
+Route::middleware('auth:user')->get('/auth/me', function (Request $request) {
+
+    if (!$request->user()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'User not authenticated'
+        ], 200); // 👈 send 200 instead of 401
+    }
+
     return response()->json([
-        'success' => true,
-        'status' => 'authenticated',
+        'status' => true,
         'user' => $request->user()
     ]);
 });
