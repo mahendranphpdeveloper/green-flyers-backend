@@ -188,6 +188,12 @@ Route::middleware(['auth:admin', 'admin'])->group(function () {
         Route::put('/terms-privacy-top-content/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeTermsPolicyTopContent']);
     });
 
+    // SMTP Settings
+    Route::prefix('smtp-settings')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SmtpSettingController::class, 'show']);
+        Route::put('/', [\App\Http\Controllers\SmtpSettingController::class, 'update']);
+    });
+
     // for bulk upload
     Route::post('/admin/vendors/bulk', [\App\Http\Controllers\VendorBulkController::class, 'bulkUpload']);
 
@@ -239,8 +245,8 @@ Route::post('/admin/login', [\App\Http\Controllers\AdminController::class, 'admi
 Route::post('/email', [\App\Http\Controllers\EmailController::class, 'send']);
 
 Route::prefix('vendors')->group(function () {
-      Route::get('/', [\App\Http\Controllers\VendorController::class, 'index']);
-  });
+    Route::get('/', [\App\Http\Controllers\VendorController::class, 'index']);
+});
 
 Route::prefix('/admin/home-manage')->group(function () {
     Route::get('/carousel', [\App\Http\Controllers\HomeManageController::class, 'getHomeCarousel']);
