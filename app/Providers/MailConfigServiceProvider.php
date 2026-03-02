@@ -33,18 +33,24 @@ class MailConfigServiceProvider extends ServiceProvider
         });
 
         if ($settings) {
-            Config::set('mail.default', $settings->mail_mailer);
+            try {
+                Config::set('mail.default', $settings->mail_mailer);
 
-            // Specifically override the smtp mailer settings
-            Config::set('mail.mailers.smtp.host', $settings->mail_host);
-            Config::set('mail.mailers.smtp.port', $settings->mail_port);
-            Config::set('mail.mailers.smtp.username', $settings->mail_username);
-            Config::set('mail.mailers.smtp.password', $settings->mail_password);
-            Config::set('mail.mailers.smtp.encryption', $settings->mail_encryption);
+                // Specifically override the smtp mailer settings
+                Config::set('mail.mailers.smtp.host', $settings->mail_host);
+                Config::set('mail.mailers.smtp.port', $settings->mail_port);
+                Config::set('mail.mailers.smtp.username', $settings->mail_username);
+                Config::set('mail.mailers.smtp.password', $settings->mail_password);
+                Config::set('mail.mailers.smtp.encryption', $settings->mail_encryption);
 
-            // Global From address
-            Config::set('mail.from.address', $settings->mail_from_address);
-            Config::set('mail.from.name', $settings->mail_from_name);
+                // Global From address
+                Config::set('mail.from.address', $settings->mail_from_address);
+                Config::set('mail.from.name', $settings->mail_from_name);
+            } catch (\Exception $e) {
+                // If decryption fails, clear the cache and log the error
+                Cache::forget('smtp_settings');
+                Log::error('SMTP decryption failed: ' . $e->getMessage());
+            }
         }
     }
 }
