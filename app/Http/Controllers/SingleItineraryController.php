@@ -1801,18 +1801,18 @@ class SingleItineraryController extends Controller
         $admin = $request->user();
 
         if (!$admin) {
-            Log::warning('Unauthenticated admin access attempt in destroy()');
+            Log::warning('Unauthenticated access attempt in destroy()');
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
         // Verify admin
         if (!AdminData::where('id', $admin->id)->exists()) {
-            Log::warning('Non-admin attempted to delete SingleItinerary', [
+            Log::warning('Unauthorized attempted to delete SingleItinerary', [
                 'auth_id' => $admin->id
             ]);
 
             return response()->json([
-                'message' => 'Unauthorized - Not an admin'
+                'message' => 'Unauthorized'
             ], 403);
         }
 
@@ -1820,13 +1820,13 @@ class SingleItineraryController extends Controller
         $singleItinerary = SingleItineraryData::find($id);
 
         if (!$singleItinerary) {
-            Log::warning('SingleItinerary not found for admin delete', [
+            Log::warning('SingleItinerary not found for delete', [
                 'singleItineraryId' => $id
             ]);
 
             return response()->json([
                 'status' => false,
-                'message' => 'SingleItinerary not found'
+                'message' => 'The requested SingleItinerary was previously deleted and is no longer available.'
             ], 404);
         }
 
