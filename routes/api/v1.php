@@ -108,6 +108,7 @@ Route::middleware('auth:user')->group(function () {
     // });
 
     Route::get('/singleItinerary/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'show']);
+     
 
 
     // tree offset value
@@ -135,6 +136,7 @@ Route::middleware('auth:user')->group(function () {
 */
 Route::middleware(['auth:admin,user'])->group(function () {
     Route::get('/singleItinerary/{userId}/itinerary/{ItineraryId}', [\App\Http\Controllers\SingleItineraryController::class, 'getByUserAndItinerary']);
+    Route::delete('/singleItinerary/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'destroy']);
 });
 
 // Admin Routes
@@ -223,7 +225,7 @@ Route::middleware(['auth:admin', 'admin'])->group(function () {
         Route::get('/', [\App\Http\Controllers\SingleItineraryController::class, 'index']);
         // Route::get('/{userId}/itinerary/{ItineraryId}', [\App\Http\Controllers\SingleItineraryController::class, 'getByUserAndItinerary']);
         Route::put('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'update']);
-        Route::delete('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'destroy']);
+        // Route::delete('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'destroy']);
     });
 
     Route::prefix('vendors')->group(function () {
