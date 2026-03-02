@@ -953,8 +953,9 @@ class SingleItineraryController extends Controller
                 'ItineraryId' => $ItineraryId
             ]);
             return response()->json([
+                'status' => true,
                 'message' => 'No records found for this user and itinerary.'
-            ], 404);
+            ]);
         }
 
         Log::info('Records returned successfully', [
