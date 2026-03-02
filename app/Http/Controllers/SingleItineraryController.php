@@ -1660,7 +1660,7 @@ class SingleItineraryController extends Controller
 
         $singleItinerary = SingleItineraryData::find($id);
         if (!$singleItinerary) {
-            return response()->json(['message' => 'SingleItinerary not found'], 404);
+            return response()->json(['message' => 'The requested SingleItinerary was previously deleted and is no longer available.'], 404);
         }
 
         if (!$isAdmin && $singleItinerary->userId !== $authUser->userId) {
