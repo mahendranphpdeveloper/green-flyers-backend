@@ -1790,65 +1790,89 @@ class SingleItineraryController extends Controller
 
 
 
-    public function destroy(Request $request, $id)
+    // public function destroy(Request $request, $id)
+    // {
+    //     Log::info('Admin destroy() called for SingleItinerary', [
+    //         'admin_auth_id' => optional($request->user())->id,
+    //         'singleItineraryId' => $id
+    //     ]);
+
+    //     // Get authenticated admin
+    //     $admin = $request->user();
+
+    //     if (!$admin) {
+    //         Log::warning('Unauthenticated access attempt in destroy()');
+    //         return response()->json(['message' => 'Unauthenticated'], 401);
+    //     }
+
+    //     // Verify admin
+    //     if (!AdminData::where('id', $admin->id)->exists()) {
+    //         Log::warning('Unauthorized attempted to delete SingleItinerary', [
+    //             'auth_id' => $admin->id
+    //         ]);
+
+    //         return response()->json([
+    //             'message' => 'Unauthorized'
+    //         ], 403);
+    //     }
+
+    //     // Find single itinerary by ID
+    //     $singleItinerary = SingleItineraryData::find($id);
+
+    //     if (!$singleItinerary) {
+    //         Log::warning('SingleItinerary not found for delete', [
+    //             'singleItineraryId' => $id
+    //         ]);
+
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'The requested SingleItinerary was previously deleted and is no longer available.'
+    //         ], 404);
+    //     }
+
+    //     // Delete certificate file if exists
+    //     if (
+    //         $singleItinerary->certificateFile &&
+    //         Storage::disk('public')->exists($singleItinerary->certificateFile)
+    //     ) {
+    //         Storage::disk('public')->delete($singleItinerary->certificateFile);
+
+    //         Log::info('Certificate file deleted by admin', [
+    //             'certificateFile' => $singleItinerary->certificateFile
+    //         ]);
+    //     }
+
+    //     // Delete record
+    //     $singleItinerary->delete();
+
+    //     Log::info('SingleItinerary deleted successfully by admin', [
+    //         'admin_id' => $admin->id,
+    //         'singleItineraryId' => $id
+    //     ]);
+
+    //     return response()->json([
+    //         'status' => true,
+    //         'message' => 'SingleItinerary deleted successfully'
+    //     ]);
+    // }
+
+
+    public function destroy($id)
     {
-        Log::info('Admin destroy() called for SingleItinerary', [
-            'admin_auth_id' => optional($request->user())->id,
-            'singleItineraryId' => $id
-        ]);
-
-        // Get authenticated admin
-        $admin = $request->user();
-
-        if (!$admin) {
-            Log::warning('Unauthenticated access attempt in destroy()');
-            return response()->json(['message' => 'Unauthenticated'], 401);
-        }
-
-        // Verify admin
-        if (!AdminData::where('id', $admin->id)->exists()) {
-            Log::warning('Unauthorized attempted to delete SingleItinerary', [
-                'auth_id' => $admin->id
-            ]);
-
-            return response()->json([
-                'message' => 'Unauthorized'
-            ], 403);
-        }
-
-        // Find single itinerary by ID
         $singleItinerary = SingleItineraryData::find($id);
 
         if (!$singleItinerary) {
-            Log::warning('SingleItinerary not found for delete', [
-                'singleItineraryId' => $id
-            ]);
-
             return response()->json([
                 'status' => false,
                 'message' => 'The requested SingleItinerary was previously deleted and is no longer available.'
             ], 404);
         }
 
-        // Delete certificate file if exists
-        if (
-            $singleItinerary->certificateFile &&
-            Storage::disk('public')->exists($singleItinerary->certificateFile)
-        ) {
+        if ($singleItinerary->certificateFile && Storage::disk('public')->exists($singleItinerary->certificateFile)) {
             Storage::disk('public')->delete($singleItinerary->certificateFile);
-
-            Log::info('Certificate file deleted by admin', [
-                'certificateFile' => $singleItinerary->certificateFile
-            ]);
         }
 
-        // Delete record
         $singleItinerary->delete();
-
-        Log::info('SingleItinerary deleted successfully by admin', [
-            'admin_id' => $admin->id,
-            'singleItineraryId' => $id
-        ]);
 
         return response()->json([
             'status' => true,
