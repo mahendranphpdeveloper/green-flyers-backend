@@ -99,7 +99,7 @@ class ItineraryController extends Controller
             /** -----------------
              * PENDING FLAG
              * ----------------- */
-            $itinerary->is_pending = $itinerary->singleItinerary === null || $itinerary->singleItinerary->status === 'pending';
+            $itinerary->is_pending = $itinerary->singleItinerary === null || $itinerary->singleItinerary->approvelStatus === 'pending';
 
             // remove relationship from response
             unset($itinerary->singleItinerary);
