@@ -28,7 +28,7 @@ class SmtpSettingController extends Controller
     public function update(Request $request)
     {
         $validated = $request->validate([
-            'mail_mailer' => 'required|string|max:255',
+            'mail_mailer' => 'string|max:255',
             'mail_host' => 'required|string|max:255',
             'mail_port' => 'required|string|max:255',
             'mail_username' => 'required|string|email|max:255',
