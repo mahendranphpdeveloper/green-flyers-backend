@@ -15,6 +15,8 @@ use App\Models\BackgroundImage;
 use App\Models\PrivacyPolicy;
 use App\Models\TeamofServices;
 use App\Models\ServicesPolicyContent;
+use App\Models\User;
+use App\Models\ItineraryData;
 use Illuminate\Support\Facades\Cache;
 
 
@@ -582,7 +584,33 @@ class HomeManageController extends Controller
     /**
      * GET /api/admin/faq/visual-section
      */
-    public function getHomeVisualSection()
+    // public function getHomeVisualSection()
+    // {
+    //     $section = FaqVisualSection::first();
+
+    //     if ($section) {
+    //         $data = $section->toArray();
+
+    //         // Convert JSON fields back to arrays for response if needed
+    //         if (isset($data['floating_cards']) && is_string($data['floating_cards'])) {
+    //             $data['floating_cards'] = json_decode($data['floating_cards'], true);
+    //         }
+    //         if (isset($data['quick_stats']) && is_string($data['quick_stats'])) {
+    //             $data['quick_stats'] = json_decode($data['quick_stats'], true);
+    //         }
+    //     } else {
+    //         $data = null;
+    //     }
+
+    //     Log::info('FAQ visual section fetched');
+
+    //     return response()->json([
+    //         'status' => true,
+    //         'data' => $data
+    //     ]);
+    // }
+
+     public function getHomeVisualSection()
     {
         $section = FaqVisualSection::first();
 
@@ -600,10 +628,19 @@ class HomeManageController extends Controller
             $data = null;
         }
 
-        Log::info('FAQ visual section fetched');
+        // Calculate dynamic stats
+        $totalUserCount = User::count();
+        $totalOffsetAmount = ItineraryData::sum('offsetAmount');
+        $totalTreesPlanted = ItineraryData::sum('numberOfTrees');
+        $totalOffsetTonnes = $totalOffsetAmount / 1000;
+
+        Log::info('FAQ visual section fetched with dynamic stats');
 
         return response()->json([
             'status' => true,
+            'totalUserCount' => $totalUserCount,
+            'totalOffsetTonnes' => round($totalOffsetTonnes, 2),
+            'totalTreesPlanted' => (int) $totalTreesPlanted,
             'data' => $data
         ]);
     }
