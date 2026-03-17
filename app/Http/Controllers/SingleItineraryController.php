@@ -414,7 +414,7 @@ class SingleItineraryController extends Controller
         $treeOffsetValue = $treeOffsetValue > 0 ? $treeOffsetValue : 22;
 
         /** ---------------- TRANSACTION ---------------- */
-        DB::transaction(function () use ($validatedData, $approvalStatus, &$requestedOffset, $itinerary, &$offsetCreditAdded, &$updatedUser, $treeOffsetValue) {
+        DB::transaction(function () use ($validatedData, $approvalStatus, $requestedOffset, $itinerary, &$offsetCreditAdded, &$updatedUser, $treeOffsetValue) {
             /** ---------------- CREATE SINGLE ITINERARY ---------------- */
             $singleItinerary = new SingleItineraryData($validatedData);
 
@@ -427,45 +427,42 @@ class SingleItineraryController extends Controller
                 throw new \Exception('User not found');
             }
 
-            $appliedOffset = 0;
-            $creditUsed = 0;
-            $extraOffset = 0;
-
             if (strcasecmp($approvalStatus, 'Completed') === 0 || $requestedOffset > 0) {
-                $userCredit = $user->offsetCredit ?? 0;
-
-                $creditUsed = min($requestedOffset, $userCredit);
-                $requestedOffset -= $creditUsed;
-                $user->offsetCredit -= $creditUsed;
-
+                // Core Logic: Application is capped by emission limit
                 $emissionLimit = $itinerary->emission;
                 $currentOffset = $itinerary->offsetAmount ?? 0;
                 $remainingEmission = max($emissionLimit - $currentOffset, 0);
 
+                // Applied is what fits in the itinerary
                 $appliedOffset = min($requestedOffset, $remainingEmission);
+                // Extra is stored for future or other use
                 $extraOffset = $requestedOffset - $appliedOffset;
 
-                $singleItinerary->emissionOffset = $appliedOffset + $creditUsed;
-                $singleItinerary->treesPlanted = round(
-                    $singleItinerary->emissionOffset / $treeOffsetValue
-                );
+                $singleItinerary->emissionOffset = $appliedOffset;
+                $singleItinerary->treesPlanted = floor($appliedOffset / $treeOffsetValue);
 
-                $newOffset = $currentOffset + $singleItinerary->emissionOffset;
-                $offsetPercentage = $emissionLimit > 0
-                    ? min(round(($newOffset / $emissionLimit) * 100, 2), 100)
+                /** ---------------- UPDATE MASTER ITINERARY ---------------- */
+                $newOffset = $currentOffset + $appliedOffset;
+                
+                $totalTreesRequired = ceil($emissionLimit / $treeOffsetValue);
+                $treesPlanted = floor($newOffset / $treeOffsetValue);
+                
+                $offsetPercentage = $totalTreesRequired > 0
+                    ? min(round(($treesPlanted / $totalTreesRequired) * 100, 2), 100)
                     : 0;
 
                 $itinerary->update([
                     'offsetAmount' => $newOffset,
-                    'numberOfTrees' => round($newOffset / $treeOffsetValue),
+                    'numberOfTrees' => $treesPlanted,
                     'offsetPercentage' => $offsetPercentage,
                     'status' => match (true) {
                         $newOffset == 0 => 'pending',
-                        $newOffset < $emissionLimit => 'partial',
+                        $offsetPercentage < 100 => 'partial',
                         default => 'completed',
                     },
                 ]);
 
+                // Store extra as credit (NO credit usage for this offset)
                 if ($extraOffset > 0) {
                     $user->offsetCredit += $extraOffset;
                 }
@@ -479,9 +476,9 @@ class SingleItineraryController extends Controller
             $singleItinerary->save();
             $updatedUser = $user;
 
-            /** ✅ CALCULATE TREE COUNT (SAME AS show()) */
+            // Return tree-based credit info for UI
             if ($treeOffsetValue > 0 && $user->offsetCredit > 0) {
-                $offsetCreditAdded = round($user->offsetCredit / $treeOffsetValue);
+                $offsetCreditAdded = floor($user->offsetCredit / $treeOffsetValue);
             } else {
                 $offsetCreditAdded = 0;
             }
@@ -851,28 +848,28 @@ class SingleItineraryController extends Controller
             /** ---------------- SAVE SINGLE ITINERARY ---------------- */
             $singleItinerary->update([
                 'emissionOffset' => $appliedOffset,
-                'treesPlanted' => round($appliedOffset / $treeOffsetValue),
+                'treesPlanted' => floor($appliedOffset / $treeOffsetValue),
             ]);
 
             /** ---------------- UPDATE MASTER ITINERARY ---------------- */
             $newOffset = ($currentOffset - $oldOffset) + $appliedOffset;
-            $newTrees = round($newOffset / $treeOffsetValue);
+            
+            $totalTreesRequired = ceil($emissionLimit / $treeOffsetValue);
+            $treesPlanted = floor($newOffset / $treeOffsetValue);
 
-            $offsetPercentage = $emissionLimit > 0
-                ? min(round(($newOffset / $emissionLimit) * 100, 2), 100)
+            $offsetPercentage = $totalTreesRequired > 0
+                ? min(round(($treesPlanted / $totalTreesRequired) * 100, 2), 100)
                 : 0;
-
-            $status = match (true) {
-                $offsetPercentage == 0 => 'pending',
-                $offsetPercentage < 100 => 'partial',
-                default => 'completed',
-            };
 
             $itinerary->update([
                 'offsetAmount' => $newOffset,
-                'numberOfTrees' => $newTrees,
+                'numberOfTrees' => $treesPlanted,
                 'offsetPercentage' => $offsetPercentage,
-                'status' => $status,
+                'status' => match (true) {
+                    $newOffset == 0 => 'pending',
+                    $offsetPercentage < 100 => 'partial',
+                    default => 'completed',
+                },
             ]);
 
             /** ---------------- USER OFFSET CREDIT ---------------- */
@@ -880,12 +877,14 @@ class SingleItineraryController extends Controller
                 ->lockForUpdate()
                 ->first();
 
-            $user->offsetCredit += $extraOffset;
-            $user->save();
+            if ($extraOffset > 0) {
+                $user->offsetCredit += $extraOffset;
+                $user->save();
+            }
 
-            /** ✅ RETURN TREE COUNT (SAME AS show()) */
+            /** ✅ RETURN TREE COUNT */
             if ($treeOffsetValue > 0 && $user->offsetCredit > 0) {
-                $offsetCreditAdded = round($user->offsetCredit / $treeOffsetValue);
+                $offsetCreditAdded = floor($user->offsetCredit / $treeOffsetValue);
             } else {
                 $offsetCreditAdded = 0;
             }
