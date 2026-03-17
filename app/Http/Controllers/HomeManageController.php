@@ -151,8 +151,6 @@ class HomeManageController extends Controller
             // Fetch top content (usually id 1 and 2 for terms/privacy)
             $topContent = ServicesPolicyContent::all();
 
-            $formContent = FormContent::all();
-
             return [
                 'carousel' => $carousel,
                 'cards' => $cards,
@@ -163,8 +161,7 @@ class HomeManageController extends Controller
                 'backgroundImage' => $bgImage,
                 'terms' => $terms,
                 'privacyPolicy' => $privacyPolicy,
-                'topContent' => $topContent,
-                'formContent' => $formContent
+                'topContent' => $topContent
             ];
         });
 
@@ -174,6 +171,9 @@ class HomeManageController extends Controller
             $content['visualSection']['totalOffsetTonnes'] = (float) round(ItineraryData::sum('offsetAmount') / 1000, 2);
             $content['visualSection']['totalTreesPlanted'] = (int) ItineraryData::sum('numberOfTrees');
         }
+
+        // Add formContent outside the cache to ensure it's always live
+        $content['formContent'] = FormContent::all();
 
         return $content;
     }
