@@ -434,31 +434,34 @@ class SingleItineraryController extends Controller
 
                 // Offset is capped by remaining emission
                 $appliedOffset = min($requestedOffset, $remainingEmission);
-                // Extra offset is stored as credit
+                // Extra offset is stored as credit (NO credit usage for this payment)
                 $extraOffset = $requestedOffset - $appliedOffset;
 
                 $singleItinerary->emissionOffset = $appliedOffset;
-                $singleItinerary->treesPlanted = floor($appliedOffset / $treeOffsetValue);
+                $singleItinerary->treesPlanted = round($appliedOffset / $treeOffsetValue);
 
                 /** ---------------- UPDATE MASTER ITINERARY ---------------- */
                 $newOffset = $currentOffset + $appliedOffset;
+                
+                $totalTrees = (int) ceil($emissionLimit / $treeOffsetValue);
+                $numberOfTrees = (int) round($newOffset / $treeOffsetValue);
+                
+                // Consistency check: If journey is fully offset by weight, match the required tree count
+                if ($newOffset >= $emissionLimit) {
+                    $numberOfTrees = $totalTrees;
+                }
 
-                // Sync base metrics to master table first
-                $itinerary->update([
-                    'offsetAmount' => $newOffset,
-                    'numberOfTrees' => floor($newOffset / $treeOffsetValue),
-                    'totalTrees' => ceil($emissionLimit / $treeOffsetValue),
-                ]);
-
-                // Calculate percentage based on the now-stored tree counts
-                $offsetPercentage = $itinerary->totalTrees > 0
-                    ? ($itinerary->numberOfTrees / $itinerary->totalTrees) * 100
+                $offsetPercentage = $totalTrees > 0
+                    ? ($numberOfTrees / $totalTrees) * 100
                     : 0;
 
                 $itinerary->update([
+                    'offsetAmount' => $newOffset,
+                    'totalTrees' => $totalTrees,
+                    'numberOfTrees' => $numberOfTrees,
                     'offsetPercentage' => $offsetPercentage,
                     'status' => match (true) {
-                        $itinerary->offsetAmount == 0 => 'pending',
+                        $offsetPercentage == 0 => 'pending',
                         $offsetPercentage < 100 => 'partial',
                         default => 'completed',
                     },
@@ -479,7 +482,7 @@ class SingleItineraryController extends Controller
 
             /** ✅ CALCULATE TREE COUNT (SAME AS show()) */
             if ($treeOffsetValue > 0 && $user->offsetCredit > 0) {
-                $offsetCreditAdded = floor($user->offsetCredit / $treeOffsetValue);
+                $offsetCreditAdded = round($user->offsetCredit / $treeOffsetValue);
             } else {
                 $offsetCreditAdded = 0;
             }
@@ -851,28 +854,31 @@ class SingleItineraryController extends Controller
             /** ---------------- SAVE SINGLE ITINERARY ---------------- */
             $singleItinerary->update([
                 'emissionOffset' => $appliedOffset,
-                'treesPlanted' => floor($appliedOffset / $treeOffsetValue),
+                'treesPlanted' => round($appliedOffset / $treeOffsetValue),
             ]);
 
             /** ---------------- UPDATE MASTER ITINERARY ---------------- */
             $newOffset = ($currentOffset - $oldOffset) + $appliedOffset;
+            
+            $totalTrees = (int) ceil($emissionLimit / $treeOffsetValue);
+            $numberOfTrees = (int) round($newOffset / $treeOffsetValue);
+            
+            // Consistency check: If journey is fully offset by weight, match the required tree count
+            if ($newOffset >= $emissionLimit) {
+                $numberOfTrees = $totalTrees;
+            }
 
-            // Sync base metrics to master table first
-            $itinerary->update([
-                'offsetAmount' => $newOffset,
-                'numberOfTrees' => floor($newOffset / $treeOffsetValue),
-                'totalTrees' => ceil($emissionLimit / $treeOffsetValue),
-            ]);
-
-            // Calculate percentage based on the now-stored tree counts
-            $offsetPercentage = $itinerary->totalTrees > 0
-                ? ($itinerary->numberOfTrees / $itinerary->totalTrees) * 100
+            $offsetPercentage = $totalTrees > 0
+                ? ($numberOfTrees / $totalTrees) * 100
                 : 0;
 
             $itinerary->update([
+                'offsetAmount' => $newOffset,
+                'totalTrees' => $totalTrees,
+                'numberOfTrees' => $numberOfTrees,
                 'offsetPercentage' => $offsetPercentage,
                 'status' => match (true) {
-                    $itinerary->offsetAmount == 0 => 'pending',
+                    $offsetPercentage == 0 => 'pending',
                     $offsetPercentage < 100 => 'partial',
                     default => 'completed',
                 },
@@ -890,7 +896,7 @@ class SingleItineraryController extends Controller
 
             /** ✅ RETURN TREE COUNT (SAME AS show()) */
             if ($treeOffsetValue > 0 && $user->offsetCredit > 0) {
-                $offsetCreditAdded = floor($user->offsetCredit / $treeOffsetValue);
+                $offsetCreditAdded = round($user->offsetCredit / $treeOffsetValue);
             } else {
                 $offsetCreditAdded = 0;
             }

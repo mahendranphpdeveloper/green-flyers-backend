@@ -215,7 +215,7 @@ class AuthController extends Controller
                 'userName' => $user->userName,
                 'userEmail' => $user->userEmail,
                 'profilePic' => $user->profilePic,
-                'offsetCredit' => $treeCount,
+                // 'offsetCredit' => $treeCount,
             ]
         ], 200);
     }
@@ -277,7 +277,7 @@ class AuthController extends Controller
                 'userName' => $user->userName,
                 'userEmail' => $user->userEmail,
                 'profilePic' => $user->profilePic,
-                'offsetCredit' => $user->offsetCredit,
+                // 'offsetCredit' => $user->offsetCredit,
                 'treeCredit' => $user->treeCredit,
             ]
         ]);
@@ -365,7 +365,7 @@ class AuthController extends Controller
                 'userName' => $user->userName,
                 'userEmail' => $user->userEmail,
                 'profilePic' => $user->profilePic,
-                'offsetCredit' => $treeCount,
+                // 'offsetCredit' => $treeCount,
             ]
         ], $isNewUser ? 201 : 200);
     }
@@ -477,7 +477,7 @@ class AuthController extends Controller
                 'name' => $user->userName,
                 'email' => $user->userEmail,
                 'profilePic' => $user->profilePic,
-                'offsetCredit' => $treeCount,
+                // 'offsetCredit' => $treeCount,
             ]
         ]);
     }
@@ -594,7 +594,7 @@ class AuthController extends Controller
                 'name' => $user->userName,
                 'email' => $user->userEmail,
                 'profilePic' => $user->profilePic,
-                'offsetCredit' => $treeCount,
+                // 'offsetCredit' => $treeCount,
             ]
         ]);
     }
@@ -681,8 +681,8 @@ class AuthController extends Controller
                 'name' => $user->userName,
                 'email' => $user->userEmail,
                 'profilePic' => $user->profilePic ?? null,
-                'offsetCredit' => $user->offsetCredit,
-                'treeCredit' => $user->treeCredit,
+                // 'offsetCredit' => $user->offsetCredit,
+                // 'treeCredit' => $user->treeCredit,
             ]
         ]);
     }
