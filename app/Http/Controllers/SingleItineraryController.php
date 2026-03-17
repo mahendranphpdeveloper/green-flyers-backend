@@ -365,7 +365,7 @@ class SingleItineraryController extends Controller
     //     ]);
     // }
 
-      public function store(Request $request)
+     public function store(Request $request)
     {
         Log::info('store() called in SingleItineraryController', [
             'request' => $request->all()
@@ -428,14 +428,13 @@ class SingleItineraryController extends Controller
             }
 
             if (strcasecmp($approvalStatus, 'Completed') === 0 || $requestedOffset > 0) {
-                // Core Logic: Application is capped by emission limit
                 $emissionLimit = $itinerary->emission;
                 $currentOffset = $itinerary->offsetAmount ?? 0;
                 $remainingEmission = max($emissionLimit - $currentOffset, 0);
 
-                // Applied is what fits in the itinerary
+                // Offset is capped by remaining emission
                 $appliedOffset = min($requestedOffset, $remainingEmission);
-                // Extra is stored for future or other use
+                // Extra offset is stored as credit
                 $extraOffset = $requestedOffset - $appliedOffset;
 
                 $singleItinerary->emissionOffset = $appliedOffset;
@@ -443,31 +442,33 @@ class SingleItineraryController extends Controller
 
                 /** ---------------- UPDATE MASTER ITINERARY ---------------- */
                 $newOffset = $currentOffset + $appliedOffset;
-                
-                $totalTreesRequired = ceil($emissionLimit / $treeOffsetValue);
-                $treesPlanted = floor($newOffset / $treeOffsetValue);
-                
-                $offsetPercentage = $totalTreesRequired > 0
-                    ? min(round(($treesPlanted / $totalTreesRequired) * 100, 2), 100)
+
+                // Sync base metrics to master table first
+                $itinerary->update([
+                    'offsetAmount' => $newOffset,
+                    'numberOfTrees' => floor($newOffset / $treeOffsetValue),
+                    'totalTrees' => ceil($emissionLimit / $treeOffsetValue),
+                ]);
+
+                // Calculate percentage based on the now-stored tree counts
+                $offsetPercentage = $itinerary->totalTrees > 0
+                    ? ($itinerary->numberOfTrees / $itinerary->totalTrees) * 100
                     : 0;
 
                 $itinerary->update([
-                    'offsetAmount' => $newOffset,
-                    'numberOfTrees' => $treesPlanted,
                     'offsetPercentage' => $offsetPercentage,
                     'status' => match (true) {
-                        $newOffset == 0 => 'pending',
+                        $itinerary->offsetAmount == 0 => 'pending',
                         $offsetPercentage < 100 => 'partial',
                         default => 'completed',
                     },
                 ]);
 
-                // Store extra as credit (NO credit usage for this offset)
+                // Store extra offset as credit
                 if ($extraOffset > 0) {
                     $user->offsetCredit += $extraOffset;
+                    $user->save();
                 }
-
-                $user->save();
             } else {
                 $singleItinerary->emissionOffset = 0;
                 $singleItinerary->treesPlanted = 0;
@@ -476,7 +477,7 @@ class SingleItineraryController extends Controller
             $singleItinerary->save();
             $updatedUser = $user;
 
-            // Return tree-based credit info for UI
+            /** ✅ CALCULATE TREE COUNT (SAME AS show()) */
             if ($treeOffsetValue > 0 && $user->offsetCredit > 0) {
                 $offsetCreditAdded = floor($user->offsetCredit / $treeOffsetValue);
             } else {
@@ -494,6 +495,8 @@ class SingleItineraryController extends Controller
                 : 0,
         ]);
     }
+
+      
 
 
 
@@ -759,7 +762,7 @@ class SingleItineraryController extends Controller
     //     ]);
     // }
 
-     public function update(Request $request, $id)
+    public function update(Request $request, $id)
     {
         $authUser = $request->user();
         if (!$authUser) {
@@ -853,20 +856,23 @@ class SingleItineraryController extends Controller
 
             /** ---------------- UPDATE MASTER ITINERARY ---------------- */
             $newOffset = ($currentOffset - $oldOffset) + $appliedOffset;
-            
-            $totalTreesRequired = ceil($emissionLimit / $treeOffsetValue);
-            $treesPlanted = floor($newOffset / $treeOffsetValue);
 
-            $offsetPercentage = $totalTreesRequired > 0
-                ? min(round(($treesPlanted / $totalTreesRequired) * 100, 2), 100)
+            // Sync base metrics to master table first
+            $itinerary->update([
+                'offsetAmount' => $newOffset,
+                'numberOfTrees' => floor($newOffset / $treeOffsetValue),
+                'totalTrees' => ceil($emissionLimit / $treeOffsetValue),
+            ]);
+
+            // Calculate percentage based on the now-stored tree counts
+            $offsetPercentage = $itinerary->totalTrees > 0
+                ? ($itinerary->numberOfTrees / $itinerary->totalTrees) * 100
                 : 0;
 
             $itinerary->update([
-                'offsetAmount' => $newOffset,
-                'numberOfTrees' => $treesPlanted,
                 'offsetPercentage' => $offsetPercentage,
                 'status' => match (true) {
-                    $newOffset == 0 => 'pending',
+                    $itinerary->offsetAmount == 0 => 'pending',
                     $offsetPercentage < 100 => 'partial',
                     default => 'completed',
                 },
@@ -882,7 +888,7 @@ class SingleItineraryController extends Controller
                 $user->save();
             }
 
-            /** ✅ RETURN TREE COUNT */
+            /** ✅ RETURN TREE COUNT (SAME AS show()) */
             if ($treeOffsetValue > 0 && $user->offsetCredit > 0) {
                 $offsetCreditAdded = floor($user->offsetCredit / $treeOffsetValue);
             } else {
@@ -898,6 +904,7 @@ class SingleItineraryController extends Controller
         ]);
     }
 
+     
 
 
 
