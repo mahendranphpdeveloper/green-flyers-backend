@@ -43,9 +43,70 @@ class HomeManageController extends Controller
     /**
      * Unified endpoint for all landing page content with caching.
      */
+    // public function getLandingContent()
+    // {
+    //     return Cache::rememberForever('landing_page_content', function () {
+    //         $carousel = HomeCarouselData::where('isActive', 'true')->orderBy('order')->get()->map(function ($item) {
+    //             $item->isActive = true;
+    //             return $item;
+    //         });
+
+    //         $cards = HomeCardData::where('isActive', 'true')->orderBy('order')->get()->map(function ($item) {
+    //             $item->isActive = true;
+    //             return $item;
+    //         });
+
+    //         $faqs = HomeFaqData::where('isActive', 'true')->orderBy('order')->get()->map(function ($faq) {
+    //             $faq->isActive = true;
+    //             return $faq;
+    //         });
+
+    //         $section = FaqVisualSection::first();
+    //         $visualData = null;
+    //         if ($section) {
+    //             $visualData = $section->toArray();
+    //             if (isset($visualData['floating_cards']) && is_string($visualData['floating_cards'])) {
+    //                 $visualData['floating_cards'] = json_decode($visualData['floating_cards'], true);
+    //             }
+    //             if (isset($visualData['quick_stats']) && is_string($visualData['quick_stats'])) {
+    //                 $visualData['quick_stats'] = json_decode($visualData['quick_stats'], true);
+    //             }
+    //         }
+
+    //         $cta1 = CallToAction::find(1);
+    //         $cta2 = CallToAction::find(2);
+
+    //         $bgImage = BackgroundImage::find(1);
+    //         $terms = TeamofServices::where('isActive', true)->orderBy('order')->get()->map(function ($item) {
+    //             $item->isActive = (bool) $item->isActive;
+    //             return $item;
+    //         });
+    //         $privacyPolicy = PrivacyPolicy::where('isActive', true)->orderBy('order')->get()->map(function ($item) {
+    //             $item->isActive = (bool) $item->isActive;
+    //             return $item;
+    //         });
+
+    //         // Fetch top content (usually id 1 and 2 for terms/privacy)
+    //         $topContent = ServicesPolicyContent::all();
+
+    //         return [
+    //             'carousel' => $carousel,
+    //             'cards' => $cards,
+    //             'faq' => $faqs,
+    //             'visualSection' => $visualData,
+    //             'cta1' => $cta1,
+    //             'cta2' => $cta2,
+    //             'backgroundImage' => $bgImage,
+    //             'terms' => $terms,
+    //             'privacyPolicy' => $privacyPolicy,
+    //             'topContent' => $topContent
+    //         ];
+    //     });
+    // }
+
     public function getLandingContent()
     {
-        return Cache::rememberForever('landing_page_content', function () {
+        $content = Cache::rememberForever('landing_page_content', function () {
             $carousel = HomeCarouselData::where('isActive', 'true')->orderBy('order')->get()->map(function ($item) {
                 $item->isActive = true;
                 return $item;
@@ -102,6 +163,13 @@ class HomeManageController extends Controller
                 'topContent' => $topContent
             ];
         });
+
+        // Add live stats
+        $content['totalUserCount'] = User::count();
+        $content['totalOffsetTonnes'] = (float) round(ItineraryData::sum('offsetAmount') / 1000, 2);
+        $content['totalTreesPlanted'] = (int) ItineraryData::sum('numberOfTrees');
+
+        return $content;
     }
 
 
