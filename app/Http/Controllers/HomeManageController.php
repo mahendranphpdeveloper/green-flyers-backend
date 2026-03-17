@@ -17,6 +17,7 @@ use App\Models\TeamofServices;
 use App\Models\ServicesPolicyContent;
 use App\Models\User;
 use App\Models\ItineraryData;
+use App\Models\FormContent;
 use Illuminate\Support\Facades\Cache;
 
 
@@ -150,6 +151,8 @@ class HomeManageController extends Controller
             // Fetch top content (usually id 1 and 2 for terms/privacy)
             $topContent = ServicesPolicyContent::all();
 
+            $formContent = FormContent::find(1);
+
             return [
                 'carousel' => $carousel,
                 'cards' => $cards,
@@ -160,7 +163,8 @@ class HomeManageController extends Controller
                 'backgroundImage' => $bgImage,
                 'terms' => $terms,
                 'privacyPolicy' => $privacyPolicy,
-                'topContent' => $topContent
+                'topContent' => $topContent,
+                'formContent' => $formContent
             ];
         });
 
@@ -861,6 +865,52 @@ class HomeManageController extends Controller
             'status' => true,
             'message' => 'Call To Action 2 updated successfully',
             'data' => $cta
+        ]);
+    }
+
+    /**
+     * GET Form Content (id = 1)
+     */
+    public function getHomeFormContent()
+    {
+        $formContent = FormContent::find(1);
+
+        Log::info('Form content fetched');
+
+        return response()->json([
+            'status' => true,
+            'data' => $formContent
+        ]);
+    }
+
+    /**
+     * PUT Form Content (id = 1)
+     */
+    public function updateHomeFormContent(Request $request)
+    {
+        if ($response = $this->checkAdmin($request)) {
+            return $response;
+        }
+
+        $request->validate([
+            'title' => 'required|string',
+            'description' => 'required|string',
+        ]);
+
+        $formContent = FormContent::updateOrCreate(
+            ['id' => 1],
+            [
+                'title' => $request->title,
+                'description' => $request->description
+            ]
+        );
+
+        Log::info('Form content updated', ['id' => 1]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Form content updated successfully',
+            'data' => $formContent
         ]);
     }
 

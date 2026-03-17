@@ -177,6 +177,8 @@ Route::middleware(['auth:admin', 'admin'])->group(function () {
 
         Route::put('/faq/visual-section/{id}', [\App\Http\Controllers\HomeManageController::class, 'updateHomeVisualSection']);
 
+        Route::put('/form-content', [\App\Http\Controllers\HomeManageController::class, 'updateHomeFormContent']);
+
         Route::put('/bgimage', [\App\Http\Controllers\HomeManageController::class, 'updateLoginBackgroundImage']);
 
         Route::post('/terms', [\App\Http\Controllers\HomeManageController::class, 'storeHomeTerms']);
@@ -257,6 +259,7 @@ Route::prefix('/admin/home-manage')->group(function () {
     Route::get('/call-to-action2', [\App\Http\Controllers\HomeManageController::class, 'getHomeCallToAction2']);
     Route::get('/faq', [\App\Http\Controllers\HomeManageController::class, 'getHomeFAQ']);
     Route::get('/faq/visual-section', [\App\Http\Controllers\HomeManageController::class, 'getHomeVisualSection']);
+    Route::get('/form-content', [\App\Http\Controllers\HomeManageController::class, 'getHomeFormContent']);
     Route::get('/bgimage', [\App\Http\Controllers\HomeManageController::class, 'getLoginBackgroundImage']);
     Route::get('/terms', [\App\Http\Controllers\HomeManageController::class, 'getHomeTerms']);
     Route::get('/privacy-policy', [\App\Http\Controllers\HomeManageController::class, 'getHomePrivacyPolicy']);

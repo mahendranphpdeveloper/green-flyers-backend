@@ -126,11 +126,17 @@ class NotificationService
                      ->subject($title);
             });
 
+            $origin = $itinerary->origin ?? 'N/A';
+            $destination = $itinerary->destination ?? 'N/A';
+            $tripDate = $itinerary->date ? Carbon::parse($itinerary->date)->format('d-m-Y') : 'N/A';
+
+            $messageStr = "Reminder: Please complete your offset for your trip {$origin} → {$destination} on {$tripDate}.";
+
             UserNotification::create([
                 'singleitinerary_id' => $itinerary->ItineraryId,
                 'user_id'            => $user->userId,
                 'title'              => 'Offset Reminder',
-                'message'            => "Trip ID: {$itinerary->ItineraryId}",
+                'message'            => $messageStr,
                 'status'             => 'reminder',
                 'sent_at'            => now(),
             ]);
