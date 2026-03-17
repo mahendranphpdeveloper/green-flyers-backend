@@ -164,10 +164,12 @@ class HomeManageController extends Controller
             ];
         });
 
-        // Add live stats
-        $content['totalUserCount'] = User::count();
-        $content['totalOffsetTonnes'] = (float) round(ItineraryData::sum('offsetAmount') / 1000, 2);
-        $content['totalTreesPlanted'] = (int) ItineraryData::sum('numberOfTrees');
+        // Add live stats nested in visualSection
+        if (isset($content['visualSection'])) {
+            $content['visualSection']['totalUserCount'] = User::count();
+            $content['visualSection']['totalOffsetTonnes'] = (float) round(ItineraryData::sum('offsetAmount') / 1000, 2);
+            $content['visualSection']['totalTreesPlanted'] = (int) ItineraryData::sum('numberOfTrees');
+        }
 
         return $content;
     }
@@ -696,19 +698,17 @@ class HomeManageController extends Controller
             $data = null;
         }
 
-        // Calculate dynamic stats
-        $totalUserCount = User::count();
-        $totalOffsetAmount = ItineraryData::sum('offsetAmount');
-        $totalTreesPlanted = ItineraryData::sum('numberOfTrees');
-        $totalOffsetTonnes = $totalOffsetAmount / 1000;
+        // Add dynamic stats nested in data
+        if ($data) {
+            $data['totalUserCount'] = User::count();
+            $data['totalOffsetTonnes'] = (float) round(ItineraryData::sum('offsetAmount') / 1000, 2);
+            $data['totalTreesPlanted'] = (int) ItineraryData::sum('numberOfTrees');
+        }
 
         Log::info('FAQ visual section fetched with dynamic stats');
 
         return response()->json([
             'status' => true,
-            'totalUserCount' => $totalUserCount,
-            'totalOffsetTonnes' => round($totalOffsetTonnes, 2),
-            'totalTreesPlanted' => (int) $totalTreesPlanted,
             'data' => $data
         ]);
     }
