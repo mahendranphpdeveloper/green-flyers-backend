@@ -151,7 +151,7 @@ class HomeManageController extends Controller
             // Fetch top content (usually id 1 and 2 for terms/privacy)
             $topContent = ServicesPolicyContent::all();
 
-            $formContent = FormContent::find(1);
+            $formContent = FormContent::all();
 
             return [
                 'carousel' => $carousel,
