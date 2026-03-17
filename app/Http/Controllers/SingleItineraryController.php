@@ -449,22 +449,31 @@ class SingleItineraryController extends Controller
                 $singleItinerary->treesPlanted = round(
                     $singleItinerary->emissionOffset / $treeOffsetValue
                 );
-
                 $newOffset = $currentOffset + $singleItinerary->emissionOffset;
-                $offsetPercentage = $emissionLimit > 0
-                    ? min(round(($newOffset / $emissionLimit) * 100, 2), 100)
-                    : 0;
+
+                $requiredTrees = (int) ($itinerary->totalTrees ?? 0);
+                $plantedTrees = (int) round($newOffset / $treeOffsetValue);
+
+                if ($plantedTrees >= $requiredTrees && $requiredTrees > 0) {
+                    $offsetPercentage = 100;
+                    $status = 'completed';
+                    // align offset to emission
+                    $newOffset = $emissionLimit;
+                } else {
+                    $offsetPercentage = $requiredTrees > 0
+                        ? round(($plantedTrees / $requiredTrees) * 100, 2)
+                        : 0;
+
+                    $status = $plantedTrees > 0 ? 'partial' : 'pending';
+                }
 
                 $itinerary->update([
                     'offsetAmount' => $newOffset,
-                    'numberOfTrees' => round($newOffset / $treeOffsetValue),
+                    'numberOfTrees' => $plantedTrees,
                     'offsetPercentage' => $offsetPercentage,
-                    'status' => match (true) {
-                        $newOffset == 0 => 'pending',
-                        $newOffset < $emissionLimit => 'partial',
-                        default => 'completed',
-                    },
+                    'status' => $status,
                 ]);
+
 
                 if ($extraOffset > 0) {
                     $user->offsetCredit += $extraOffset;
@@ -863,21 +872,26 @@ class SingleItineraryController extends Controller
 
             /** ---------------- UPDATE MASTER ITINERARY ---------------- */
             $newOffset = ($currentOffset - $oldOffset) + $appliedOffset;
-            $newTrees = round($newOffset / $treeOffsetValue);
+            
+            $requiredTrees = (int) ($itinerary->totalTrees ?? 0);
+            $plantedTrees = (int) round($newOffset / $treeOffsetValue);
 
-            $offsetPercentage = $emissionLimit > 0
-                ? min(round(($newOffset / $emissionLimit) * 100, 2), 100)
-                : 0;
+            if ($plantedTrees >= $requiredTrees && $requiredTrees > 0) {
+                $offsetPercentage = 100;
+                $status = 'completed';
+                // align offset to emission
+                $newOffset = $emissionLimit;
+            } else {
+                $offsetPercentage = $requiredTrees > 0
+                    ? round(($plantedTrees / $requiredTrees) * 100, 2)
+                    : 0;
 
-            $status = match (true) {
-                $offsetPercentage == 0 => 'pending',
-                $offsetPercentage < 100 => 'partial',
-                default => 'completed',
-            };
+                $status = $plantedTrees > 0 ? 'partial' : 'pending';
+            }
 
             $itinerary->update([
                 'offsetAmount' => $newOffset,
-                'numberOfTrees' => $newTrees,
+                'numberOfTrees' => $plantedTrees,
                 'offsetPercentage' => $offsetPercentage,
                 'status' => $status,
             ]);
