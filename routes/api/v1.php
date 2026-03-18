@@ -220,7 +220,7 @@ Route::middleware(['auth:admin', 'admin'])->group(function () {
 
     Route::prefix('itineraries')->group(function () {
         Route::get('/{id}', [\App\Http\Controllers\ItineraryController::class, 'show']);
-        Route::delete('/{userId}/{itineraryId}', [\App\Http\Controllers\ItineraryController::class, 'destroy']);
+        // Route::delete('/{userId}/{itineraryId}', [\App\Http\Controllers\ItineraryController::class, 'destroy']);
     });
 
     Route::prefix('singleItinerary')->group(function () {
@@ -284,6 +284,8 @@ Route::get('/treeoffsetvalue', [\App\Http\Controllers\HomeManageController::clas
 
 // Mark notification as read
 Route::put('/users/notifications/{id}', [\App\Http\Controllers\AdminNotificationController::class, 'markAsRead']);
+
+Route::delete('itineraries/{userId}/{itineraryId}', [\App\Http\Controllers\ItineraryController::class, 'destroy']);
 
 Route::post('singleItinerary/store', [\App\Http\Controllers\SingleItineraryController::class, 'store']);
 
