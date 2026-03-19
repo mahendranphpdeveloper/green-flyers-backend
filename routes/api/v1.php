@@ -42,12 +42,7 @@ Route::post('/auth/google-login', [\App\Http\Controllers\AuthController::class, 
 Route::post('/auth/facebook-login', [\App\Http\Controllers\AuthController::class, 'facebookLogin']);
 Route::post('/auth/linkedin-login', [\App\Http\Controllers\AuthController::class, 'linkedinLogin']);
 
-// Route::middleware('auth:user')->get('/auth/me', function (Request $request) {
-//     return response()->json([
-//         'status' => true,
-//         'user' => $request->user()
-//     ]);
-// });
+
 
 Route::get('/auth/me', function (Request $request) {
 
@@ -78,12 +73,12 @@ Route::middleware('auth:user')->group(function () {
     Route::get('/profile', [\App\Http\Controllers\UserController::class, 'profile']);
 
     Route::prefix('users')->group(function () {
-        // Route::get('/', [\App\Http\Controllers\UserController::class, 'index']);
+       
         Route::get('/emission-offset-chart/{id}', [\App\Http\Controllers\UserController::class, 'getEmissionOffsetChart']);
         Route::post('/', [\App\Http\Controllers\UserController::class, 'store']);
         Route::get('/{id}', [\App\Http\Controllers\UserController::class, 'show']);
         Route::put('/{id}', [\App\Http\Controllers\UserController::class, 'update']);
-        // Route::delete('/{id}', [\App\Http\Controllers\UserController::class, 'destroy']);
+       
     });
 
     /*--------------------------------------------------------------------------
@@ -101,12 +96,6 @@ Route::middleware('auth:user')->group(function () {
 
 
     //SingleItinerary 
-    // Route::prefix('singleItinerary')->group(function () {
-
-    //     // Route::post('/store', [\App\Http\Controllers\SingleItineraryController::class, 'store']);
-    //     Route::get('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'show']);
-    // });
-
     Route::get('/singleItinerary/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'show']);
      
 
@@ -121,7 +110,7 @@ Route::middleware('auth:user')->group(function () {
    */
 
     Route::prefix('vendors')->group(function () {
-        // Route::get('/', [\App\Http\Controllers\VendorController::class, 'index']);
+        
         Route::get('/projects_contributed', [\App\Http\Controllers\VendorController::class, 'getProjectContributors']);
 
 
@@ -215,19 +204,20 @@ Route::middleware(['auth:admin', 'admin'])->group(function () {
 
     Route::prefix('users')->group(function () {
         Route::get('/', [\App\Http\Controllers\UserController::class, 'index']);
+        Route::post('/', [\App\Http\Controllers\UserController::class, 'store']);
         Route::delete('/{id}', [\App\Http\Controllers\UserController::class, 'destroy']);
     });
 
     Route::prefix('itineraries')->group(function () {
         Route::get('/{id}', [\App\Http\Controllers\ItineraryController::class, 'show']);
-        // Route::delete('/{userId}/{itineraryId}', [\App\Http\Controllers\ItineraryController::class, 'destroy']);
+        
     });
 
     Route::prefix('singleItinerary')->group(function () {
         Route::get('/', [\App\Http\Controllers\SingleItineraryController::class, 'index']);
-        // Route::get('/{userId}/itinerary/{ItineraryId}', [\App\Http\Controllers\SingleItineraryController::class, 'getByUserAndItinerary']);
+        
         Route::put('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'update']);
-        // Route::delete('/{id}', [\App\Http\Controllers\SingleItineraryController::class, 'destroy']);
+        
     });
 
     Route::prefix('vendors')->group(function () {

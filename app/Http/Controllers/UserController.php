@@ -15,15 +15,7 @@ class UserController extends Controller
     /**
      * Display a listing of the resource.
      */
-    // public function index(Request $request)
-    // {
-    //     // Return all user data
-    //     $users = User::all();
-    //     return response()->json([
-    //         'status' => true,
-    //         'users' => $users,
-    //     ]);
-    // }
+    
 
     public function index(Request $request)
     {
@@ -96,10 +88,77 @@ class UserController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
-    {
-        //
+   public function store(Request $request)
+{
+    Log::info('UserController@store called', [
+        'userName' => $request->input('userName'),
+        'userEmail' => $request->input('userEmail'),
+    ]);
+
+    // Get authenticated user
+    $admin = $request->user();
+
+    // Check if logged in
+    if (!$admin) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Unauthorized - Not logged in',
+        ], 401);
     }
+
+    // Check admin
+    $isAdmin = AdminData::where('id', $admin->id)->exists();
+
+    if (!$isAdmin) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Unauthorized - Not an admin',
+        ], 403);
+    }
+
+    // Validate (removed unique)
+    $validatedData = $request->validate([
+        'userName' => 'required|string|max:255',
+        'userEmail' => 'required|email',
+    ]);
+
+    try {
+        // Manual check for existing user
+        $existingUser = User::where('userEmail', $validatedData['userEmail'])->first();
+
+        if ($existingUser) {
+            return response()->json([
+                'status' => false,
+                'message' => 'User already exists',
+            ], 409); // 409 Conflict (best practice)
+        }
+
+        // Create user
+        $user = User::create([
+            'userName' => $validatedData['userName'],
+            'userEmail' => $validatedData['userEmail'],
+            'is_new_user' => 1,
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'User created successfully',
+            'user' => $user,
+        ], 201);
+
+    } catch (\Exception $e) {
+        Log::error('Error creating user', [
+            'error' => $e->getMessage(),
+            'admin_id' => $admin->id,
+        ]);
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Failed to create user',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
 
     /**
      * Display the specified resource.
