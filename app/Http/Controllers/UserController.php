@@ -129,7 +129,7 @@ class UserController extends Controller
         if ($existingUser) {
             return response()->json([
                 'status' => false,
-                'message' => 'User already exists',
+                'message' => 'Email already exists',
             ], 409); // 409 Conflict (best practice)
         }
 
