@@ -15,3 +15,5 @@ Schedule::call(function () {
     Log::info('Laravel 12 scheduler triggered at ' . now()->toDateTimeString());
     NotificationService::sendItineraryReminders();
 })->everyFifteenMinutes();
+
+Schedule::command('db:backup')->hourly();
