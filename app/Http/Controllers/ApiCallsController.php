@@ -600,5 +600,17 @@ public function getFromDbByApiCallId($api_call_id)
         ], 201);
     }
 
+     public function getDeletedItineraries()
+    {
+        // Using DB::table to ensure direct fetch from the table
+        $deletedItineraries = DB::table('deleteitinerary')->orderBy('id', 'desc')->get();
+
+        return response()->json([
+            'status' => true,
+            'count'  => $deletedItineraries->count(),
+            'data'   => $deletedItineraries,
+        ]);
+    }
+
     
 }

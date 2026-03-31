@@ -282,6 +282,7 @@ Route::post('singleItinerary/store', [\App\Http\Controllers\SingleItineraryContr
 // Route::get('/emission/details', [\App\Http\Controllers\ApiCallsController::class, 'getEmissionDetails']);
 
 Route::get('/emission/api-calls/stats', [\App\Http\Controllers\ApiCallsController::class, 'apiCallsDashboardStats']);
+Route::get('/itineraries/deleted/details', [\App\Http\Controllers\ApiCallsController::class, 'getDeletedItineraries']);
 Route::get('/emission/api-calls/details', [\App\Http\Controllers\ApiCallsController::class, 'getApiCallDetails']);
 Route::get('/emission/from-db/details', [\App\Http\Controllers\ApiCallsController::class, 'getAllFromDb']);
 Route::post('/emission/verify', [\App\Http\Controllers\ApiCallsController::class, 'verify']);
