@@ -14,24 +14,55 @@ use Illuminate\Support\Facades\Log;
 class ApiCallsController extends Controller
 {
 
-    public function apiCallsDashboardStats()
+    //  public function apiCallsDashboardStats()
+    // {
+    //     $freshApiCalls = ApiCall::count();
+    //     $reusedCalls   = FromDb::count();
+
+    //     $totalRequests = $freshApiCalls + $reusedCalls;
+
+    //     $apiCallsSavedPercentage = $totalRequests > 0
+    //         ? round(($reusedCalls / $totalRequests) * 100)
+    //         : 0;
+
+    //     $deletedItinerariesCount = \App\Models\DeleteItinerary::count();
+    //     $totalItineraries = ItineraryData::count();
+
+    //     return response()->json([
+    //         'total_requests'   => $totalRequests,
+    //         'fresh_api_calls'  => $freshApiCalls,
+    //         'reused_calls'     => $reusedCalls,
+    //         'api_calls_saved'  => $apiCallsSavedPercentage . '%',
+    //         'deleted_itineraries_count' => $deletedItinerariesCount,
+    //         'total_itineraries' => $totalItineraries,
+    //     ]);
+    // }
+
+      public function apiCallsDashboardStats()
     {
         $freshApiCalls = ApiCall::count();
         $reusedCalls   = FromDb::count();
-    
+
         $totalRequests = $freshApiCalls + $reusedCalls;
-    
+
         $apiCallsSavedPercentage = $totalRequests > 0
             ? round(($reusedCalls / $totalRequests) * 100)
             : 0;
-    
+
+        $deletedItinerariesCount = \App\Models\DeleteItinerary::count();
+        $activeItinerariesCount  = \App\Models\ItineraryData::count();
+        $totalItineraries = $activeItinerariesCount + $deletedItinerariesCount;
+
         return response()->json([
             'total_requests'   => $totalRequests,
             'fresh_api_calls'  => $freshApiCalls,
             'reused_calls'     => $reusedCalls,
             'api_calls_saved'  => $apiCallsSavedPercentage . '%',
+            'deleted_itineraries_count' => $deletedItinerariesCount,
+            'total_itineraries' => $totalItineraries,
         ]);
     }
+
 
 //     public function getEmissionDetails(Request $request)
 // {

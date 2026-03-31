@@ -384,10 +384,27 @@ public function destroy(Request $request, string $id)
         ], 404);
     }
 
+    // Find user itineraries, and save to DeleteItinerary table
+    $itineraries = \App\Models\ItineraryData::where('userId', $id)->get();
+    
+    foreach ($itineraries as $itinerary) {
+        \App\Models\DeleteItinerary::create([
+            'origin' => $itinerary->origin,
+            'originCity' => $itinerary->originCity,
+            'destination' => $itinerary->destination,
+            'destinationCity' => $itinerary->destinationCity,
+            'class' => $itinerary->class,
+            'userName' => $user->userName,
+            'deleted_date' => now()->toDateString(),
+        ]);
+        
+        $itinerary->delete(); // Also delete the itinerary itself
+    }
+
     // Delete user
     $user->delete();
 
-    Log::info('User deleted successfully', [
+    Log::info('User and related itineraries deleted successfully', [
         'admin_id' => $admin->id,
         'deleted_user_id' => $id,
     ]);
