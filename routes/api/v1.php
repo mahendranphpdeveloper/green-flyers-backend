@@ -288,8 +288,6 @@ Route::get('/emission/from-db/details', [\App\Http\Controllers\ApiCallsControlle
 Route::post('/emission/verify', [\App\Http\Controllers\ApiCallsController::class, 'verify']);
 Route::post('/emission/store', [\App\Http\Controllers\ApiCallsController::class, 'storeEmission']);
 
-Route::post('/share', [\App\Http\Controllers\ShareController::class, 'store']);
-
 
 
 
