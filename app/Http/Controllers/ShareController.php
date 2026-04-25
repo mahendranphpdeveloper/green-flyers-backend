@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Share;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -10,41 +9,28 @@ class ShareController extends Controller
 {
     /**
      * Store a new share (API endpoint)
+     * Disabled for static testing
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'image' => 'required|image',
-            'type' => 'required|in:card,full',
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-        ]);
-
-        // Store the image locally in storage/app/public/shares
-        // Run 'php artisan storage:link' to make it accessible via web
-        $path = $request->file('image')->store('shares', 'public');
-        $imageUrl = asset('storage/' . $path);
-
-        $share = Share::create([
-            'type' => $request->type,
-            'title' => $request->title,
-            'description' => $request->description,
-            'image_url' => $imageUrl,
-        ]);
-
         return response()->json([
             'status' => true,
-            'id' => $share->id,
-            'url' => url("/share/{$share->id}")
-        ], 201);
+            'id' => rand(1, 100),
+            'message' => 'Static mode: Data not saved to database'
+        ], 200);
     }
 
     /**
-     * Show the share page (Web route with Bot Detection)
+     * Show the share page (Web route with Bot Detection - STATIC VERSION)
      */
     public function show($id)
     {
-        $data = Share::findOrFail($id);
+        // Static dummy data for testing without database
+        $data = (object)[
+            'title' => "My Green Journey - Shared Content #$id",
+            'description' => "I just offset my carbon emissions with Green Flyers! Join me in making the world a greener place.",
+            'image_url' => "https://greenflyers.com/assets/images/share-preview.png" 
+        ];
 
         $userAgent = request()->header('User-Agent');
         $isBot = preg_match('/facebook|twitter|whatsapp|linkedin|telegram|bot|crawl|slurp|spider/i', $userAgent);
