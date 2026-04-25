@@ -288,39 +288,17 @@ Route::get('/emission/from-db/details', [\App\Http\Controllers\ApiCallsControlle
 Route::post('/emission/verify', [\App\Http\Controllers\ApiCallsController::class, 'verify']);
 Route::post('/emission/store', [\App\Http\Controllers\ApiCallsController::class, 'storeEmission']);
 
+Route::post('/share', [\App\Http\Controllers\ShareController::class, 'store']);
 
-Route::get("/share/{id}", function ($id) {
-    // This is a dummy implementation. 
-    // You can replace this with a database query, e.g., $data = \App\Models\ItineraryData::find($id);
-    
-    $data = (object)[
-        'title' => "My Green Journey - Itinerary #$id",
-        'description' => "I just offset my carbon emissions with Green Flyers! Join me in making the world a greener place.",
-        'imageUrl' => "https://greenflyers.com/assets/images/share-preview.png"
-    ];
 
-    return response("
-    <!DOCTYPE html>
-    <html lang=\"en\">
-      <head>
-        <meta charset=\"UTF-8\">
-        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
-        <meta property=\"og:title\" content=\"{$data->title}\" />
-        <meta property=\"og:description\" content=\"{$data->description}\" />
-        <meta property=\"og:image\" content=\"{$data->imageUrl}\" />
-        <meta property=\"og:type\" content=\"website\" />
-        <title>{$data->title}</title>
-      </head>
-      <body>
-        <p>Redirecting to dashboard...</p>
-        <script>
-          // Redirect to the frontend dashboard
-          window.location.href = \"/dashboard\";
-        </script>
-      </body>
-    </html>
-    ")->header('Content-Type', 'text/html');
-});
+
+
+
+
+
+
+
+
 
 
 
