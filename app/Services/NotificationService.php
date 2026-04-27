@@ -119,6 +119,12 @@ class NotificationService
             $htmlTemplate
         );
 
+        Log::info('MAIL ATTEMPT (Reminder)', [
+            'time' => now()->toDateTimeString(),
+            'email' => $user->userEmail ?? 'N/A',
+            'itinerary_id' => $itinerary->ItineraryId
+        ]);
+
         try {
 
             Mail::html($htmlMessage, function ($mail) use ($user, $title) {

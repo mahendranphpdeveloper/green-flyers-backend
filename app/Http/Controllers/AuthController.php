@@ -122,6 +122,11 @@ class AuthController extends Controller
     </body>
     </html>';
 
+        Log::info('MAIL ATTEMPT (OTP)', [
+            'time' => now()->toDateTimeString(),
+            'email' => $email
+        ]);
+
         Mail::html($html, function ($mail) use ($email) {
             $mail->to($email)->subject('Your OTP Verification Code');
         });
