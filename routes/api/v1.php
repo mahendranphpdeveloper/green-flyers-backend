@@ -291,6 +291,23 @@ Route::post('/emission/store', [\App\Http\Controllers\ApiCallsController::class,
 
 
 
+// Route to check if OG tags are ready on a specific URL
+Route::get('/og-ready', function (Request $request) {
+    $url = $request->query('url');
+    if (!$url) {
+        return response()->json(['ready' => false, 'message' => 'No URL provided']);
+    }
+    
+    try {
+        $response = Http::timeout(5)->get($url);
+        $html = $response->body();
+        return response()->json([
+            'ready' => str_contains($html, 'og:image') && str_contains($html, 'og:title')
+        ]);
+    } catch (\Exception $e) {
+        return response()->json(['ready' => false, 'error' => $e->getMessage()]);
+    }
+});
 
 
 
@@ -299,4 +316,15 @@ Route::post('/emission/store', [\App\Http\Controllers\ApiCallsController::class,
 
 
 
+
+    Route::prefix('social-meta-tags')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SocialMetaTagController::class, 'index']);
+        Route::post('/', [\App\Http\Controllers\SocialMetaTagController::class, 'store']);
+        Route::get('/{id}', [\App\Http\Controllers\SocialMetaTagController::class, 'show']);
+        Route::put('/{id}', [\App\Http\Controllers\SocialMetaTagController::class, 'update']);
+        Route::delete('/{id}', [\App\Http\Controllers\SocialMetaTagController::class, 'destroy']);
+    });
+
+    // User-Specific Shares (with unique screenshots)
+    Route::post('/user-shares', [\App\Http\Controllers\SocialMetaTagController::class, 'storeUserShare']);
 
