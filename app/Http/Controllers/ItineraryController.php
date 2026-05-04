@@ -830,16 +830,36 @@ class ItineraryController extends Controller
         }
 
         /** ---------------- CHANGE DETECTION ---------------- */
-        // Check if emission-sensitive fields have changed
+        // Use Carbon to compare dates accurately regardless of format (Y-m-d vs Y-m-d H:i:s)
+        $existingDate = \Illuminate\Support\Carbon::parse($itinerary->date)->format('Y-m-d');
+        $newDate = \Illuminate\Support\Carbon::parse($validated['date'])->format('Y-m-d');
+
+        // Handle null vs empty string for cities
+        $existingOriginCity = $itinerary->originCity ? trim($itinerary->originCity) : null;
+        $newOriginCity = !empty($validated['originCity']) ? trim($validated['originCity']) : null;
+
+        $existingDestCity = $itinerary->destinationCity ? trim($itinerary->destinationCity) : null;
+        $newDestCity = !empty($validated['destinationCity']) ? trim($validated['destinationCity']) : null;
+
         $hasRouteChanged = (
-            $itinerary->origin !== $validated['origin'] ||
-            $itinerary->destination !== $validated['destination'] ||
-            $itinerary->date != $validated['date'] ||
-            $itinerary->class !== $validated['class'] ||
-            ($itinerary->originCity ?? null) !== ($validated['originCity'] ?? null) ||
-            ($itinerary->destinationCity ?? null) !== ($validated['destinationCity'] ?? null) ||
-            $itinerary->passengers != $validated['passengers']
+            (string)$itinerary->origin !== (string)$validated['origin'] ||
+            (string)$itinerary->destination !== (string)$validated['destination'] ||
+            $existingDate !== $newDate ||
+            (string)$itinerary->class !== (string)$validated['class'] ||
+            $existingOriginCity !== $newOriginCity ||
+            $existingDestCity !== $newDestCity ||
+            (int)$itinerary->passengers !== (int)$validated['passengers']
         );
+
+        Log::info('Itinerary Change Detection Details:', [
+            'origin_changed' => (string)$itinerary->origin !== (string)$validated['origin'],
+            'dest_changed'   => (string)$itinerary->destination !== (string)$validated['destination'],
+            'date_changed'   => $existingDate !== $newDate,
+            'class_changed'  => (string)$itinerary->class !== (string)$validated['class'],
+            'cities_changed' => ($existingOriginCity !== $newOriginCity || $existingDestCity !== $newDestCity),
+            'pass_changed'   => (int)$itinerary->passengers !== (int)$validated['passengers'],
+            'FINAL_hasRouteChanged' => $hasRouteChanged
+        ]);
 
         DB::transaction(function () use ($itinerary, $validated, $hasRouteChanged) {
 
