@@ -132,6 +132,7 @@ class SocialMetaTagController extends Controller
     public function storeUserShare(Request $request)
     {
         $validator = Validator::make($request->all(), [
+            'user_id' => 'required|exists:userdata,userId', // Associated with userdata table
             'social_meta_tag_id' => 'required|exists:social_meta_tags,id',
             'image' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120', // Max 5MB
             'shared_url' => 'nullable|string',
@@ -145,21 +146,51 @@ class SocialMetaTagController extends Controller
             ], 422);
         }
 
-        Log::info('Storing new user share', [
+        Log::info('Storing user share', [
+            'user_id' => $request->user_id,
             'social_meta_tag_id' => $request->social_meta_tag_id,
             'has_image' => $request->hasFile('image'),
             'shared_url' => $request->shared_url
         ]);
 
-        // Store the image and use the path that works on your server
+        // Check if a share already exists for this user and meta tag
+        $userShare = UserShare::where('user_id', $request->user_id)
+                             ->where('social_meta_tag_id', $request->social_meta_tag_id)
+                             ->first();
+
+        // Delete old image if it exists
+        if ($userShare && $userShare->image_path) {
+            // Extract the relative path from the URL (ends with shares/filename)
+            $oldFilename = basename($userShare->image_path);
+            $oldRelativePath = 'shares/' . $oldFilename;
+            
+            if (Storage::disk('public')->exists($oldRelativePath)) {
+                Storage::disk('public')->delete($oldRelativePath);
+                Log::info('Deleted old user share image', ['path' => $oldRelativePath]);
+            }
+        }
+
+        // Store the new image
         $path = $request->file('image')->store('shares', 'public');
         $imageUrl = asset('storage/app/public/' . $path);
 
-        $userShare = UserShare::create([
-            'social_meta_tag_id' => $request->social_meta_tag_id,
-            'image_path' => $imageUrl,
-            'shared_url' => $request->shared_url,
-        ]);
+        if ($userShare) {
+            // Update existing record
+            $userShare->update([
+                'image_path' => $imageUrl,
+                'shared_url' => $request->shared_url,
+            ]);
+            Log::info('Updated existing user share', ['share_id' => $userShare->id]);
+        } else {
+            // Create new record
+            $userShare = UserShare::create([
+                'user_id' => $request->user_id,
+                'social_meta_tag_id' => $request->social_meta_tag_id,
+                'image_path' => $imageUrl,
+                'shared_url' => $request->shared_url,
+            ]);
+            Log::info('Created new user share', ['share_id' => $userShare->id]);
+        }
 
         // Load relationship to include meta data in response
         $userShare->load('metaTag');

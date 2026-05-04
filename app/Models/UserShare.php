@@ -12,6 +12,7 @@ class UserShare extends Model
     protected $table = 'user_shares';
 
     protected $fillable = [
+        'user_id',
         'social_meta_tag_id',
         'image_path',
         'shared_url',
