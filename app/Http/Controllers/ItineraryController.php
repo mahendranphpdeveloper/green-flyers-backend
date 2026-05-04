@@ -789,7 +789,8 @@ class ItineraryController extends Controller
             'flightcode' => 'nullable|string|max:255',
             'originCity' => 'nullable|string|max:255',
             'destinationCity' => 'nullable|string|max:255',
-            'emission' => 'nullable|numeric|min:0',
+            'emission' => 'required|numeric|min:0',
+            'co2_per_passenger' => 'nullable|numeric|min:0',
 
             /** FRONTEND VALUE */
             'totalTrees' => 'nullable|integer|min:0',
@@ -809,6 +810,7 @@ class ItineraryController extends Controller
                     }
                 }
             ],
+            'status' => 'required|string|max:255',
         ]);
 
         /** ---------------- USER OWNERSHIP ---------------- */
@@ -828,8 +830,58 @@ class ItineraryController extends Controller
         }
 
         DB::transaction(function () use ($itinerary, $validated) {
-            /** ---------------- UPDATE ITINERARY ---------------- */
-            $itinerary->update($validated);
+
+            $co2PerPassenger = $validated['co2_per_passenger'] ?? 0;
+            $totalEmission   = $co2PerPassenger * $validated['passengers'];
+
+            /** ---------------- Check if value exists in api_calls (Reuse logic) ---------------- */
+            $apiCall = \App\Models\ApiCall::where([
+                'origin'      => $validated['origin'],
+                'destination' => $validated['destination'],
+                'travel_date' => $validated['date'],
+                'cabin_class' => $validated['class'],
+                'originCity'  => $validated['originCity'] ?? null,
+                'destinationCity' => $validated['destinationCity'] ?? null,
+            ])->first();
+
+            if ($apiCall) {
+                // ---------------- EXISTING DB VALUE → store in from_db ----------------
+                \App\Models\FromDb::create([
+                    'api_call_id'        => $apiCall->id,
+                    'origin'             => $validated['origin'],
+                    'originCity'         => $validated['originCity'] ?? null,
+                    'destination'        => $validated['destination'],
+                    'destinationCity'    => $validated['destinationCity'] ?? null,
+                    'travel_date'        => $validated['date'],
+                    'cabin_class'        => $validated['class'],
+                    'co2_per_passenger'  => $co2PerPassenger,
+                    'used_at'            => now()->toDateTimeString(),
+                    'used_by_user'       => $validated['userId'],
+                    'passengers'         => $validated['passengers'],
+                ]);
+                Log::info('Itinerary update: Reused API call data', ['api_call_id' => $apiCall->id]);
+            } else {
+                // ---------------- FIRST TIME TIM API → store in api_calls ----------------
+                $apiCall = \App\Models\ApiCall::create([
+                    'origin'            => $validated['origin'],
+                    'originCity'        => $validated['originCity'] ?? null,
+                    'destination'       => $validated['destination'],
+                    'destinationCity'   => $validated['destinationCity'] ?? null,
+                    'travel_date'       => $validated['date'],
+                    'cabin_class'       => $validated['class'],
+                    'co2_per_passenger' => $co2PerPassenger,
+                    'source'            => 'tim',
+                    'reuse_history'     => json_encode([]),
+                ]);
+                Log::info('Itinerary update: Created new API call entry', ['api_call_id' => $apiCall->id]);
+            }
+
+            /** ---------------- UPDATE THE ITINERARY ROW ---------------- */
+            $itinerary->update([
+                ...$validated,
+                'emission' => $totalEmission,
+                // Status is handled by $validated['status']
+            ]);
         });
 
         /** ---------------- RESPONSE ---------------- */
