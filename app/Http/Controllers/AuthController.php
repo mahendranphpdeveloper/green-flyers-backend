@@ -40,12 +40,16 @@ class AuthController extends Controller
         // NEW USER → CREATE
         // =========================
         if (!$user) {
-            Log::warning('OTP request for non-existent user', ['email' => $email]);
+            Log::info('New user - creating record', ['email' => $email]);
 
-            return response()->json([
-                'status' => false,
-                'message' => 'User does not exist. Please contact your administrator.',
-            ], 404);
+            $user = User::create([
+                'userEmail' => $email,
+                'otp_code' => (string) $otp,
+                'otp_expires_at' => $expiresAt,
+            ]);
+
+            $action = 'VERIFY_OTP_REGISTER';
+            $isNewUser = true;
         }
         // =========================
         // EXISTING USER
@@ -118,6 +122,11 @@ class AuthController extends Controller
     </body>
     </html>';
 
+        Log::info('MAIL ATTEMPT (OTP)', [
+            'time' => now()->toDateTimeString(),
+            'email' => $email
+        ]);
+
         Mail::html($html, function ($mail) use ($email) {
             $mail->to($email)->subject('Your OTP Verification Code');
         });
@@ -148,8 +157,10 @@ class AuthController extends Controller
         if (!$user) {
             return response()->json([
                 'status' => false,
-                'message' => 'User not found.',
-            ], 404);
+                'message' => 'New user',
+                'is_new_user' => true,
+                'userEmail' => $request->email
+            ], 200);
         }
 
         $isNewUser = $user->is_new_user == 1;
