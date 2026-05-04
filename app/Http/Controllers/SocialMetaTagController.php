@@ -166,21 +166,57 @@ class SocialMetaTagController extends Controller
 
         return response()->json([
             'status' => true,
-            'message' => 'User share stored successfully.',
-            'share_url' => url('/share/' . $userShare->id), // This is the link to share on social media
             'data' => [
-                'share_id' => $userShare->id,
-                'title' => $userShare->metaTag->title ?? '',
-                'description' => $userShare->metaTag->description ?? '',
-                'image_url' => $userShare->image_path
+                'shared_url' => url('/share/'.$userShare->id),
             ]
         ]);
     }
 
     /**
-     * Handle social media sharing with bot detection and redirection.
+     * Handle social media sharing (Testing mode: Always returns Meta Tags).
      */
-    public function share($id)
+    // public function share($id)
+    // {
+    //     $userShare = UserShare::with('metaTag')->find($id);
+
+    //     if (!$userShare || !$userShare->metaTag) {
+    //         abort(404);
+    //     }
+
+    //     $title = $userShare->metaTag->title;
+    //     $description = $userShare->metaTag->description;
+    //     $image = $userShare->image_path;
+
+    //     return response("
+    //     <!DOCTYPE html>
+    //     <html>
+    //     <head>
+    //         <meta charset='UTF-8'>
+    //         <title>{$title}</title>
+    //         <meta property='og:title' content='{$title}' />
+    //         <meta property='og:description' content='{$description}' />
+    //         <meta property='og:image' content='{$image}' />
+    //         <meta property='og:url' content='" . url()->current() . "' />
+    //         <meta property='og:type' content='website' />
+
+    //         <meta name='twitter:card' content='summary_large_image'>
+    //         <meta name='twitter:title' content='{$title}'>
+    //         <meta name='twitter:description' content='{$description}'>
+    //         <meta name='twitter:image' content='{$image}'>
+    //     </head>
+
+    //     <body style='display:flex; flex-direction: column; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; text-align: center; padding: 20px;'>
+    //         <img src='{$image}' style='max-width: 300px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);'>
+    //         <h1>Welcome to Green Flyers 🌱</h1>
+    //         <h2 style='color: #2e7d32;'>{$title}</h2>
+    //         <p style='max-width: 600px; color: #666;'>{$description}</p>
+    //         <p style='margin-top: 20px; font-weight: bold;'>Join us in offsetting carbon emissions and building a greener future.</p>
+    //     </body>
+    //     </html>
+    //     ", 200)->header('Content-Type', 'text/html');
+    // }
+
+	public function share($id)
     {
         $userShare = UserShare::with('metaTag')->find($id);
 
@@ -191,7 +227,7 @@ class SocialMetaTagController extends Controller
         $title = $userShare->metaTag->title;
         $description = $userShare->metaTag->description;
         $image = $userShare->image_path;
-        $redirectUrl = $userShare->shared_url ?? 'https://jayamdesigners.co.in/green-flyers16';
+        $redirectUrl = $userShare->shared_url ?? 'https://jayam.co.in/green-flyers16';
 
         $userAgent = request()->header('User-Agent');
 
