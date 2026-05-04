@@ -216,60 +216,144 @@ class SocialMetaTagController extends Controller
     //     ", 200)->header('Content-Type', 'text/html');
     // }
 
-	public function share($id)
-    {
-        $userShare = UserShare::with('metaTag')->find($id);
+	// public function share($id)
+    // {
+    //     $userShare = UserShare::with('metaTag')->find($id);
 
-        if (!$userShare || !$userShare->metaTag) {
-            abort(404);
-        }
+    //     if (!$userShare || !$userShare->metaTag) {
+    //         abort(404);
+    //     }
 
-        $title = $userShare->metaTag->title;
-        $description = $userShare->metaTag->description;
-        $image = $userShare->image_path;
-        $redirectUrl = $userShare->shared_url ?? 'https://jayam.co.in/green-flyers16';
+    //     $title = $userShare->metaTag->title;
+    //     $description = $userShare->metaTag->description;
+    //     $image = $userShare->image_path;
+    //     $redirectUrl = $userShare->shared_url ?? 'https://jayamdesigners.co.in/green-flyers16';
 
-        $userAgent = request()->header('User-Agent');
+    //     $userAgent = request()->header('User-Agent');
 
-        // Detect social media bots
-        $isBot = preg_match('/facebook|twitter|whatsapp|linkedin|telegram|discord|slack|messenger|googlebot|bingbot/i', $userAgent);
+    //     // Detect social media bots
+    //     $isBot = preg_match('/facebook|twitter|whatsapp|linkedin|telegram|discord|slack|messenger|googlebot|bingbot/i', $userAgent);
 
-        Log::info('Social share access', [
-            'share_id' => $id,
-            'is_bot' => $isBot,
-            'user_agent' => $userAgent,
-            'meta_data' => ['title' => $title],
-            'redirecting_to' => $isBot ? 'Preview HTML' : $redirectUrl
-        ]);
+    //     Log::info('Social share access', [
+    //         'share_id' => $id,
+    //         'is_bot' => $isBot,
+    //         'user_agent' => $userAgent,
+    //         'meta_data' => ['title' => $title],
+    //         'redirecting_to' => $isBot ? 'Preview HTML' : $redirectUrl
+    //     ]);
 
-        if ($isBot) {
-            return response("
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset='UTF-8'>
-                <title>{$title}</title>
-                <meta property='og:title' content='{$title}' />
-                <meta property='og:description' content='{$description}' />
-                <meta property='og:image' content='{$image}' />
-                <meta property='og:url' content='" . url()->current() . "' />
-                <meta property='og:type' content='website' />
+    //     if ($isBot) {
+    //         return response("
+    //         <!DOCTYPE html>
+    //         <html>
+    //         <head>
+    //             <meta charset='UTF-8'>
+    //             <title>{$title}</title>
+    //             <meta property='og:title' content='{$title}' />
+    //             <meta property='og:description' content='{$description}' />
+    //             <meta property='og:image' content='{$image}' />
+    //             <meta property='og:url' content='" . url()->current() . "' />
+    //             <meta property='og:type' content='website' />
 
-                <meta name='twitter:card' content='summary_large_image'>
-                <meta name='twitter:title' content='{$title}'>
-                <meta name='twitter:description' content='{$description}'>
-                <meta name='twitter:image' content='{$image}'>
-            </head>
-            <body>
-                <h1>{$title}</h1>
-                <img src='{$image}'>
-                <p>{$description}</p>
-            </body>
-            </html>
-            ", 200)->header('Content-Type', 'text/html');
-        }
+    //             <meta name='twitter:card' content='summary_large_image'>
+    //             <meta name='twitter:title' content='{$title}'>
+    //             <meta name='twitter:description' content='{$description}'>
+    //             <meta name='twitter:image' content='{$image}'>
+    //         </head>
+    //         <body>
+    //             <h1>{$title}</h1>
+    //             <img src='{$image}'>
+    //             <p>{$description}</p>
+    //         </body>
+    //         </html>
+    //         ", 200)->header('Content-Type', 'text/html');
+    //     }
 
-        // Real users will be redirected to the actual frontend page
-        return redirect($redirectUrl);
+    //     // Real users will be redirected to the actual frontend page
+    //     return redirect($redirectUrl);
+    // }
+
+    public function share($id)
+{
+    $userShare = UserShare::with('metaTag')->find($id);
+
+    if (!$userShare || !$userShare->metaTag) {
+        abort(404);
     }
+
+    // ✅ escaped values
+    $title = e($userShare->metaTag->title ?? '');
+    $description = e($userShare->metaTag->description ?? '');
+
+    // ✅ Make sure image is absolute URL
+    $image = $userShare->image_path;
+    if (!str_starts_with($image, 'http')) {
+        $image = asset($image);
+    }
+
+    $redirectUrl = $userShare->shared_url ?? 'https://jayamdesigners.co.in/green-flyers16';
+
+    $userAgent = request()->header('User-Agent') ?? '';
+
+    // ✅ Improved bot detection
+    $isBot = preg_match('/facebookexternalhit|Facebot|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|Slackbot|Discordbot|Googlebot|bingbot/i', $userAgent);
+
+    \Log::info('Social share access', [
+        'share_id' => $id,
+        'is_bot' => (bool)$isBot,
+        'user_agent' => $userAgent,
+        'title' => $title,
+        'description' => $description,
+    ]);
+
+    // ✅ BOT: Return metadata page
+    if ($isBot) {
+
+        $html = "
+        <!DOCTYPE html>
+        <html lang='en'>
+        <head>
+            <meta charset='UTF-8'>
+            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+
+            <title>{$title}</title>
+
+            <!-- Primary Meta -->
+            <meta name='title' content='{$title}'>
+            <meta name='description' content='{$description}'>
+
+            <!-- Open Graph / Facebook / LinkedIn -->
+            <meta property='og:type' content='website'>
+            <meta property='og:url' content='" . url()->current() . "'>
+            <meta property='og:title' content='{$title}'>
+            <meta property='og:description' content='{$description}'>
+            <meta property='og:image' content='{$image}'>
+            <meta property='og:site_name' content='Green Flyers'>
+
+            <!-- Twitter -->
+            <meta name='twitter:card' content='summary_large_image'>
+            <meta name='twitter:url' content='" . url()->current() . "'>
+            <meta name='twitter:title' content='{$title}'>
+            <meta name='twitter:description' content='{$description}'>
+            <meta name='twitter:image' content='{$image}'>
+        </head>
+        <body>
+            <h1>{$title}</h1>
+            <p>{$description}</p>
+            <img src='{$image}' alt='preview'>
+        </body>
+        </html>
+        ";
+
+        return response($html, 200)
+            ->header('Content-Type', 'text/html; charset=UTF-8')
+            ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0')
+            ->header('Accept-Ranges', 'none'); // 🔥 prevents 206 issue
+    }
+
+    // ✅ REAL USER: redirect
+    return redirect()->away($redirectUrl);
+}
 }
