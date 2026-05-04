@@ -283,7 +283,20 @@ class SocialMetaTagController extends Controller
 
     // ✅ escaped values
     $title = e($userShare->metaTag->title ?? '');
-    $description = e($userShare->metaTag->description ?? '');
+    
+    // 🔥 BULLETPROOF DESCRIPTION FIX
+    $rawDescription = $userShare->metaTag->description ?? '';
+    
+    // Debug log to check raw data
+    \Log::info('DESC CHECK', [
+        'raw' => $rawDescription
+    ]);
+
+    $description = strip_tags($rawDescription);      // remove HTML
+    $description = html_entity_decode($description); // decode entities
+    $description = trim($description);               // remove whitespace
+    $description = substr($description, 0, 200);     // limit length for LinkedIn
+    $description = e($description);                  // final escape for HTML
 
     // ✅ Make sure image is absolute URL
     $image = $userShare->image_path;
@@ -295,12 +308,14 @@ class SocialMetaTagController extends Controller
 
     $userAgent = request()->header('User-Agent') ?? '';
 
-    // ✅ Improved bot detection
+    // ✅ Improved bot detection (Explicitly check LinkedIn)
     $isBot = preg_match('/facebookexternalhit|Facebot|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|Slackbot|Discordbot|Googlebot|bingbot/i', $userAgent);
+    $isLinkedIn = strpos($userAgent, 'LinkedInBot') !== false;
 
     \Log::info('Social share access', [
         'share_id' => $id,
         'is_bot' => (bool)$isBot,
+        'is_linkedin' => $isLinkedIn,
         'user_agent' => $userAgent,
         'title' => $title,
         'description' => $description,
