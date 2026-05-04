@@ -9,6 +9,7 @@ return [
     'allowed_origins' => [
         'http://localhost:5173',
         'https://jayamdesigners.co.in',
+        'http://localhost:5174',
     ],
 
     'allowed_headers' => ['*'],
